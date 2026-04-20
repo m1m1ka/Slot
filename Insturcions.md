@@ -1,4 +1,4 @@
-# Instructions（Insturcions，AI开发指引）
+# Instructions（AI开发指引）
 
 本文件用于在仓库本地为 AI 提供统一开发约束，核心规则如下：
 
