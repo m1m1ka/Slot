@@ -62,10 +62,37 @@ Assets/Scripts/
 
 ---
 
-## 4. 后续开发建议
+## 4. 老虎机实体与挂机机制架构设计
+
+为了支持无穷种类的老虎机（例如：1x3单线、3x3多线、特殊Scatter计算等）以及性能攸关的**下线挂机收益与屏幕外裁剪计算**，我们在底层代码设计上强制采用**数据驱动**与**生命周期分离**机制。
+
+### 4.1. 老虎机核心 MVC 划分
+*   **Model (`SlotMachineModel.cs`)**：
+    纯 C# 类，只负责存储当前老虎机的**等级 (Level)**、**状态 (Idle/Spinning/Cooldown/Auto)** 以及**当前的矩阵开奖结果 (`int[,] CurrentGrid`)**。并通过事件向外广播状态改变。
+*   **View (`SlotMachineView.cs`)**：
+    挂载在老虎机 3D 预制体上的 `MonoBehaviour`。本质是“皮囊”，负责动画表现（摇杆拉动、转轮旋转动画）和监听用户的 3D 点击交互，并把点击意图抛给对应的 Controller。
+*   **Controller (`SlotMachineController.cs`)**：
+    纯 C# 逻辑大脑（或者由上层 `MainGameController` 持有的轻量级对象）。每个被购买的老虎机都会永久持有一个对应的 Controller 实例。Controller 内部监听 Model 的状态变化并计算中奖概率及金币派发。
+
+### 4.2. 动态计算机制与策略模式 (Strategy Pattern)
+由于各种老虎机连线判赢规则差异巨大，我们严禁在 Controller 内部堆砌 `if-else`。  
+利用 **策略模式**：创建一个只负责纯计算的接口 `ISlotEvaluator`。针对不同的老虎机（单线、九线），创建不同的实现类（如 `LineMatchEvaluator`），并在初始化 `SlotMachineController` 时根据配置表（`SlotMachineConfig`）动态注入其所需计算规则策略即可。
+
+### 4.3. 屏幕外休眠与离线挂机核心思想
+为了保证大量老虎机同时触发不会引发内存耗尽或卡顿：
+1. **View 与 Controller 生命周期的解耦**：
+   * **在视口内**：Controller 正常获取到对应的 3D `SlotMachineView` 表现层实体，并驱使其播放转轮动画。
+   * **滑出视口 (Off-screen)**：为了节省渲染开销，`SlotMachineView` 必须被对象池 (`PoolManager`) 回收销毁，只保留唯一的 Controller 实力常驻后台。
+   * **离线挂机后台结算**：即使 `View` 为 null，`Controller` 内部仍然按照配置好的**冷却时间**和**摇奖概率**，在纯后台悄无声息地进行结算判断（`RequestSpin()`），并根据策略结果更新玩家全局金额属性，实现真假挂机的无缝过渡。
+2. **唯一销毁出口**：
+   * 只有当玩家选择**主动出售该老虎机**时，对应的 `SlotMachineController` 才可以被释放卸载，清理掉内存占用，终止该老虎机的后台收益机制。
+
+---
+
+## 5. 后续开发建议
 
 1.  **引入事件总线（Event Bus）**：对于跨模块的系统（例如：成就系统需要知道玩家杀死了怪物），直接的Delegate耦合可能不够，建议在 `Core` 目录下实现全局事件驱动。
 2.  **避免神级Controller**：采用职责单一原则，分为 `PlayerController`, `EnemyController`, `GamePlayManager`, `LevelController` 等。
 3.  **UI隔离**：将主操作UI与对应的玩家GameObject分离，通过MVC逻辑层解耦。
 
-遵循以上规范，即可极大程度保障你在这个2D项目中各个系统的独立性。
+遵循以上规范，即可极大程度保障你在这个2D/3D挂机增量项目中各个系统的独立性与极高的性能可扩展性。
