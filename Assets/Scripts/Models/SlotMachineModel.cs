@@ -18,6 +18,10 @@ public enum SlotState
 /// </summary>
 public class SlotMachineModel
 {
+    // 用于区分“同一型号”老虎机的唯一实例ID (例如多台机器的型号都是1)
+    public string InstanceId { get; private set; }
+    
+    // 老虎机的配表ID / 型号ID
     public int SlotId { get; private set; }
     public int Level { get; private set; }
     public SlotState State { get; private set; }
@@ -30,6 +34,9 @@ public class SlotMachineModel
 
     public SlotMachineModel(int slotId, int columns, int rows, int initialLevel = 1)
     {
+        // 每次实例化时，赋予一个全局唯一的字符串标识
+        InstanceId = Guid.NewGuid().ToString();
+        
         SlotId = slotId;
         Level = initialLevel;
         State = SlotState.Idle;
