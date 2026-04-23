@@ -1,5 +1,5 @@
 using UnityEngine;
-
+using UI;
 /// <summary>
 /// 游戏全局生命周期入口与管理器。
 /// 负责全局设置、核心系统初始化及游戏首屏流程。
@@ -56,13 +56,14 @@ public class GameManager : MonoBehaviour
         // 方案一：如果你的 UIManager 支持通过名称从 Resources/UI/ 动态加载面板：
         // UIManager.Instance.OpenPanel("MainGamePanel");
 
+        UIManager.Instance.ShowPanel<MainGamePanel>(closeOthers: true);
         // 方案二：作为MVC的中枢入口，我们动态创建全局逻辑控制器 MainGameController
         // 然后交由 MainGameController 去利用 UIManager 或者资源池请求它的 View (MainGamePanel)
-        GameObject controllerObj = new GameObject("MainGameController");
-        controllerObj.transform.SetParent(this.transform);
+        // GameObject controllerObj = new GameObject("MainGameController");
+        // controllerObj.transform.SetParent(this.transform);
         
-        // 挂载我们之前写好的主控制器
-        MainGameController mainGameController = controllerObj.AddComponent<MainGameController>();
+        // // 挂载我们之前写好的主控制器
+        // MainGameController mainGameController = controllerObj.AddComponent<MainGameController>();
         
         // （视你当前 UIManager 封装实现而定，如果需要也可以直接在此处调用 UIManager 开启界面的接口）
     }
