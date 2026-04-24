@@ -36,6 +36,8 @@ public class MainGamePanel : UIPanel
     private CanvasGroup _focusOverlayCanvasGroup;
     private Image _focusOverlayImage;
     private Tween _focusOverlayTween;
+    [SerializeField] private ScratchCardFocusPanelView _configuredFocusPanelView;
+    private ScratchCardFocusPanelView _focusPanelView;
 
     // 如果面板上有通用的点击按钮，可以通过事件向Controller抛出
     // public event Action OnSomeGlobalButtonClicked;
@@ -54,7 +56,7 @@ public class MainGamePanel : UIPanel
         }
     }
 
-    public void ShowScratchCardFocusOverlay(RectTransform focusedCard)
+    public void ShowScratchCardFocusOverlay(RectTransform focusedCard, ScratchCardFocusPanelModel focusPanelModel = null)
     {
         EnsureFocusOverlay();
         if (_focusOverlayCanvasGroup == null)
@@ -75,6 +77,11 @@ public class MainGamePanel : UIPanel
         {
             MoveScratchCardToOverlayLayer(focusedCard);
         }
+
+        if (focusPanelModel != null)
+        {
+            ShowScratchCardFocusPanel(focusPanelModel);
+        }
     }
 
     public void HideScratchCardFocusOverlay()
@@ -94,6 +101,30 @@ public class MainGamePanel : UIPanel
                 _focusOverlayCanvasGroup.gameObject.SetActive(false);
                 _focusOverlayTween = null;
             });
+
+        HideScratchCardFocusPanel();
+    }
+
+    public void ShowScratchCardFocusPanel(ScratchCardFocusPanelModel model)
+    {
+        EnsureFocusOverlay();
+        EnsureFocusPanel();
+        if (_focusPanelView == null)
+        {
+            return;
+        }
+
+        _focusPanelView.Bind(model);
+        _focusPanelView.Show();
+        _focusPanelView.transform.SetAsLastSibling();
+    }
+
+    public void HideScratchCardFocusPanel()
+    {
+        if (_focusPanelView != null)
+        {
+            _focusPanelView.Hide();
+        }
     }
 
     public Vector2 GetRandomScratchCardAnchoredPosition(float margin = 120f)
@@ -187,6 +218,31 @@ public class MainGamePanel : UIPanel
         _focusOverlayImage.raycastTarget = true;
 
         overlayObject.SetActive(false);
+    }
+
+    private void EnsureFocusPanel()
+    {
+        if (_focusPanelView != null || _focusOverlayRoot == null)
+        {
+            return;
+        }
+
+        if (_configuredFocusPanelView != null)
+        {
+            _focusPanelView = _configuredFocusPanelView;
+            return;
+        }
+
+        _focusPanelView = _focusOverlayRoot.GetComponentInChildren<ScratchCardFocusPanelView>(true);
+        if (_focusPanelView != null)
+        {
+            return;
+        }
+
+        GameObject panelObject = new GameObject("ScratchCardFocusPanel", typeof(RectTransform), typeof(CanvasGroup));
+        panelObject.transform.SetParent(_focusOverlayRoot, false);
+        _focusPanelView = panelObject.AddComponent<ScratchCardFocusPanelView>();
+        _focusPanelView.Hide(true);
     }
 
     // 后续可以增加动态实例化子项的方法

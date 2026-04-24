@@ -2,6 +2,7 @@ using UnityEngine;
 using UI; // 引入 UIManager 所在的空间
 using Core; // 引入 PoolManager
 using System.Collections.Generic;
+using Configs;
 
 /// <summary>
 /// 控制层：挂载在 MainGamePanel 预制体上，获取同级 View 引用。
@@ -245,7 +246,7 @@ public class MainGameController : MonoBehaviour
         if (focused)
         {
             RectTransform focusedTransform = scratchCard != null ? scratchCard.transform as RectTransform : null;
-            _mainGamePanel.ShowScratchCardFocusOverlay(focusedTransform);
+            _mainGamePanel.ShowScratchCardFocusOverlay(focusedTransform, BuildFocusPanelModel(scratchCard));
             return;
         }
 
@@ -268,7 +269,7 @@ public class MainGameController : MonoBehaviour
                 state == ScratchCardModel.ScratchCardState.Scratching ||
                 state == ScratchCardModel.ScratchCardState.Completed)
             {
-                _mainGamePanel.ShowScratchCardFocusOverlay(card.transform as RectTransform);
+                _mainGamePanel.ShowScratchCardFocusOverlay(card.transform as RectTransform, BuildFocusPanelModel(card));
                 hasOtherFocusedCard = true;
                 break;
             }
@@ -278,5 +279,64 @@ public class MainGameController : MonoBehaviour
         {
             _mainGamePanel.HideScratchCardFocusOverlay();
         }
+    }
+
+    private ScratchCardFocusPanelModel BuildFocusPanelModel(ScratchCardController scratchCard)
+    {
+        ScratchCardModel model = scratchCard != null ? scratchCard.Model : null;
+        if (model == null)
+        {
+            return null;
+        }
+
+        ScratchCardTypeConfig cardTypeConfig = ScratchCardDefaultsProvider.GetCardType(model.CardTypeId);
+        if (cardTypeConfig == null)
+        {
+            return null;
+        }
+
+        ScratchPatternPoolConfig poolConfig = ScratchCardDefaultsProvider.GetPatternPool(cardTypeConfig.PatternPoolId);
+        if (poolConfig == null || poolConfig.Entries == null || poolConfig.Entries.Count == 0)
+        {
+            return new ScratchCardFocusPanelModel(cardTypeConfig.Name, "No Pattern Pool", new List<ScratchCardFocusPatternInfo>());
+        }
+
+        int totalWeight = 0;
+        for (int i = 0; i < poolConfig.Entries.Count; i++)
+        {
+            ScratchPatternPoolEntryConfig entry = poolConfig.Entries[i];
+            if (entry != null && entry.Weight > 0)
+            {
+                totalWeight += entry.Weight;
+            }
+        }
+
+        var patterns = new List<ScratchCardFocusPatternInfo>();
+        for (int i = 0; i < poolConfig.Entries.Count; i++)
+        {
+            ScratchPatternPoolEntryConfig entry = poolConfig.Entries[i];
+            if (entry == null || entry.Weight <= 0)
+            {
+                continue;
+            }
+
+            ScratchPatternConfig patternConfig = ScratchPatternDefaultProvider.GetById(entry.PatternId);
+            if (patternConfig == null)
+            {
+                continue;
+            }
+
+            float probability = totalWeight > 0 ? (float)entry.Weight / totalWeight : 0f;
+            patterns.Add(new ScratchCardFocusPatternInfo(
+                patternConfig.Id,
+                patternConfig.Name,
+                patternConfig.BaseScore,
+                entry.Weight,
+                probability,
+                patternConfig.AtlasPath,
+                patternConfig.SpriteName));
+        }
+
+        return new ScratchCardFocusPanelModel(cardTypeConfig.Name, poolConfig.Name, patterns);
     }
 }
