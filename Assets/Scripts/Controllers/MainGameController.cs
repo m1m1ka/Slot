@@ -18,15 +18,25 @@ public class MainGameController : MonoBehaviour
 
     // 存储当前动态加载的商店项引用
     private readonly List<ShopItemView> _shopItems = new List<ShopItemView>();
+    private readonly List<ScratchCardController> _activeScratchCards = new List<ScratchCardController>();
+
+    private int _nextScratchCardId = 1;
 
     private void Awake()
     {
         // 1. 获取同级挂载的 View 组件（严格禁止在此处直接操作 UI 渲染组件）
         _mainGamePanel = GetComponent<MainGamePanel>();
-        
-        // 2. 初始化 Model (可以给个初始资金，方便测试)
-        // 真实项目中，PlayerModel 通常作为全局单例或是被外界依赖注入
-        _playerModel = new PlayerModel(initialCoins: 1000);
+
+        // 2. 从全局运行时上下文中获取玩家数据，而不是由当前界面自行创建
+        AppRoot appRoot = AppRoot.Instance;
+        if (appRoot == null || appRoot.PlayerContext == null || appRoot.PlayerContext.Player == null)
+        {
+            Debug.LogError("[MainGameController] PlayerContext 未初始化，无法绑定 PlayerModel。请先确认 GameBootstrapper 已完成启动。");
+            enabled = false;
+            return;
+        }
+
+        _playerModel = appRoot.PlayerContext.Player;
     }
 
     private void Start()
@@ -54,7 +64,7 @@ public class MainGameController : MonoBehaviour
         if (_mainGamePanel == null || _mainGamePanel.SlotListRoot == null) return;
 
         // 根据最新规范，从 Resources/UI 目录读取该预制体
-        GameObject shopItemPrefab = Resources.Load<GameObject>("UI/ShopItemView");
+        GameObject shopItemPrefab = AssetProvider.LoadPrefab("UI/ShopItemView");
         if (shopItemPrefab == null)
         {
             Debug.LogError("没有找到 UI/ShopItemView 预制体，无法生成购买列表！");
@@ -89,9 +99,10 @@ public class MainGameController : MonoBehaviour
     private void HandleBuyRequest(int slotId)
     {
         Debug.Log($"收到请求：尝试购买解锁编号为 {slotId} 的肉鸽彩票。");
-        
-        // 此处应根据 ID 获取配置中的真实价格，暂且打个 Log
-        // RequestBuySlot(slotId, realCost);
+
+        // 当前阶段为了方便测试，任何购买按钮都直接生成一张彩票。
+        double mockCost = 0;
+        RequestBuySlot(slotId, mockCost);
     }
 
     /// <summary>
@@ -117,11 +128,17 @@ public class MainGameController : MonoBehaviour
     /// </summary>
     public void RequestBuySlot(int slotId, double cost)
     {
+        if (cost <= 0)
+        {
+            SpawnScratchCard(slotId);
+            return;
+        }
+
         // 核心判断均在 Controller 处理
         if (_playerModel.ConsumeCoins(cost))
         {
             Debug.Log($"成功花费 {cost} 购买彩票 {slotId}");
-            // TODO: 生成一张新的肉鸽彩票实例 (Instantiate View & Setup Model)
+            SpawnScratchCard(slotId);
         }
         else
         {
@@ -151,7 +168,115 @@ public class MainGameController : MonoBehaviour
             }
         }
         _shopItems.Clear();
+
+        foreach (var scratchCard in _activeScratchCards)
+        {
+            if (scratchCard != null && PoolManager.Instance != null)
+            {
+                scratchCard.OnFocusStateChanged -= HandleScratchCardFocusStateChanged;
+                PoolManager.Instance.Despawn(scratchCard.gameObject);
+            }
+        }
+        _activeScratchCards.Clear();
         
         // （由于现在 Controller 挂载在面上，它随面板一起被销毁，不再需要调用 UIManager.ClosePanel，直接释放本级与下级资源即可）
+    }
+
+    private void SpawnScratchCard(int sourceSlotId)
+    {
+        if (_mainGamePanel == null || _mainGamePanel.ScratchCardRoot == null)
+        {
+            Debug.LogWarning("[MainGameController] ScratchCardRoot 未设置，无法生成彩票。");
+            return;
+        }
+
+        var cardTypeConfig = ScratchCardDefaultsProvider.GetCardTypeForShopSlot(sourceSlotId);
+        if (cardTypeConfig == null)
+        {
+            Debug.LogError($"[MainGameController] 未找到 sourceSlotId={sourceSlotId} 对应的刮刮卡类型配置。");
+            return;
+        }
+
+        var areaTemplateConfig = ScratchCardDefaultsProvider.GetAreaTemplate(cardTypeConfig.AreaTemplateId);
+        if (areaTemplateConfig == null)
+        {
+            Debug.LogError($"[MainGameController] 未找到卡种 {cardTypeConfig.Name} 对应的区域模板配置。");
+            return;
+        }
+
+        GameObject scratchCardPrefab = AssetProvider.LoadPrefab(cardTypeConfig.PrefabPath);
+        if (scratchCardPrefab == null)
+        {
+            Debug.LogError($"[MainGameController] 没有找到 {cardTypeConfig.PrefabPath} 预制体，无法生成彩票。");
+            return;
+        }
+
+        GameObject cardObject = PoolManager.Instance.Spawn(scratchCardPrefab, _mainGamePanel.ScratchCardRoot);
+        ScratchCardController scratchCardController = cardObject.GetComponent<ScratchCardController>();
+        if (scratchCardController == null)
+        {
+            Debug.LogError("[MainGameController] ScratchCardView 预制体缺少 ScratchCardController。");
+            PoolManager.Instance.Despawn(cardObject);
+            return;
+        }
+
+        Vector2 targetPosition = _mainGamePanel.GetRandomScratchCardAnchoredPosition();
+        Vector2 spawnFrom = _mainGamePanel.GetScratchCardSpawnFromTop(targetPosition.x);
+        var generatedCells = ScratchCardGenerator.GenerateCells(cardTypeConfig, areaTemplateConfig);
+        ScratchCardModel model = new ScratchCardModel(
+            _nextScratchCardId++,
+            sourceSlotId,
+            cardTypeConfig,
+            areaTemplateConfig,
+            generatedCells);
+
+        scratchCardController.Initialize(model, spawnFrom, targetPosition);
+        scratchCardController.OnFocusStateChanged += HandleScratchCardFocusStateChanged;
+        _activeScratchCards.Add(scratchCardController);
+    }
+
+    private void HandleScratchCardFocusStateChanged(ScratchCardController scratchCard, bool focused)
+    {
+        if (_mainGamePanel == null)
+        {
+            return;
+        }
+
+        if (focused)
+        {
+            RectTransform focusedTransform = scratchCard != null ? scratchCard.transform as RectTransform : null;
+            _mainGamePanel.ShowScratchCardFocusOverlay(focusedTransform);
+            return;
+        }
+
+        if (scratchCard != null)
+        {
+            _mainGamePanel.RestoreScratchCardToDefaultLayer(scratchCard.transform as RectTransform);
+        }
+
+        bool hasOtherFocusedCard = false;
+        for (int i = 0; i < _activeScratchCards.Count; i++)
+        {
+            ScratchCardController card = _activeScratchCards[i];
+            if (card == null || card == scratchCard || card.Model == null)
+            {
+                continue;
+            }
+
+            ScratchCardModel.ScratchCardState state = card.Model.State;
+            if (state == ScratchCardModel.ScratchCardState.Focused ||
+                state == ScratchCardModel.ScratchCardState.Scratching ||
+                state == ScratchCardModel.ScratchCardState.Completed)
+            {
+                _mainGamePanel.ShowScratchCardFocusOverlay(card.transform as RectTransform);
+                hasOtherFocusedCard = true;
+                break;
+            }
+        }
+
+        if (!hasOtherFocusedCard)
+        {
+            _mainGamePanel.HideScratchCardFocusOverlay();
+        }
     }
 }

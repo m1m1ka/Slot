@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Core;
 using UnityEngine;
 
 namespace UI
@@ -139,7 +140,7 @@ namespace UI
             // 规范：预制体名字必须和类名一样！比如 LoginPanel.prefab 对应的脚本就是 LoginPanel.cs
             // 路径固定在 Resources/UI/ 下
             string prefabPath = $"UI/{type.Name}";
-            GameObject prefab = Resources.Load<GameObject>(prefabPath);
+            GameObject prefab = AssetProvider.LoadPrefab(prefabPath);
             
             if (prefab == null)
             {
@@ -148,7 +149,7 @@ namespace UI
             }
 
             // 3. 实例化到 Canvas 下
-            GameObject instance = Instantiate(prefab, canvasRoot);
+            GameObject instance = AssetProvider.InstantiatePrefab(prefab, canvasRoot);
             instance.name = type.Name; // 去掉 "(Clone)" 后缀
             
             T panelComp = instance.GetComponent<T>();

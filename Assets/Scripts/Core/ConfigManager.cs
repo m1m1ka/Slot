@@ -74,7 +74,7 @@ namespace Core
         private void LoadConfig<T>(string resourcePath) where T : class, IConfig
         {
             // 这是从 Resources 加载，如果你后期用 Addressables，可以改成异步加载
-            TextAsset textAsset = Resources.Load<TextAsset>(resourcePath);
+            TextAsset textAsset = AssetProvider.LoadTextAsset(resourcePath);
             if (textAsset == null)
             {
                 Debug.LogError($"[ConfigManager] 找不到配表文件：Resources/{resourcePath}");

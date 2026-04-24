@@ -1,8 +1,7 @@
 using UnityEngine;
-using UI;
 /// <summary>
 /// 游戏全局生命周期入口与管理器。
-/// 负责全局设置、核心系统初始化及游戏首屏流程。
+/// 负责全局设置，并将运行时装配交给 GameBootstrapper。
 /// </summary>
 public class GameManager : MonoBehaviour
 {
@@ -25,8 +24,8 @@ public class GameManager : MonoBehaviour
 
     private void Start()
     {
-        // 所有设定初始化完毕后，启动游戏主流程
-        LaunchApp();
+        // 所有设定初始化完毕后，交给统一启动器完成后续装配
+        EnsureBootstrapper().Bootstrap();
     }
 
     /// <summary>
@@ -46,25 +45,20 @@ public class GameManager : MonoBehaviour
         Debug.Log("[GameManager] 全局设定与基础框架初始化完成。");
     }
 
-    /// <summary>
-    /// 加载游戏核心逻辑并弹出主界面
-    /// </summary>
-    private void LaunchApp()
+    private GameBootstrapper EnsureBootstrapper()
     {
-        Debug.Log("[GameManager] 正在启动主界面并载入游戏逻辑...");
+        if (GameBootstrapper.Instance != null)
+        {
+            return GameBootstrapper.Instance;
+        }
 
-        // 方案一：如果你的 UIManager 支持通过名称从 Resources/UI/ 动态加载面板：
-        // UIManager.Instance.OpenPanel("MainGamePanel");
+        GameBootstrapper bootstrapper = FindObjectOfType<GameBootstrapper>(true);
+        if (bootstrapper != null)
+        {
+            return bootstrapper;
+        }
 
-        UIManager.Instance.ShowPanel<MainGamePanel>(closeOthers: true);
-        // 方案二：作为MVC的中枢入口，我们动态创建全局逻辑控制器 MainGameController
-        // 然后交由 MainGameController 去利用 UIManager 或者资源池请求它的 View (MainGamePanel)
-        // GameObject controllerObj = new GameObject("MainGameController");
-        // controllerObj.transform.SetParent(this.transform);
-        
-        // // 挂载我们之前写好的主控制器
-        // MainGameController mainGameController = controllerObj.AddComponent<MainGameController>();
-        
-        // （视你当前 UIManager 封装实现而定，如果需要也可以直接在此处调用 UIManager 开启界面的接口）
+        GameObject bootstrapperObject = new GameObject("GameBootstrapper");
+        return bootstrapperObject.AddComponent<GameBootstrapper>();
     }
 }
