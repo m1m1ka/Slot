@@ -65,25 +65,25 @@ Assets/Scripts/
 
 ## 4. 肉鸽刮彩票游戏 架构实体设计
 
-为了支持随机生成的“刮刮乐彩票（Scratch Card）”组合（例如：1x3小彩票、3x3大彩票、特殊刮区形状等）以及高自由度的**遗物构筑（Relic Build）、数值膨胀乘区**，我们在底层代码设计上强制采用**数据驱动**与**生命周期解耦**机制。
+为了支持随机生成的“刮刮乐彩票（Scratch Card）”组合（例如：1x3小彩票、2x3大彩票、特殊刮区形状等）以及高自由度的**遗物构筑（Relic Build）、数值膨胀乘区**，我们在底层代码设计上强制采用**数据驱动**与**生命周期解耦**机制。
 
 ### 4.1. 刮刮乐核心 MVC 划分
 *   **Model (`ScratchCardModel.cs`)**：
-    纯 C# 类，只负责存储当前彩票的**稀有度 (Rarity)**、**状态 (未刮/刮开中/已结算)** 以及**隐藏的矩阵奖励数据 (`int[,] RewardGrid`)**。自身提供事件（Action）对外广播刮开进度的局部状态。
+    纯 C# 类，只负责存储单张刮刮卡的运行时实例状态，例如 `CardId`、`CardTypeId`、`GridWidth`、`GridHeight`、`SettlementType`、`Cells`、`ScratchProgress`、`State` 等。格子内容由 `ScratchCellModel` 表达。Model 只广播状态变化事件，例如 `OnScratchProgressChanged`、`OnStateChanged`、`OnScratchCompleted`。
 *   **View (`ScratchCardView.cs`)**：
-    挂载在 2D 预制体上的 `MonoBehaviour`。负责遮罩（Mask）的擦除表现和监听用户手指/鼠标的涂抹交互，把“某行某列已被完全刮开”或“擦除进度达到100%”的业务意图抛给对应的 Controller 处理。
+    挂载在 UI 预制体上的 `MonoBehaviour`。负责图案显示、涂层 `RawImage` 擦除、DOTween 动画、聚焦表现和用户输入采集。View 不决定图案如何生成，也不决定奖励如何结算，只把“点击”“刮除进度变化”“入场结束”等意图抛给对应的 Controller。
 *   **Controller (`ScratchCardController.cs`)**：
     **必须继承** `MonoBehaviour` 并且**与对应 View 挂载在同一个预制体对象上**。
-    在 `Awake` 阶段通过 `GetComponent` 自动获取同物体的 View 组件并接收其输入边界反馈。负责业务调度与调用奖励结算器。当判断整张彩票刮开完成时，向外派发事件（走 EventBus 触发全局金币获取特效与遗物加成计算）。
+    负责绑定 `ScratchCardModel` 与 `ScratchCardView`，驱动 `Falling / Idle / Focused / Scratching / Completed` 状态流转，并在 `OnScratchCompleted` 后调用结算策略。后续奖励入账、遗物乘区和全局反馈应通过事件或 Service 继续解耦，不应继续堆进单张卡 Controller。
 
 ### 4.2. 动态结算机制与策略模式 (Strategy Pattern)
 由于各种肉鸽彩票判赢和多重翻倍规则差异巨大，严禁在 Controller 内部堆砌 `if-else`。  
-利用 **策略模式**：创建一个只负责纯计算的接口 `IWinEvaluator`。针对不同的彩票（连线赢、找同花色、累计符号），创建不同的实现类（如 `MatchThreeEvaluator`），并在初始化 Controller 时根据 `ScratchCardConfig` 动态注入其所需计算规则策略即可。
+当前项目统一使用 `IScratchSettlementEvaluator` 作为结算策略接口，并由 `ScratchSettlementEvaluatorFactory` 根据 `ScratchSettlementType` 选择具体实现。针对不同的彩票（累加基础分、任意三同图案、行加成、连线赢等），应新增独立 Evaluator，例如 `SumScoreSettlementEvaluator`、`MatchAnyThreeSettlementEvaluator`、`RowSumBonusSettlementEvaluator`。禁止在 `ScratchCardController` 中按卡种写大量判断。
 
 ### 4.3. 全局遗物乘区与 EventBus（流派化）
 1. **全局乘区解耦**：
    * 所有与肉鸽“遗物（Relic）”相关的计算（例如：刮开一个特定符号，全局掉率提升 5%），不应该写在 ScratchCard 层。
-   * 应该通过 `EventBus` 广播核心行为：“这张彩票刚刚提供了这些基础金币 `amount`”。然后由一个全局的 `PlayerModel / RelicManager` 监听到此事件，读取玩家身上的遗物集合，计算最终膨胀后的数值再入账玩家账户。
+   * 应该通过 `EventBus` 或后续事件系统广播核心行为，例如 `ScratchCardCompletedEvent`。事件中携带 `ScratchSettlementResult`、卡种 id、格子结果等基础数据。然后由奖励服务、遗物服务、货币服务监听并计算最终入账结果。
 2. **UI 统一交互**：
    * 在需要购买彩票或抽取肉鸽遗物时，**强制使用** `UIManager.Instance.ShowPanel<ShopPanel>()` 或类似统一出口弹出选牌界面，保证弹窗生命周期干净且可追溯。
 

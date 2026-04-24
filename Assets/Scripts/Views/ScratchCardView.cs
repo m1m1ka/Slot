@@ -46,8 +46,6 @@ public class ScratchCardView : MonoBehaviour, IPointerClickHandler, IDragHandler
     private bool _isFocused;
     private Vector2 _restingAnchoredPosition;
     private Canvas _parentCanvas;
-    private float _clearedAlphaAmount;
-    private float _maxAlphaAmount;
     private Vector2 _lastHoverScreenPosition = new Vector2(float.MinValue, float.MinValue);
     private readonly List<ScratchSurfaceRuntime> _scratchSurfaces = new List<ScratchSurfaceRuntime>();
 
@@ -261,8 +259,6 @@ public class ScratchCardView : MonoBehaviour, IPointerClickHandler, IDragHandler
         }
 
         _scratchSurfaces.Clear();
-        _clearedAlphaAmount = 0f;
-        _maxAlphaAmount = 0f;
 
         if (_scratchCoverImages == null || _scratchCoverImages.Length == 0)
         {
@@ -305,7 +301,6 @@ public class ScratchCardView : MonoBehaviour, IPointerClickHandler, IDragHandler
             surface.CoverImage.color = Color.white;
 
             _scratchSurfaces.Add(surface);
-            _maxAlphaAmount += surface.MaxAlphaAmount;
         }
     }
 
@@ -348,8 +343,8 @@ public class ScratchCardView : MonoBehaviour, IPointerClickHandler, IDragHandler
         float deltaProgress = EraseCircle(hoveredSurface, pixelX, pixelY);
         if (deltaProgress > 0f)
         {
-            TryAutoClearScratchSurface();
-            OnScratchDragged?.Invoke(deltaProgress);
+            float autoClearProgress = TryAutoClearScratchSurface(hoveredSurface);
+            OnScratchDragged?.Invoke(deltaProgress + autoClearProgress);
         }
     }
 
@@ -409,53 +404,65 @@ public class ScratchCardView : MonoBehaviour, IPointerClickHandler, IDragHandler
         }
 
         surface.ClearedAlphaAmount += clearedAlphaThisStroke;
-        _clearedAlphaAmount += clearedAlphaThisStroke;
         surface.Texture.SetPixels32(surface.Pixels);
         surface.Texture.Apply(false);
 
-        return _maxAlphaAmount > 0f ? clearedAlphaThisStroke / _maxAlphaAmount : 0f;
+        float totalMaxAlphaAmount = GetTotalMaxAlphaAmount();
+        return totalMaxAlphaAmount > 0f ? clearedAlphaThisStroke / totalMaxAlphaAmount : 0f;
     }
 
-    private void TryAutoClearScratchSurface()
+    private float TryAutoClearScratchSurface(ScratchSurfaceRuntime surface)
     {
-        if (_scratchSurfaces.Count == 0 || _maxAlphaAmount <= 0f)
+        if (surface == null || surface.Pixels == null || surface.MaxAlphaAmount <= 0f)
         {
-            return;
+            return 0f;
         }
 
-        float clearedRatio = _clearedAlphaAmount / _maxAlphaAmount;
+        float clearedRatio = surface.ClearedAlphaAmount / surface.MaxAlphaAmount;
         if (clearedRatio < _autoClearThreshold)
         {
-            return;
+            return 0f;
         }
 
-        for (int surfaceIndex = 0; surfaceIndex < _scratchSurfaces.Count; surfaceIndex++)
+        float clearedAlphaThisAutoClear = 0f;
+        for (int i = 0; i < surface.Pixels.Length; i++)
         {
-            ScratchSurfaceRuntime surface = _scratchSurfaces[surfaceIndex];
-            if (surface == null || surface.Pixels == null)
+            if (surface.Pixels[i].a == 0)
             {
                 continue;
             }
 
-            for (int i = 0; i < surface.Pixels.Length; i++)
-            {
-                if (surface.Pixels[i].a == 0)
-                {
-                    continue;
-                }
-
-                Color32 pixel = surface.Pixels[i];
-                surface.ClearedAlphaAmount += pixel.a;
-                _clearedAlphaAmount += pixel.a;
-                pixel.a = 0;
-                surface.Pixels[i] = pixel;
-            }
-
-            surface.Texture.SetPixels32(surface.Pixels);
-            surface.Texture.Apply(false);
+            Color32 pixel = surface.Pixels[i];
+            clearedAlphaThisAutoClear += pixel.a;
+            pixel.a = 0;
+            surface.Pixels[i] = pixel;
         }
 
-        _clearedAlphaAmount = _maxAlphaAmount;
+        if (clearedAlphaThisAutoClear <= 0f)
+        {
+            return 0f;
+        }
+
+        surface.ClearedAlphaAmount = surface.MaxAlphaAmount;
+        surface.Texture.SetPixels32(surface.Pixels);
+        surface.Texture.Apply(false);
+
+        float totalMaxAlphaAmount = GetTotalMaxAlphaAmount();
+        return totalMaxAlphaAmount > 0f ? clearedAlphaThisAutoClear / totalMaxAlphaAmount : 0f;
+    }
+
+    private float GetTotalMaxAlphaAmount()
+    {
+        float total = 0f;
+        for (int i = 0; i < _scratchSurfaces.Count; i++)
+        {
+            if (_scratchSurfaces[i] != null)
+            {
+                total += _scratchSurfaces[i].MaxAlphaAmount;
+            }
+        }
+
+        return total;
     }
 
     private void BindPatternImages(IReadOnlyList<ScratchCellModel> cells)
