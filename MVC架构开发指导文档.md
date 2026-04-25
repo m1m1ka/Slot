@@ -431,11 +431,32 @@ AppRoot
 7. 音乐静音 / 音效静音
 8. 支持直接传入 `AudioClip`
 9. 支持通过资源路径播放音频
+10. 支持通过语义化 `AudioCueId` 播放音频：`AudioManager.Instance.PlayCue(AudioCueId.Xxx)`
+11. 支持在 `AudioManager` 内维护统一 Cue Library，包括音频类型、Resources 路径、音量倍率、音高、冷却时间、BGM 淡入淡出与循环设置
 
 当前约束：
 1. 所有音频资源加载必须通过 `AudioManager` -> `AssetProvider`
 2. 禁止在业务层直接 `Resources.Load<AudioClip>()`
 3. 后续如果接入音频配置表，也必须从 `AudioManager` 统一播放，不得绕过系统直接操作临时 `AudioSource`
+4. 业务代码优先调用 `PlayCue(AudioCueId)`，不得在 Controller / View 中散写音频 Resources 路径；`PlayMusic(string)` 与 `PlaySfx(string)` 只作为底层兼容入口或临时调试入口使用
+5. 音频文件不由单个业务脚本持有，统一由 `AudioManager` 的 Cue Library 维护；默认资源路径约定为：
+   - 音效：`Resources/Audio/Sfx/`
+   - 音乐：`Resources/Audio/Music/`
+6. 新增音效时必须先新增或复用 `AudioCueId`，再在 `AudioManager` 的 Cue Library 中登记路径与播放参数，最后才允许在业务流程中触发
+7. 高频音效必须设置冷却时间，例如刮奖、连点、循环反馈等，禁止在 `Update()` 或拖拽回调中无节制播放
+8. `Model` 永远不允许调用音频系统；`Controller` 负责在业务状态变化、成功/失败结果、奖励结算等语义点触发音频；`View` 只允许在纯表现动画自身完成且不涉及业务判断时触发表现音频
+9. 如果某个音效代表跨系统事件（例如结算、升级、获得遗物），优先由 Controller / UseCase / Service 在事件发生点播放，或后续通过事件监听服务统一播放，不要让多个界面重复播放同一语义音效
+
+当前默认 Cue 约定：
+1. `UiClick` -> `Resources/Audio/Sfx/UI_Click`
+2. `UiDenied` -> `Resources/Audio/Sfx/UI_Denied`
+3. `ScratchCardPurchased` -> `Resources/Audio/Sfx/ScratchCard_Purchased`
+4. `ScratchCardSpawned` -> `Resources/Audio/Sfx/ScratchCard_Spawned`
+5. `ScratchCardFocused` -> `Resources/Audio/Sfx/ScratchCard_Focused`
+6. `ScratchCardScratching` -> `Resources/Audio/Sfx/ScratchCard_Scratching`
+7. `ScratchCardCompleted` -> `Resources/Audio/Sfx/ScratchCard_Completed`
+8. `ScratchCardRewardClaimed` -> `Resources/Audio/Sfx/ScratchCard_RewardClaimed`
+9. `MainMusic` -> `Resources/Audio/Music/Main`
 
 ### 8.9 数值格式化与本地化系统
 由于本项目存在大数值成长，必须尽早抽离数值显示规则。
@@ -446,6 +467,68 @@ AppRoot
 3. UI 文本 Key 化，而非硬编码字符串
 
 ### 8.10 调试与埋点系统
+### 8.10 关卡系统
+关卡系统用于约束单局目标和资源消耗边界，例如通关金币要求、购买彩票次数限制、后续可能扩展的时间限制、特殊规则、奖励池等。
+
+当前项目已接入轻量关卡框架：
+1. `LevelConfig`：定义关卡静态数据，包括 `Id`、`Name`、`RequiredCoins`、`ScratchCardPurchaseLimit`
+2. `LevelProgressModel`：保存当前关卡运行时状态，包括已购买彩票次数、剩余次数、是否通关
+3. `LevelDefaultsProvider`：当前阶段提供默认关卡数据，后续应替换为正式配表来源
+4. `GameSession.CurrentLevel`：由运行时会话持有当前关卡进度
+5. `MainGameController`：在购买入口检查次数限制，在金币变化后判断是否达到通关金币要求
+6. `MainGamePanel.UpdateLevelDisplay(...)`：只负责显示关卡状态，不参与规则判断
+
+当前约束：
+1. 关卡静态规则必须进入 `LevelConfig` 或后续正式配表，不允许散写在 View 中
+2. 当前关卡运行时状态必须由 `GameSession.CurrentLevel` 持有，不允许由某个 UI View 私有保存
+3. `LevelProgressModel` 必须保持纯 C#，不引用 Unity UI、Audio、DOTween、GameObject
+4. 购买限制必须在 Controller / UseCase 层检查，View 只能提交“购买意图”
+5. 通关判断由 Controller 根据 `PlayerModel.Coins` 协调 `LevelProgressModel.EvaluatePass(...)` 完成，避免 `LevelProgressModel` 直接依赖玩家上下文
+6. 后续如果购买逻辑继续复杂化，应优先抽出 `BuyScratchCardUseCase`，而不是继续扩大 `MainGameController`
+
+### 8.11 调试与埋点系统
+### 8.11 肉鸽卡牌系统
+肉鸽卡牌系统负责“通关后 3 选 1 -> 选中后加入玩家卡片区 -> 后续通过效果系统影响结算或生成规则”的完整闭环。
+
+当前项目已接入轻量肉鸽卡牌框架：
+1. `RogueCardConfig`：肉鸽卡静态配置，定义 `Id`、`Name`、`Description`、`Rarity` 和 `Effects`
+2. `RogueCardEffectConfig`：单个效果配置，定义 `EffectType`、`TargetId`、`Value`
+3. `RogueCardEffectType`：效果类型枚举，例如 `IncreasePatternBaseScore`、`IncreaseScratchCardMultiplier`
+4. `RogueCardInventoryModel`：玩家已获得肉鸽卡库存，属于纯 C# Model，由 `PlayerContext.RogueCards` 持有
+5. `RogueCardRewardOfferModel`：一次 3 选 1 奖励候选集合
+6. `RogueCardDefaultsProvider`：当前阶段默认肉鸽卡池，后续应替换为正式配表
+7. `RogueCardRewardService`：负责从卡池生成奖励候选，当前默认生成 3 张不重复卡
+8. `IRogueCardEffect`：单个效果运行时处理器接口
+9. `RogueCardEffectService`：效果分发入口，拿到卡牌后按 `EffectType` 找对应处理器执行
+10. `RogueCardEffectContext`：效果执行上下文，聚合 `PlayerContext`、`GameSession` 等运行时对象
+11. `MainGamePanel.ShowRogueCardChoices(...)`：只负责展示 3 选 1 UI，并把点击选择上报给 Controller
+12. `MainGamePanel.RefreshOwnedRogueCards(...)`：只负责刷新底部玩家已拥有卡片区
+13. `MainGameController`：监听关卡通关，生成 3 选 1，接收选择结果，写入玩家库存，并调用效果服务
+
+当前跑通流程：
+1. `LevelProgressModel` 达成通关金币要求
+2. `MainGameController.HandleLevelPassStateChanged(true)` 收到通关事件
+3. `RogueCardRewardService.CreateRewardOffer(3)` 生成三张候选卡
+4. `MainGamePanel.ShowRogueCardChoices(...)` 弹出三选一界面
+5. 玩家点击其中一张，View 触发 `OnRogueRewardCardSelected(cardId)`
+6. `MainGameController` 从当前候选中找到被选中的 `RogueCardConfig`
+7. `RogueCardInventoryModel.AddCard(...)` 把卡加入玩家库存
+8. `RogueCardEffectService.ApplyCard(...)` 调用效果系统入口
+9. `MainGamePanel.RefreshOwnedRogueCards(...)` 刷新底部卡片区
+10. `MainGamePanel.HideRogueCardChoices()` 关闭三选一界面
+
+当前约束：
+1. 肉鸽卡静态数据必须进入 `RogueCardConfig` 或正式配表，不允许写死在 View / Controller 中
+2. 玩家已拥有肉鸽卡必须由 `PlayerContext.RogueCards` 持有，不允许某个 UI 面板私有保存
+3. `RogueCardInventoryModel`、`RogueCardRewardOfferModel` 必须保持纯 C#，不引用 Unity UI、Audio、DOTween、GameObject
+4. View 只能展示卡牌与上报选择，不允许决定卡牌效果、不允许修改玩家库存
+5. Controller 只负责流程协调：通关后生成候选、接收选择、写入库存、调用效果服务
+6. 具体效果必须通过 `IRogueCardEffect` 新增独立处理器，不允许在 `MainGameController`、`ScratchCardController` 或结算器里堆 `if cardId == ...`
+7. 如果效果影响图案基础分，优先在后续的图案分数计算服务或生成/结算上下文中读取效果结果，不要直接改静态配置对象
+8. 如果效果影响刮刮卡倍率，优先接入 `ScratchRewardSettlementService` 或结算后处理管线，不要把倍率逻辑塞回单张卡 Controller
+9. 后续 UI 美术化时，可以替换为 `Resources/UI/` 下的肉鸽卡预制体，但仍必须保持 View 只表现、Controller 只协调、Model 只存状态
+
+### 8.12 调试与埋点系统
 后续平衡性调优、AI 回归测试、问题定位都需要它。
 
 建议补充：
@@ -454,7 +537,7 @@ AppRoot
 3. 关键事件埋点
 4. 性能统计入口
 
-### 8.11 测试基础设施
+### 8.13 测试基础设施
 后续所有纯 C# 业务层都应可测试。
 
 最低要求：

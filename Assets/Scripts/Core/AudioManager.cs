@@ -5,12 +5,36 @@ using UnityEngine;
 namespace Core
 {
     /// <summary>
-    /// 轻量全局音频管理器。
-    /// 支持 BGM、SFX、多音效并发播放，以及 BGM 淡入淡出。
+    /// Lightweight global audio manager.
+    /// Business code should prefer PlayCue so clip paths stay centralized here.
     /// </summary>
     public class AudioManager : MonoBehaviour
     {
+        public enum AudioCueKind
+        {
+            Sfx,
+            Music
+        }
+
+        [System.Serializable]
+        public class AudioCueDefinition
+        {
+            public AudioCueId Id;
+            public AudioCueKind Kind = AudioCueKind.Sfx;
+            public string ResourcesPath;
+            [Range(0f, 1f)] public float VolumeScale = 1f;
+            public float Pitch = 1f;
+            public float Cooldown = 0f;
+            public float FadeDuration = 0.5f;
+            public bool Loop = true;
+        }
+
         public static AudioManager Instance { get; private set; }
+
+        [Header("Cue Library")]
+        [SerializeField] private List<AudioCueDefinition> _cueLibrary = new List<AudioCueDefinition>();
+        [SerializeField] private bool _useDefaultCueLibrary = true;
+        [SerializeField] private bool _logMissingCueAssets = true;
 
         [Header("Music")]
         [SerializeField] private float _musicVolume = 1f;
@@ -23,8 +47,14 @@ namespace Core
         [SerializeField] private int _maxSfxSourceCount = 24;
 
         private AudioSource _musicSource;
+        private AudioSource _loopSfxSource;
         private readonly List<AudioSource> _sfxSources = new List<AudioSource>();
+        private readonly Dictionary<AudioCueId, AudioCueDefinition> _cueLookup = new Dictionary<AudioCueId, AudioCueDefinition>();
+        private readonly Dictionary<AudioCueId, float> _nextCuePlayTime = new Dictionary<AudioCueId, float>();
+        private readonly HashSet<AudioCueId> _missingCueIds = new HashSet<AudioCueId>();
+        private readonly HashSet<string> _reportedMissingAssets = new HashSet<string>();
         private Coroutine _musicFadeCoroutine;
+        private AudioCueId _currentLoopCueId = AudioCueId.None;
 
         public float MusicVolume => _musicVolume;
         public float SfxVolume => _sfxVolume;
@@ -44,6 +74,7 @@ namespace Core
 
             EnsureMusicSource();
             PrewarmSfxSources();
+            BuildCueLookup();
         }
 
         public void SetMusicVolume(float volume)
@@ -58,6 +89,7 @@ namespace Core
         public void SetSfxVolume(float volume)
         {
             _sfxVolume = Mathf.Clamp01(volume);
+            ApplyLoopSfxVolume();
         }
 
         public void SetMusicMute(bool mute)
@@ -72,6 +104,104 @@ namespace Core
         public void SetSfxMute(bool mute)
         {
             _muteSfx = mute;
+            ApplyLoopSfxVolume();
+        }
+
+        public void PlayCue(AudioCueId cueId)
+        {
+            if (cueId == AudioCueId.None)
+            {
+                return;
+            }
+
+            if (!_cueLookup.TryGetValue(cueId, out AudioCueDefinition cue) || cue == null)
+            {
+                Debug.LogWarning($"[AudioManager] Cue '{cueId}' is not registered.");
+                return;
+            }
+
+            if (cue.Cooldown > 0f &&
+                _nextCuePlayTime.TryGetValue(cueId, out float nextTime) &&
+                Time.unscaledTime < nextTime)
+            {
+                return;
+            }
+
+            if (cue.Cooldown > 0f)
+            {
+                _nextCuePlayTime[cueId] = Time.unscaledTime + cue.Cooldown;
+            }
+
+            AudioClip clip = LoadCueClip(cue);
+            if (clip == null)
+            {
+                return;
+            }
+
+            if (cue.Kind == AudioCueKind.Music)
+            {
+                PlayMusic(clip, cue.FadeDuration, cue.Loop);
+                return;
+            }
+
+            PlaySfx(clip, cue.VolumeScale, cue.Pitch);
+        }
+
+        public void PlayLoopCue(AudioCueId cueId)
+        {
+            if (cueId == AudioCueId.None)
+            {
+                return;
+            }
+
+            if (!_cueLookup.TryGetValue(cueId, out AudioCueDefinition cue) || cue == null)
+            {
+                Debug.LogWarning($"[AudioManager] Loop cue '{cueId}' is not registered.");
+                return;
+            }
+
+            AudioClip clip = LoadCueClip(cue);
+            if (clip == null)
+            {
+                return;
+            }
+
+            EnsureLoopSfxSource();
+            if (_loopSfxSource == null)
+            {
+                return;
+            }
+
+            if (_currentLoopCueId == cueId && _loopSfxSource.isPlaying && _loopSfxSource.clip == clip)
+            {
+                ApplyLoopSfxVolume();
+                return;
+            }
+
+            _currentLoopCueId = cueId;
+            _loopSfxSource.clip = clip;
+            _loopSfxSource.pitch = cue.Pitch;
+            _loopSfxSource.loop = true;
+            _loopSfxSource.volume = Mathf.Clamp01(_sfxVolume * cue.VolumeScale);
+            _loopSfxSource.Play();
+            ApplyLoopSfxVolume();
+        }
+
+        public void StopLoopCue(AudioCueId cueId)
+        {
+            if (_loopSfxSource == null || !_loopSfxSource.isPlaying)
+            {
+                return;
+            }
+
+            if (cueId != AudioCueId.None && _currentLoopCueId != cueId)
+            {
+                return;
+            }
+
+            _loopSfxSource.Stop();
+            _loopSfxSource.clip = null;
+            _currentLoopCueId = AudioCueId.None;
         }
 
         public void PlayMusic(AudioClip clip, float fadeDuration = 0.5f, bool loop = true)
@@ -219,6 +349,21 @@ namespace Core
             _musicSource.volume = _muteMusic ? 0f : _musicVolume;
         }
 
+        private void EnsureLoopSfxSource()
+        {
+            if (_loopSfxSource != null)
+            {
+                return;
+            }
+
+            GameObject loopObject = new GameObject("LoopSfxSource");
+            loopObject.transform.SetParent(transform, false);
+            _loopSfxSource = loopObject.AddComponent<AudioSource>();
+            _loopSfxSource.playOnAwake = false;
+            _loopSfxSource.loop = true;
+            ApplyLoopSfxVolume();
+        }
+
         private void PrewarmSfxSources()
         {
             int targetCount = Mathf.Max(1, _initialSfxSourceCount);
@@ -244,6 +389,94 @@ namespace Core
             }
 
             return CreateSfxSource(_sfxSources.Count);
+        }
+
+        private AudioClip LoadCueClip(AudioCueDefinition cue)
+        {
+            if (cue == null || string.IsNullOrWhiteSpace(cue.ResourcesPath))
+            {
+                Debug.LogWarning("[AudioManager] Cue load failed: resources path is empty.");
+                return null;
+            }
+
+            if (_missingCueIds.Contains(cue.Id))
+            {
+                return null;
+            }
+
+            AudioClip clip = AssetProvider.LoadAudioClip(cue.ResourcesPath);
+            if (clip == null)
+            {
+                _missingCueIds.Add(cue.Id);
+                if (_logMissingCueAssets && _reportedMissingAssets.Add(cue.ResourcesPath))
+                {
+                    Debug.LogWarning($"[AudioManager] Cue '{cue.Id}' has no AudioClip at Resources/{cue.ResourcesPath}.");
+                }
+            }
+
+            return clip;
+        }
+
+        private void BuildCueLookup()
+        {
+            _cueLookup.Clear();
+
+            if (_useDefaultCueLibrary)
+            {
+                RegisterDefaultCueLibrary();
+            }
+
+            for (int i = 0; i < _cueLibrary.Count; i++)
+            {
+                RegisterCue(_cueLibrary[i]);
+            }
+        }
+
+        private void RegisterDefaultCueLibrary()
+        {
+            RegisterCue(new AudioCueDefinition { Id = AudioCueId.UiClick, ResourcesPath = "Audio/Sfx/UI_Click", VolumeScale = 0.75f, Cooldown = 0.03f });
+            RegisterCue(new AudioCueDefinition { Id = AudioCueId.UiDenied, ResourcesPath = "Audio/Sfx/UI_Denied", VolumeScale = 0.9f, Cooldown = 0.1f });
+            RegisterCue(new AudioCueDefinition { Id = AudioCueId.ScratchCardPurchased, ResourcesPath = "Audio/Sfx/ScratchCard_Purchased", VolumeScale = 0.9f, Cooldown = 0.05f });
+            RegisterCue(new AudioCueDefinition { Id = AudioCueId.ScratchCardSpawned, ResourcesPath = "Audio/Sfx/ScratchCard_Spawned", VolumeScale = 0.8f, Cooldown = 0.05f });
+            RegisterCue(new AudioCueDefinition { Id = AudioCueId.ScratchCardFocused, ResourcesPath = "Audio/Sfx/ScratchCard_Focused", VolumeScale = 0.8f, Cooldown = 0.08f });
+            RegisterCue(new AudioCueDefinition { Id = AudioCueId.ScratchCardScratching, ResourcesPath = "Audio/Sfx/ScratchCard_Scratching", VolumeScale = 0.55f, Cooldown = 0.08f });
+            RegisterCue(new AudioCueDefinition { Id = AudioCueId.ScratchCardCompleted, ResourcesPath = "Audio/Sfx/ScratchCard_Completed", VolumeScale = 1f, Cooldown = 0.1f });
+            RegisterCue(new AudioCueDefinition { Id = AudioCueId.ScratchCardRewardClaimed, ResourcesPath = "Audio/Sfx/ScratchCard_RewardClaimed", VolumeScale = 1f, Cooldown = 0.1f });
+            RegisterCue(new AudioCueDefinition { Id = AudioCueId.BuyScratchCard, ResourcesPath = "Audio/Sfx/BuyScrathCard", VolumeScale = 0.95f, Cooldown = 0.05f });
+            RegisterCue(new AudioCueDefinition { Id = AudioCueId.GainMoney, ResourcesPath = "Audio/Sfx/GainMoney", VolumeScale = 1f, Cooldown = 0.05f });
+            RegisterCue(new AudioCueDefinition { Id = AudioCueId.Sratching, ResourcesPath = "Audio/Sfx/Scratching", VolumeScale = 0.8f });
+            RegisterCue(new AudioCueDefinition { Id = AudioCueId.MainMusic, Kind = AudioCueKind.Music, ResourcesPath = "Audio/Music/Main", VolumeScale = 1f, FadeDuration = 0.6f, Loop = true });
+        }
+
+        private void RegisterCue(AudioCueDefinition cue)
+        {
+            if (cue == null || cue.Id == AudioCueId.None)
+            {
+                return;
+            }
+
+            _cueLookup[cue.Id] = cue;
+        }
+
+        private void ApplyLoopSfxVolume()
+        {
+            if (_loopSfxSource == null)
+            {
+                return;
+            }
+
+            if (_muteSfx)
+            {
+                _loopSfxSource.volume = 0f;
+                return;
+            }
+
+            if (_currentLoopCueId != AudioCueId.None &&
+                _cueLookup.TryGetValue(_currentLoopCueId, out AudioCueDefinition cue) &&
+                cue != null)
+            {
+                _loopSfxSource.volume = Mathf.Clamp01(_sfxVolume * cue.VolumeScale);
+            }
         }
 
         private AudioSource CreateSfxSource(int index)

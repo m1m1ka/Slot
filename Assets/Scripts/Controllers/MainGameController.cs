@@ -16,6 +16,13 @@ public class MainGameController : MonoBehaviour
 
     // Model 引用
     private PlayerModel _playerModel;
+    private GameSession _gameSession;
+    private LevelProgressModel _levelModel;
+    private RogueCardInventoryModel _rogueCardInventory;
+    private readonly RogueCardRewardService _rogueCardRewardService = new RogueCardRewardService();
+    private readonly RogueCardEffectService _rogueCardEffectService = new RogueCardEffectService();
+    private RogueCardRewardOfferModel _currentRogueRewardOffer;
+    private bool _rogueRewardOfferedForCurrentLevel;
 
     // 存储当前动态加载的商店项引用
     private readonly List<ShopItemView> _shopItems = new List<ShopItemView>();
@@ -30,7 +37,7 @@ public class MainGameController : MonoBehaviour
 
         // 2. 从全局运行时上下文中获取玩家数据，而不是由当前界面自行创建
         AppRoot appRoot = AppRoot.Instance;
-        if (appRoot == null || appRoot.PlayerContext == null || appRoot.PlayerContext.Player == null)
+        if (appRoot == null || appRoot.PlayerContext == null || appRoot.PlayerContext.Player == null || appRoot.GameSession == null)
         {
             Debug.LogError("[MainGameController] PlayerContext 未初始化，无法绑定 PlayerModel。请先确认 GameBootstrapper 已完成启动。");
             enabled = false;
@@ -38,6 +45,8 @@ public class MainGameController : MonoBehaviour
         }
 
         _playerModel = appRoot.PlayerContext.Player;
+        _gameSession = appRoot.GameSession;
+        _rogueCardInventory = appRoot.PlayerContext.RogueCards;
     }
 
     private void Start()
@@ -47,14 +56,27 @@ public class MainGameController : MonoBehaviour
 
     private void Initialize()
     {
+        EnsureCurrentLevel();
+
         // 1. 批量生成购物面板的购买按钮
         LoadShopItems();
 
         // 2. 将数据层的事件绑定到当前 Controller 的响应方法中
         _playerModel.OnCoinsChanged += HandleCoinsChanged;
+        if (_mainGamePanel != null)
+        {
+            _mainGamePanel.OnRogueRewardCardSelected += HandleRogueRewardCardSelected;
+        }
+
+        if (_rogueCardInventory != null)
+        {
+            _rogueCardInventory.OnCardAdded += HandleRogueCardAdded;
+            _mainGamePanel?.RefreshOwnedRogueCards(_rogueCardInventory.OwnedCards);
+        }
 
         // 3. 初始刷新一次视图
         HandleCoinsChanged(_playerModel.Coins);
+        RefreshLevelDisplay();
     }
 
     /// <summary>
@@ -99,6 +121,7 @@ public class MainGameController : MonoBehaviour
     /// </summary>
     private void HandleBuyRequest(int slotId)
     {
+        AudioManager.Instance?.PlayCue(AudioCueId.UiClick);
         Debug.Log($"收到请求：尝试购买解锁编号为 {slotId} 的肉鸽彩票。");
 
         // 当前阶段为了方便测试，任何购买按钮都直接生成一张彩票。
@@ -116,6 +139,9 @@ public class MainGameController : MonoBehaviour
             _mainGamePanel.UpdateCoinDisplay(newCoins);
         }
 
+        _levelModel?.EvaluatePass(newCoins);
+        RefreshLevelDisplay();
+
         // TODO: 通知左侧 SlotShopItemView 和右侧 UpgradeItemView
         // 刷新它们各自按钮的置灰/高亮状态（通过比较 newCoins 与 价格）
     }
@@ -129,8 +155,25 @@ public class MainGameController : MonoBehaviour
     /// </summary>
     public void RequestBuySlot(int slotId, double cost)
     {
+        if (_levelModel == null || !_levelModel.CanPurchaseScratchCard)
+        {
+            Debug.LogWarning("[MainGameController] Cannot buy scratch card: purchase limit reached or level passed.");
+            AudioManager.Instance?.PlayCue(AudioCueId.UiDenied);
+            return;
+        }
+
         if (cost <= 0)
         {
+            if (!_levelModel.TryRecordScratchCardPurchase())
+            {
+                Debug.LogWarning("[MainGameController] Cannot buy scratch card: purchase limit reached.");
+                AudioManager.Instance?.PlayCue(AudioCueId.UiDenied);
+                RefreshLevelDisplay();
+                return;
+            }
+
+            RefreshLevelDisplay();
+            AudioManager.Instance?.PlayCue(AudioCueId.BuyScratchCard);
             SpawnScratchCard(slotId);
             return;
         }
@@ -138,12 +181,24 @@ public class MainGameController : MonoBehaviour
         // 核心判断均在 Controller 处理
         if (_playerModel.ConsumeCoins(cost))
         {
+            if (!_levelModel.TryRecordScratchCardPurchase())
+            {
+                _playerModel.AddCoins(cost);
+                Debug.LogWarning("[MainGameController] Purchase cancelled: purchase limit reached after cost check.");
+                AudioManager.Instance?.PlayCue(AudioCueId.UiDenied);
+                RefreshLevelDisplay();
+                return;
+            }
+
             Debug.Log($"成功花费 {cost} 购买彩票 {slotId}");
+            RefreshLevelDisplay();
+            AudioManager.Instance?.PlayCue(AudioCueId.BuyScratchCard);
             SpawnScratchCard(slotId);
         }
         else
         {
             Debug.LogWarning("金币不足，无法购买！");
+            AudioManager.Instance?.PlayCue(AudioCueId.UiDenied);
             // TODO: 通知 View 播放“余额不足”的飘字或震动动画
         }
     }
@@ -154,6 +209,17 @@ public class MainGameController : MonoBehaviour
         if (_playerModel != null)
         {
             _playerModel.OnCoinsChanged -= HandleCoinsChanged;
+        }
+
+        UnbindLevel();
+        if (_mainGamePanel != null)
+        {
+            _mainGamePanel.OnRogueRewardCardSelected -= HandleRogueRewardCardSelected;
+        }
+
+        if (_rogueCardInventory != null)
+        {
+            _rogueCardInventory.OnCardAdded -= HandleRogueCardAdded;
         }
 
         // 清理由于事件带来的绑定关系及所有的子 View 对象池回收
@@ -175,6 +241,7 @@ public class MainGameController : MonoBehaviour
             if (scratchCard != null && PoolManager.Instance != null)
             {
                 scratchCard.OnFocusStateChanged -= HandleScratchCardFocusStateChanged;
+                scratchCard.OnRewardClaimed -= HandleScratchCardRewardClaimed;
                 PoolManager.Instance.Despawn(scratchCard.gameObject);
             }
         }
@@ -233,6 +300,7 @@ public class MainGameController : MonoBehaviour
 
         scratchCardController.Initialize(model, spawnFrom, targetPosition);
         scratchCardController.OnFocusStateChanged += HandleScratchCardFocusStateChanged;
+        scratchCardController.OnRewardClaimed += HandleScratchCardRewardClaimed;
         _activeScratchCards.Add(scratchCardController);
     }
 
@@ -278,6 +346,153 @@ public class MainGameController : MonoBehaviour
         if (!hasOtherFocusedCard)
         {
             _mainGamePanel.HideScratchCardFocusOverlay();
+        }
+    }
+
+    private void HandleScratchCardRewardClaimed(ScratchCardController scratchCard, ScratchSettlementResult settlementResult)
+    {
+        if (settlementResult != null)
+        {
+            _playerModel.AddCoins(settlementResult.FinalScore);
+        }
+
+        if (scratchCard != null)
+        {
+            scratchCard.OnFocusStateChanged -= HandleScratchCardFocusStateChanged;
+            scratchCard.OnRewardClaimed -= HandleScratchCardRewardClaimed;
+            _activeScratchCards.Remove(scratchCard);
+        }
+
+        if (_mainGamePanel != null)
+        {
+            _mainGamePanel.HideScratchCardFocusOverlay();
+        }
+
+        if (scratchCard != null && PoolManager.Instance != null)
+        {
+            PoolManager.Instance.Despawn(scratchCard.gameObject);
+        }
+    }
+
+    private void EnsureCurrentLevel()
+    {
+        if (_gameSession == null)
+        {
+            return;
+        }
+
+        if (_gameSession.CurrentLevel == null)
+        {
+            _gameSession.StartLevel(LevelDefaultsProvider.GetFirstLevel());
+        }
+
+        BindLevel(_gameSession.CurrentLevel);
+    }
+
+    private void BindLevel(LevelProgressModel levelModel)
+    {
+        UnbindLevel();
+        _levelModel = levelModel;
+
+        if (_levelModel == null)
+        {
+            return;
+        }
+
+        _levelModel.OnScratchCardPurchasesChanged += HandleLevelPurchasesChanged;
+        _levelModel.OnPassStateChanged += HandleLevelPassStateChanged;
+        _levelModel.EvaluatePass(_playerModel != null ? _playerModel.Coins : 0);
+    }
+
+    private void UnbindLevel()
+    {
+        if (_levelModel == null)
+        {
+            return;
+        }
+
+        _levelModel.OnScratchCardPurchasesChanged -= HandleLevelPurchasesChanged;
+        _levelModel.OnPassStateChanged -= HandleLevelPassStateChanged;
+    }
+
+    private void HandleLevelPurchasesChanged(int used, int limit)
+    {
+        RefreshLevelDisplay();
+    }
+
+    private void HandleLevelPassStateChanged(bool passed)
+    {
+        RefreshLevelDisplay();
+        if (passed)
+        {
+            Debug.Log($"[MainGameController] Level passed: {_levelModel.LevelName}");
+            ShowRogueRewardChoices();
+        }
+    }
+
+    private void RefreshLevelDisplay()
+    {
+        if (_mainGamePanel != null && _levelModel != null && _playerModel != null)
+        {
+            _mainGamePanel.UpdateLevelDisplay(_levelModel, _playerModel.Coins);
+        }
+    }
+
+    private void ShowRogueRewardChoices()
+    {
+        if (_rogueRewardOfferedForCurrentLevel || _mainGamePanel == null)
+        {
+            return;
+        }
+
+        _currentRogueRewardOffer = _rogueCardRewardService.CreateRewardOffer(3);
+        _rogueRewardOfferedForCurrentLevel = true;
+        _mainGamePanel.ShowRogueCardChoices(_currentRogueRewardOffer.Choices);
+    }
+
+    private void HandleRogueRewardCardSelected(int cardId)
+    {
+        if (_currentRogueRewardOffer == null || _rogueCardInventory == null)
+        {
+            return;
+        }
+
+        RogueCardConfig selectedCard = FindRogueRewardChoice(cardId);
+        if (selectedCard == null)
+        {
+            Debug.LogWarning($"[MainGameController] Selected rogue card id={cardId} was not found in current offer.");
+            return;
+        }
+
+        _rogueCardInventory.AddCard(selectedCard);
+        _rogueCardEffectService.ApplyCard(
+            selectedCard,
+            new RogueCardEffectContext(AppRoot.Instance != null ? AppRoot.Instance.PlayerContext : null, _gameSession));
+
+        _currentRogueRewardOffer = null;
+        _mainGamePanel.HideRogueCardChoices();
+    }
+
+    private RogueCardConfig FindRogueRewardChoice(int cardId)
+    {
+        IReadOnlyList<RogueCardConfig> choices = _currentRogueRewardOffer != null ? _currentRogueRewardOffer.Choices : null;
+        int count = choices != null ? choices.Count : 0;
+        for (int i = 0; i < count; i++)
+        {
+            if (choices[i] != null && choices[i].Id == cardId)
+            {
+                return choices[i];
+            }
+        }
+
+        return null;
+    }
+
+    private void HandleRogueCardAdded(RogueCardConfig cardConfig)
+    {
+        if (_mainGamePanel != null && _rogueCardInventory != null)
+        {
+            _mainGamePanel.RefreshOwnedRogueCards(_rogueCardInventory.OwnedCards);
         }
     }
 

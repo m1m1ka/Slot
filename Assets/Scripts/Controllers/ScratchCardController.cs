@@ -9,9 +9,16 @@ using UnityEngine;
 public class ScratchCardController : MonoBehaviour
 {
     public event System.Action<ScratchCardController, bool> OnFocusStateChanged;
+    public event System.Action<ScratchCardController, ScratchSettlementResult> OnRewardClaimed;
 
     private ScratchCardView _view;
     private ScratchCardModel _model;
+    private ScratchSettlementResult _settlementResult;
+    private bool _rewardClaimed;
+    private float _lastScratchInputTime = float.MinValue;
+    private bool _isScratchLoopPlaying;
+
+    private const float ScratchLoopStopDelay = 0.2f;
 
     public ScratchCardModel Model => _model;
 
@@ -36,6 +43,8 @@ public class ScratchCardController : MonoBehaviour
         _view.BindCardData(_model.Cells);
         _view.SetupInitialVisual();
         _view.PlaySpawnAnimation(spawnFrom, spawnTo);
+        _settlementResult = null;
+        _rewardClaimed = false;
     }
 
     private void Update()
@@ -54,6 +63,11 @@ public class ScratchCardController : MonoBehaviour
         {
             TryExitFocus(Input.GetTouch(0).position);
         }
+
+        if (_isScratchLoopPlaying && Time.unscaledTime - _lastScratchInputTime > ScratchLoopStopDelay)
+        {
+            StopScratchLoop();
+        }
     }
 
     private void BindModel()
@@ -68,10 +82,12 @@ public class ScratchCardController : MonoBehaviour
         _view.OnCardClicked += HandleCardClicked;
         _view.OnScratchDragged += HandleScratchDragged;
         _view.OnSpawnAnimationFinished += HandleSpawnFinished;
+        _view.OnClaimRewardClicked += HandleClaimRewardClicked;
     }
 
     private void HandleSpawnFinished()
     {
+        AudioManager.Instance?.PlayCue(AudioCueId.ScratchCardSpawned);
         _model.SetState(ScratchCardModel.ScratchCardState.Idle);
     }
 
@@ -83,6 +99,7 @@ public class ScratchCardController : MonoBehaviour
         }
 
         _model.SetState(ScratchCardModel.ScratchCardState.Focused);
+        AudioManager.Instance?.PlayCue(AudioCueId.ScratchCardFocused);
     }
 
     private void HandleScratchDragged(float amount)
@@ -90,7 +107,9 @@ public class ScratchCardController : MonoBehaviour
         if (_model.State == ScratchCardModel.ScratchCardState.Focused ||
             _model.State == ScratchCardModel.ScratchCardState.Scratching)
         {
-            _model.AddScratchProgress(amount);
+            _lastScratchInputTime = Time.unscaledTime;
+            StartScratchLoop();
+            _model.SetScratchProgress(amount);
         }
     }
 
@@ -109,10 +128,12 @@ public class ScratchCardController : MonoBehaviour
                 _view.SetFocused(true);
                 break;
             case ScratchCardModel.ScratchCardState.Idle:
+                StopScratchLoop();
                 OnFocusStateChanged?.Invoke(this, false);
                 _view.SetFocused(false);
                 break;
             case ScratchCardModel.ScratchCardState.Completed:
+                StopScratchLoop();
                 OnFocusStateChanged?.Invoke(this, true);
                 _view.SetFocused(true);
                 break;
@@ -122,15 +143,35 @@ public class ScratchCardController : MonoBehaviour
     private void HandleScratchCompleted()
     {
         IScratchSettlementEvaluator evaluator = ScratchSettlementEvaluatorFactory.Create(_model.SettlementType);
-        ScratchSettlementResult settlementResult = evaluator.Evaluate(_model);
+        _settlementResult = evaluator.Evaluate(_model);
+        _view.ShowClaimRewardButton(_settlementResult.FinalScore);
+        AudioManager.Instance?.PlayCue(AudioCueId.ScratchCardCompleted);
 
         Debug.Log(
             $"[ScratchCardController] Scratch card {_model.CardId} completed. " +
-            $"Type={_model.CardTypeName}, Base={_model.TotalBaseScore}, Final={settlementResult.FinalScore}, Summary={settlementResult.Summary}");
+            $"Type={_model.CardTypeName}, Base={_model.TotalBaseScore}, Final={_settlementResult.FinalScore}, Summary={_settlementResult.Summary}");
+    }
+
+    private void HandleClaimRewardClicked()
+    {
+        if (_rewardClaimed || _settlementResult == null)
+        {
+            return;
+        }
+
+        _rewardClaimed = true;
+        _view.HideClaimRewardButton();
+        AudioManager.Instance?.PlayCue(AudioCueId.GainMoney);
+        OnRewardClaimed?.Invoke(this, _settlementResult);
     }
 
     private void TryExitFocus(Vector2 screenPoint)
     {
+        if (_model != null && _model.State == ScratchCardModel.ScratchCardState.Completed && !_rewardClaimed)
+        {
+            return;
+        }
+
         if (_view.ContainsScreenPoint(screenPoint))
         {
             return;
@@ -153,8 +194,31 @@ public class ScratchCardController : MonoBehaviour
 
     private void OnDestroy()
     {
+        StopScratchLoop();
         UnbindModel();
         UnbindView();
+    }
+
+    private void StartScratchLoop()
+    {
+        if (_isScratchLoopPlaying)
+        {
+            return;
+        }
+
+        AudioManager.Instance?.PlayLoopCue(AudioCueId.Sratching);
+        _isScratchLoopPlaying = true;
+    }
+
+    private void StopScratchLoop()
+    {
+        if (!_isScratchLoopPlaying)
+        {
+            return;
+        }
+
+        AudioManager.Instance?.StopLoopCue(AudioCueId.Sratching);
+        _isScratchLoopPlaying = false;
     }
 
     private void UnbindModel()
@@ -179,5 +243,6 @@ public class ScratchCardController : MonoBehaviour
         _view.OnCardClicked -= HandleCardClicked;
         _view.OnScratchDragged -= HandleScratchDragged;
         _view.OnSpawnAnimationFinished -= HandleSpawnFinished;
+        _view.OnClaimRewardClicked -= HandleClaimRewardClicked;
     }
 }

@@ -8,14 +8,22 @@ public class GameSession
     /// 当前是否已经开始一局正式流程。
     /// </summary>
     public bool IsRunActive { get; private set; }
+    public LevelProgressModel CurrentLevel { get; private set; }
 
     public void StartNewRun()
     {
         IsRunActive = true;
     }
 
+    public void StartLevel(Configs.LevelConfig levelConfig)
+    {
+        CurrentLevel = new LevelProgressModel(levelConfig);
+        IsRunActive = true;
+    }
+
     public void Reset()
     {
         IsRunActive = false;
+        CurrentLevel = null;
     }
 }

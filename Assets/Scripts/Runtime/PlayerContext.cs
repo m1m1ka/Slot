@@ -5,9 +5,11 @@
 public class PlayerContext
 {
     public PlayerModel Player { get; }
+    public RogueCardInventoryModel RogueCards { get; }
 
     public PlayerContext(double initialCoins = 0)
     {
         Player = new PlayerModel(initialCoins);
+        RogueCards = new RogueCardInventoryModel();
     }
 }

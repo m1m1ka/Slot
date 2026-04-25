@@ -73,17 +73,26 @@ public class ScratchCardModel
             return;
         }
 
-        float nextProgress = ScratchProgress + amount;
-        if (nextProgress < 0f)
+        SetScratchProgress(ScratchProgress + amount);
+    }
+
+    public void SetScratchProgress(float progress)
+    {
+        if (State == ScratchCardState.Completed)
         {
-            nextProgress = 0f;
-        }
-        else if (nextProgress > 1f)
-        {
-            nextProgress = 1f;
+            return;
         }
 
-        ScratchProgress = nextProgress;
+        if (progress < 0f)
+        {
+            progress = 0f;
+        }
+        else if (progress > 1f)
+        {
+            progress = 1f;
+        }
+
+        ScratchProgress = progress;
         OnScratchProgressChanged?.Invoke(ScratchProgress);
 
         if (ScratchProgress >= 1f)
