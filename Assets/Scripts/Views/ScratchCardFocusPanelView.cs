@@ -14,7 +14,7 @@ public class ScratchCardFocusPanelView : MonoBehaviour
     [SerializeField] private Vector2 _panelAnchorMin = new Vector2(1f, 0.5f);
     [SerializeField] private Vector2 _panelAnchorMax = new Vector2(1f, 0.5f);
     [SerializeField] private Vector2 _panelPivot = new Vector2(1f, 0.5f);
-    [SerializeField] private Vector2 _panelAnchoredPosition = new Vector2(-28f, 0f);
+    [SerializeField] private Vector2 _panelAnchoredPosition = new Vector2(-160f, 0f);
     [SerializeField] private Vector2 _panelSize = new Vector2(400f, 390f);
 
     [Header("Rows Root Layout")]

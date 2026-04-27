@@ -3,6 +3,7 @@ using TMPro; // 推荐使用 TextMeshPro 来显示文本
 using System;
 using System.Collections.Generic;
 using Configs;
+using Core;
 using DG.Tweening;
 using UI; // 引入你已有的 UI 命名空间，包含 UIPanel 基类
 using UnityEngine.UI;
@@ -18,6 +19,7 @@ public class MainGamePanel : UIPanel
     [SerializeField] private TextMeshProUGUI _levelGoalText;
     [SerializeField] private TextMeshProUGUI _purchaseLimitText;
     [SerializeField] private TextMeshProUGUI _levelStateText;
+    [SerializeField] private Slider _levelGoalSlider;
 
     [Header("Shop & Upgrade Lists Root")]
     [SerializeField] private Transform _slotListRoot;       // 挂载左侧购买老虎机按钮的父节点
@@ -32,6 +34,7 @@ public class MainGamePanel : UIPanel
     [Header("Focus Overlay")]
     [SerializeField] private Color _focusOverlayColor = new Color(0f, 0f, 0f, 0.55f);
     [SerializeField] private float _focusOverlayFadeDuration = 0.18f;
+    [SerializeField] private float _levelGoalSliderTweenDuration = 0.2f;
 
     [Header("Rogue Cards")]
     [SerializeField] private RectTransform _rogueOwnedCardsRoot;
@@ -46,6 +49,7 @@ public class MainGamePanel : UIPanel
     private CanvasGroup _focusOverlayCanvasGroup;
     private Image _focusOverlayImage;
     private Tween _focusOverlayTween;
+    private Tween _levelGoalSliderTween;
     [SerializeField] private ScratchCardFocusPanelView _configuredFocusPanelView;
     private ScratchCardFocusPanelView _focusPanelView;
     private GameObject _rogueChoiceOverlayObject;
@@ -89,6 +93,8 @@ public class MainGamePanel : UIPanel
             _levelGoalText.text = $"{currentCoins:N0} / {levelModel.RequiredCoins:N0}";
         }
 
+        UpdateLevelGoalSlider(levelModel.RequiredCoins, currentCoins);
+
         if (_purchaseLimitText != null)
         {
             _purchaseLimitText.text = $"{levelModel.RemainingScratchCardPurchases:N0} / {levelModel.ScratchCardPurchaseLimit:N0}";
@@ -98,6 +104,32 @@ public class MainGamePanel : UIPanel
         {
             _levelStateText.text = levelModel.IsPassed ? "Passed" : "In Progress";
         }
+    }
+
+    private void UpdateLevelGoalSlider(double targetCoins, double currentCoins)
+    {
+        if (_levelGoalSlider == null)
+        {
+            return;
+        }
+
+        float maxValue = targetCoins > 0d ? (float)targetCoins : 1f;
+        float nextValue = Mathf.Clamp((float)currentCoins, 0f, maxValue);
+
+        _levelGoalSlider.maxValue = maxValue;
+        _levelGoalSliderTween?.Kill();
+
+        if (!gameObject.activeInHierarchy)
+        {
+            _levelGoalSlider.value = nextValue;
+            return;
+        }
+
+        _levelGoalSliderTween = _levelGoalSlider
+            .DOValue(nextValue, _levelGoalSliderTweenDuration)
+            .SetEase(Ease.OutCubic)
+            .SetUpdate(true)
+            .OnComplete(() => _levelGoalSliderTween = null);
     }
 
     public void ShowRogueCardChoices(IReadOnlyList<RogueCardConfig> choices)
@@ -360,6 +392,8 @@ public class MainGamePanel : UIPanel
         HorizontalLayoutGroup layout = contentObject.GetComponent<HorizontalLayoutGroup>();
         layout.spacing = 28f;
         layout.childAlignment = TextAnchor.MiddleCenter;
+        layout.childControlWidth = false;
+        layout.childControlHeight = false;
         layout.childForceExpandWidth = false;
         layout.childForceExpandHeight = false;
 
@@ -403,8 +437,18 @@ public class MainGamePanel : UIPanel
 
     private GameObject CreateRogueChoiceCard(RogueCardConfig cardConfig, Transform parent)
     {
-        GameObject cardObject = CreateRogueCardVisual(cardConfig, parent, new Vector2(220f, 300f));
-        Button button = cardObject.AddComponent<Button>();
+        GameObject cardObject = CreateRogueCardVisual(cardConfig, parent);
+        Button button = cardObject != null ? cardObject.GetComponent<Button>() : null;
+        if (button == null && cardObject != null)
+        {
+            button = cardObject.AddComponent<Button>();
+        }
+
+        if (button == null)
+        {
+            return cardObject;
+        }
+
         int selectedCardId = cardConfig.Id;
         button.onClick.AddListener(() => OnRogueRewardCardSelected?.Invoke(selectedCardId));
         return cardObject;
@@ -412,46 +456,49 @@ public class MainGamePanel : UIPanel
 
     private GameObject CreateOwnedRogueCard(RogueCardConfig cardConfig, Transform parent)
     {
-        return CreateRogueCardVisual(cardConfig, parent, new Vector2(150f, 58f));
+        return CreateRogueCardVisual(cardConfig, parent);
     }
 
-    private GameObject CreateRogueCardVisual(RogueCardConfig cardConfig, Transform parent, Vector2 size)
+    private GameObject CreateRogueCardVisual(RogueCardConfig cardConfig, Transform parent)
     {
-        GameObject cardObject = new GameObject($"RogueCard_{cardConfig.Id}", typeof(RectTransform), typeof(Image), typeof(VerticalLayoutGroup));
-        cardObject.transform.SetParent(parent, false);
+        GameObject cardPrefab = AssetProvider.LoadPrefab("UI/Card");
+        if (cardPrefab == null)
+        {
+            Debug.LogError("[MainGamePanel] Failed to load UI/Card prefab for rogue card display.");
+            return null;
+        }
 
-        RectTransform rect = cardObject.GetComponent<RectTransform>();
-        rect.sizeDelta = size;
+        GameObject cardObject = Instantiate(cardPrefab, parent, false);
+        cardObject.name = $"RogueCard_{cardConfig.Id}";
 
-        Image image = cardObject.GetComponent<Image>();
-        image.color = new Color(0.12f, 0.15f, 0.16f, 0.96f);
-
-        VerticalLayoutGroup layout = cardObject.GetComponent<VerticalLayoutGroup>();
-        layout.padding = new RectOffset(12, 12, 10, 10);
-        layout.spacing = 6f;
-        layout.childAlignment = TextAnchor.MiddleCenter;
-        layout.childForceExpandWidth = true;
-        layout.childForceExpandHeight = false;
-
-        CreateRogueCardText("Name", cardConfig.Name, cardObject.transform, 20f, FontStyles.Bold);
-        CreateRogueCardText("Rarity", cardConfig.Rarity, cardObject.transform, 13f, FontStyles.Normal);
-        CreateRogueCardText("Description", cardConfig.Description, cardObject.transform, 14f, FontStyles.Normal);
+        SetRogueCardText(cardObject.transform, "CardName", cardConfig.Name);
+        SetRogueCardText(cardObject.transform, "Rare", cardConfig.Rarity);
+        SetRogueCardText(cardObject.transform, "Description", cardConfig.Description);
         return cardObject;
     }
 
-    private void CreateRogueCardText(string objectName, string text, Transform parent, float fontSize, FontStyles fontStyle)
+    private void SetRogueCardText(Transform root, string childName, string text)
     {
-        GameObject textObject = new GameObject(objectName, typeof(RectTransform), typeof(TextMeshProUGUI));
-        textObject.transform.SetParent(parent, false);
+        if (root == null)
+        {
+            return;
+        }
 
-        TextMeshProUGUI label = textObject.GetComponent<TextMeshProUGUI>();
+        Transform child = root.Find(childName);
+        if (child == null)
+        {
+            Debug.LogWarning($"[MainGamePanel] Rogue card prefab is missing child '{childName}'.");
+            return;
+        }
+
+        TextMeshProUGUI label = child.GetComponent<TextMeshProUGUI>();
+        if (label == null)
+        {
+            Debug.LogWarning($"[MainGamePanel] Child '{childName}' does not have a TextMeshProUGUI component.");
+            return;
+        }
+
         label.text = string.IsNullOrWhiteSpace(text) ? "-" : text;
-        label.fontSize = fontSize;
-        label.fontStyle = fontStyle;
-        label.alignment = TextAlignmentOptions.Center;
-        label.color = Color.white;
-        label.enableWordWrapping = true;
-        label.raycastTarget = false;
     }
 
     private void ClearRogueChoiceObjects()
@@ -478,6 +525,12 @@ public class MainGamePanel : UIPanel
         }
 
         _ownedRogueCardObjects.Clear();
+    }
+
+    private void OnDestroy()
+    {
+        _focusOverlayTween?.Kill();
+        _levelGoalSliderTween?.Kill();
     }
 
     private void EnsureFocusPanel()

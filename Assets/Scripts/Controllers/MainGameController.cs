@@ -106,7 +106,7 @@ public class MainGameController : MonoBehaviour
                 // 初始化配置数据（后期应从真正的 ConfigManager 拿配置）
                 // 目前先造一些假数据：价格分别是 100, 500, 2500, 12500, 62500
                 double mockCost = 100 * Mathf.Pow(5, i - 1);
-                itemView.SetData(i, $"Scratch Card Lv.{i}", mockCost);
+                itemView.SetData(i, "Scratch Card", mockCost);
 
                 // 核心：由统一的主 Controller 监听所有个体的购买点击意图
                 itemView.OnBuyClicked += HandleBuyRequest;
@@ -471,6 +471,27 @@ public class MainGameController : MonoBehaviour
 
         _currentRogueRewardOffer = null;
         _mainGamePanel.HideRogueCardChoices();
+        AdvanceToNextLevelAfterReward();
+    }
+
+    private void AdvanceToNextLevelAfterReward()
+    {
+        if (_gameSession == null || _levelModel == null)
+        {
+            return;
+        }
+
+        int completedLevelId = _levelModel.LevelId;
+        if (!_gameSession.StartNextLevel())
+        {
+            Debug.Log($"[MainGameController] No next level configured after level id={completedLevelId}.");
+            RefreshLevelDisplay();
+            return;
+        }
+
+        _rogueRewardOfferedForCurrentLevel = false;
+        BindLevel(_gameSession.CurrentLevel);
+        RefreshLevelDisplay();
     }
 
     private RogueCardConfig FindRogueRewardChoice(int cardId)

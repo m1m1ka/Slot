@@ -17,6 +17,7 @@ public class ScratchCardController : MonoBehaviour
     private bool _rewardClaimed;
     private float _lastScratchInputTime = float.MinValue;
     private bool _isScratchLoopPlaying;
+    private int _currentRevealedReward;
 
     private const float ScratchLoopStopDelay = 0.2f;
 
@@ -45,6 +46,7 @@ public class ScratchCardController : MonoBehaviour
         _view.PlaySpawnAnimation(spawnFrom, spawnTo);
         _settlementResult = null;
         _rewardClaimed = false;
+        _currentRevealedReward = 0;
     }
 
     private void Update()
@@ -81,6 +83,8 @@ public class ScratchCardController : MonoBehaviour
     {
         _view.OnCardClicked += HandleCardClicked;
         _view.OnScratchDragged += HandleScratchDragged;
+        _view.OnScratchLayerCleared += HandleScratchLayerCleared;
+        _view.OnScratchCellRevealed += HandleScratchCellRevealed;
         _view.OnSpawnAnimationFinished += HandleSpawnFinished;
         _view.OnClaimRewardClicked += HandleClaimRewardClicked;
     }
@@ -126,16 +130,19 @@ public class ScratchCardController : MonoBehaviour
             case ScratchCardModel.ScratchCardState.Scratching:
                 OnFocusStateChanged?.Invoke(this, true);
                 _view.SetFocused(true);
+                _view.SetCurrentRewardText(_currentRevealedReward, true);
                 break;
             case ScratchCardModel.ScratchCardState.Idle:
                 StopScratchLoop();
                 OnFocusStateChanged?.Invoke(this, false);
                 _view.SetFocused(false);
+                _view.SetCurrentRewardText(_currentRevealedReward, false);
                 break;
             case ScratchCardModel.ScratchCardState.Completed:
                 StopScratchLoop();
                 OnFocusStateChanged?.Invoke(this, true);
                 _view.SetFocused(true);
+                _view.SetCurrentRewardText(_currentRevealedReward, true);
                 break;
         }
     }
@@ -145,11 +152,33 @@ public class ScratchCardController : MonoBehaviour
         IScratchSettlementEvaluator evaluator = ScratchSettlementEvaluatorFactory.Create(_model.SettlementType);
         _settlementResult = evaluator.Evaluate(_model);
         _view.ShowClaimRewardButton(_settlementResult.FinalScore);
-        AudioManager.Instance?.PlayCue(AudioCueId.ScratchCardCompleted);
 
         Debug.Log(
             $"[ScratchCardController] Scratch card {_model.CardId} completed. " +
             $"Type={_model.CardTypeName}, Base={_model.TotalBaseScore}, Final={_settlementResult.FinalScore}, Summary={_settlementResult.Summary}");
+    }
+
+    private void HandleScratchLayerCleared()
+    {
+        AudioManager.Instance?.PlaySfx("Audio/Sfx/Pop");
+    }
+
+    private void HandleScratchCellRevealed(int cellIndex)
+    {
+        if (_model == null || _model.Cells == null || cellIndex < 0 || cellIndex >= _model.Cells.Count)
+        {
+            return;
+        }
+
+        ScratchCellModel cell = _model.Cells[cellIndex];
+        if (cell == null || !cell.IsScratchable || cell.IsScratched)
+        {
+            return;
+        }
+
+        cell.MarkScratched();
+        _currentRevealedReward += cell.BaseScore;
+        _view.SetCurrentRewardText(_currentRevealedReward, IsInFocusedState());
     }
 
     private void HandleClaimRewardClicked()
@@ -242,6 +271,8 @@ public class ScratchCardController : MonoBehaviour
 
         _view.OnCardClicked -= HandleCardClicked;
         _view.OnScratchDragged -= HandleScratchDragged;
+        _view.OnScratchLayerCleared -= HandleScratchLayerCleared;
+        _view.OnScratchCellRevealed -= HandleScratchCellRevealed;
         _view.OnSpawnAnimationFinished -= HandleSpawnFinished;
         _view.OnClaimRewardClicked -= HandleClaimRewardClicked;
     }

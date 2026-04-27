@@ -40,6 +40,8 @@ public class ScratchCardView : MonoBehaviour, IPointerClickHandler, IDragHandler
 
     public event Action OnCardClicked;
     public event Action<float> OnScratchDragged;
+    public event Action OnScratchLayerCleared;
+    public event Action<int> OnScratchCellRevealed;
     public event Action OnSpawnAnimationFinished;
     public event Action OnClaimRewardClicked;
 
@@ -62,8 +64,10 @@ public class ScratchCardView : MonoBehaviour, IPointerClickHandler, IDragHandler
         public int Width;
         public int Height;
         public int TotalPixelCount;
+        public int CellIndex;
         public float ClearedAlphaAmount;
         public float MaxAlphaAmount;
+        public bool IsFullyCleared;
     }
 
     private void Awake()
@@ -92,6 +96,7 @@ public class ScratchCardView : MonoBehaviour, IPointerClickHandler, IDragHandler
     {
         InitializeScratchSurface();
         SetScratchProgress(0f);
+        SetCurrentRewardText(0, false);
         SetFocused(false, instant: true);
         HideClaimRewardButton();
     }
@@ -181,11 +186,6 @@ public class ScratchCardView : MonoBehaviour, IPointerClickHandler, IDragHandler
             return;
         }
 
-        if (_claimRewardText != null)
-        {
-            _claimRewardText.text = "+" + finalScore;
-        }
-
         _claimRewardButton.gameObject.SetActive(true);
         _claimRewardButton.interactable = true;
     }
@@ -199,6 +199,17 @@ public class ScratchCardView : MonoBehaviour, IPointerClickHandler, IDragHandler
 
         _claimRewardButton.interactable = false;
         _claimRewardButton.gameObject.SetActive(false);
+    }
+
+    public void SetCurrentRewardText(int reward, bool visible)
+    {
+        if (_claimRewardText == null)
+        {
+            return;
+        }
+
+        _claimRewardText.text = $"+{reward}";
+        _claimRewardText.gameObject.SetActive(visible);
     }
 
     public bool ContainsScreenPoint(Vector2 screenPoint)
@@ -272,6 +283,11 @@ public class ScratchCardView : MonoBehaviour, IPointerClickHandler, IDragHandler
 
     private void OnDestroy()
     {
+        if (_claimRewardButton != null)
+        {
+            _claimRewardButton.onClick.RemoveListener(HandleClaimRewardButtonClicked);
+        }
+
         for (int i = 0; i < _scratchSurfaces.Count; i++)
         {
             if (_scratchSurfaces[i].Texture != null)
@@ -319,7 +335,9 @@ public class ScratchCardView : MonoBehaviour, IPointerClickHandler, IDragHandler
                 Width = _scratchTextureWidth,
                 Height = _scratchTextureHeight,
                 TotalPixelCount = _scratchTextureWidth * _scratchTextureHeight,
+                CellIndex = i,
                 ClearedAlphaAmount = 0f,
+                IsFullyCleared = false,
             };
 
             surface.Texture = new Texture2D(surface.Width, surface.Height, TextureFormat.RGBA32, false);
@@ -386,6 +404,7 @@ public class ScratchCardView : MonoBehaviour, IPointerClickHandler, IDragHandler
         if (deltaProgress > 0f)
         {
             TryAutoClearScratchSurface(hoveredSurface);
+            TryNotifyScratchLayerCleared(hoveredSurface);
             TryFinalizeScratchCompletion();
         }
     }
@@ -577,6 +596,23 @@ public class ScratchCardView : MonoBehaviour, IPointerClickHandler, IDragHandler
         return finalizedAlphaAmount > 0f ? finalizedAlphaAmount / totalMaxAlphaAmount : 0f;
     }
 
+    private void TryNotifyScratchLayerCleared(ScratchSurfaceRuntime surface)
+    {
+        if (surface == null || surface.IsFullyCleared)
+        {
+            return;
+        }
+
+        if (surface.ClearedAlphaAmount < surface.MaxAlphaAmount)
+        {
+            return;
+        }
+
+        surface.IsFullyCleared = true;
+        OnScratchLayerCleared?.Invoke();
+        OnScratchCellRevealed?.Invoke(surface.CellIndex);
+    }
+
     private void BindPatternImages(IReadOnlyList<ScratchCellModel> cells)
     {
         if (_patternImages == null || _patternImages.Length == 0)
@@ -668,51 +704,11 @@ public class ScratchCardView : MonoBehaviour, IPointerClickHandler, IDragHandler
             {
                 _claimRewardText = _claimRewardButton.GetComponentInChildren<TextMeshProUGUI>(true);
             }
+
+            _claimRewardButton.onClick.RemoveListener(HandleClaimRewardButtonClicked);
+            _claimRewardButton.onClick.AddListener(HandleClaimRewardButtonClicked);
             return;
         }
-
-        if (_cardTransform == null)
-        {
-            return;
-        }
-
-        GameObject buttonObject = new GameObject("ClaimRewardButton", typeof(RectTransform), typeof(Image), typeof(Button));
-        buttonObject.transform.SetParent(_cardTransform, false);
-
-        RectTransform buttonRect = buttonObject.GetComponent<RectTransform>();
-        buttonRect.anchorMin = new Vector2(0.5f, 0f);
-        buttonRect.anchorMax = new Vector2(0.5f, 0f);
-        buttonRect.pivot = new Vector2(0.5f, 0.5f);
-        buttonRect.anchoredPosition = new Vector2(0f, -86f);
-        buttonRect.sizeDelta = new Vector2(180f, 44f);
-        buttonObject.transform.SetAsLastSibling();
-
-        Image buttonImage = buttonObject.GetComponent<Image>();
-        buttonImage.color = new Color(0.98f, 0.83f, 0.27f, 1f);
-        buttonImage.raycastTarget = true;
-
-        _claimRewardButton = buttonObject.GetComponent<Button>();
-        _claimRewardButton.targetGraphic = buttonImage;
-        _claimRewardButton.onClick.AddListener(HandleClaimRewardButtonClicked);
-
-        GameObject textObject = new GameObject("Text", typeof(RectTransform), typeof(TextMeshProUGUI));
-        textObject.transform.SetParent(buttonObject.transform, false);
-
-        RectTransform textRect = textObject.GetComponent<RectTransform>();
-        textRect.anchorMin = Vector2.zero;
-        textRect.anchorMax = Vector2.one;
-        textRect.offsetMin = Vector2.zero;
-        textRect.offsetMax = Vector2.zero;
-
-        _claimRewardText = textObject.GetComponent<TextMeshProUGUI>();
-        _claimRewardText.fontSize = 22f;
-        _claimRewardText.fontStyle = FontStyles.Bold;
-        _claimRewardText.alignment = TextAlignmentOptions.Center;
-        _claimRewardText.color = new Color(0.17f, 0.11f, 0.02f, 1f);
-        _claimRewardText.raycastTarget = false;
-        _claimRewardText.text = "+0";
-
-        buttonObject.SetActive(false);
     }
 
     private void HandleClaimRewardButtonClicked()

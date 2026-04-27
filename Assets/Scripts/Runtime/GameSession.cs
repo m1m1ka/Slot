@@ -21,6 +21,24 @@ public class GameSession
         IsRunActive = true;
     }
 
+    public bool StartNextLevel()
+    {
+        if (CurrentLevel == null)
+        {
+            StartLevel(Core.LevelDefaultsProvider.GetFirstLevel());
+            return CurrentLevel != null;
+        }
+
+        Configs.LevelConfig nextLevelConfig = Core.LevelDefaultsProvider.GetNextLevel(CurrentLevel.LevelId);
+        if (nextLevelConfig == null)
+        {
+            return false;
+        }
+
+        StartLevel(nextLevelConfig);
+        return true;
+    }
+
     public void Reset()
     {
         IsRunActive = false;

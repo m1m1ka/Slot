@@ -44,7 +44,7 @@ public class ShopItemView : MonoBehaviour
             _nameText.text = slotName;
             
         if (_costText != null) 
-            _costText.text = $"Cost: {cost:N0}";
+            _costText.text = $"{cost:N0}";
     }
 
     /// <summary>
