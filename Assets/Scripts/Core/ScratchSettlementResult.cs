@@ -7,8 +7,19 @@ namespace Core
     /// </summary>
     public class ScratchSettlementResult
     {
+        public int ScoreBeforeRewardMultiplier { get; set; }
         public int FinalScore { get; set; }
         public string Summary { get; set; }
         public List<int> WinningPatternIds { get; set; } = new List<int>();
+
+        public static int ApplyMultiplier(int score, double multiplier)
+        {
+            if (multiplier <= 0d)
+            {
+                multiplier = 1d;
+            }
+
+            return (int)System.Math.Round(score * multiplier);
+        }
     }
 }

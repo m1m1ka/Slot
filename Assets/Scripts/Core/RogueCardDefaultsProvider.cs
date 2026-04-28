@@ -10,9 +10,9 @@ namespace Core
             new RogueCardConfig
             {
                 Id = 1,
-                Name = "Cherry Polish",
-                Rarity = "Common",
-                Description = "Cherry patterns gain more base score.",
+                Name = "樱桃抛光",
+                Rarity = "普通",
+                Description = "樱桃图案基础分增加。",
                 Effects = new List<RogueCardEffectConfig>
                 {
                     new RogueCardEffectConfig { EffectType = RogueCardEffectType.IncreasePatternBaseScore, TargetId = 1, Value = 5 }
@@ -21,9 +21,9 @@ namespace Core
             new RogueCardConfig
             {
                 Id = 2,
-                Name = "Lucky Scraper",
-                Rarity = "Common",
-                Description = "Scratch card rewards gain a small multiplier.",
+                Name = "幸运刮刀",
+                Rarity = "普通",
+                Description = "刮刮卡奖励获得少量倍率。",
                 Effects = new List<RogueCardEffectConfig>
                 {
                     new RogueCardEffectConfig { EffectType = RogueCardEffectType.IncreaseScratchCardMultiplier, Value = 0.1 }
@@ -32,9 +32,9 @@ namespace Core
             new RogueCardConfig
             {
                 Id = 3,
-                Name = "Bell Echo",
-                Rarity = "Common",
-                Description = "Bell patterns gain more base score.",
+                Name = "铃铛回响",
+                Rarity = "普通",
+                Description = "铃铛图案基础分增加。",
                 Effects = new List<RogueCardEffectConfig>
                 {
                     new RogueCardEffectConfig { EffectType = RogueCardEffectType.IncreasePatternBaseScore, TargetId = 5, Value = 8 }
@@ -43,9 +43,9 @@ namespace Core
             new RogueCardConfig
             {
                 Id = 4,
-                Name = "Golden Edge",
-                Rarity = "Uncommon",
-                Description = "Future rewards can hook into this card for extra payout rules.",
+                Name = "黄金边缘",
+                Rarity = "罕见",
+                Description = "后续奖励规则可接入这张卡。",
                 Effects = new List<RogueCardEffectConfig>
                 {
                     new RogueCardEffectConfig { EffectType = RogueCardEffectType.None }

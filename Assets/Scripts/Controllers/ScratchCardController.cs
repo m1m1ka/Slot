@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using Configs;
 using Core;
 using UnityEngine;
 
@@ -18,6 +20,7 @@ public class ScratchCardController : MonoBehaviour
     private float _lastScratchInputTime = float.MinValue;
     private bool _isScratchLoopPlaying;
     private int _currentRevealedReward;
+    private readonly HashSet<int> _scoredPairCellIndices = new HashSet<int>();
 
     private const float ScratchLoopStopDelay = 0.2f;
 
@@ -47,6 +50,7 @@ public class ScratchCardController : MonoBehaviour
         _settlementResult = null;
         _rewardClaimed = false;
         _currentRevealedReward = 0;
+        _scoredPairCellIndices.Clear();
     }
 
     private void Update()
@@ -151,7 +155,7 @@ public class ScratchCardController : MonoBehaviour
     {
         IScratchSettlementEvaluator evaluator = ScratchSettlementEvaluatorFactory.Create(_model.SettlementType);
         _settlementResult = evaluator.Evaluate(_model);
-        _view.ShowClaimRewardButton(_settlementResult.FinalScore);
+        _view.ShowClaimRewardButton(_settlementResult.ScoreBeforeRewardMultiplier, _model.RewardMultiplier);
 
         Debug.Log(
             $"[ScratchCardController] Scratch card {_model.CardId} completed. " +
@@ -177,8 +181,59 @@ public class ScratchCardController : MonoBehaviour
         }
 
         cell.MarkScratched();
+
+        if (_model.SettlementType == ScratchSettlementType.MatchAnyPair)
+        {
+            TryScorePair(cellIndex, cell);
+            return;
+        }
+
         _currentRevealedReward += cell.BaseScore;
         _view.SetCurrentRewardText(_currentRevealedReward, IsInFocusedState());
+
+        if (_model.CardTypeId == 1)
+        {
+            _view.PlayPatternScoreReveal(cellIndex, cell.BaseScore, cell.IsBaseScoreEnhanced);
+        }
+    }
+
+    private void TryScorePair(int cellIndex, ScratchCellModel cell)
+    {
+        int pairedCellIndex = FindUnscoredRevealedMatch(cellIndex, cell.PatternId);
+        if (pairedCellIndex < 0)
+        {
+            _view.SetCurrentRewardText(_currentRevealedReward, IsInFocusedState());
+            return;
+        }
+
+        ScratchCellModel pairedCell = _model.Cells[pairedCellIndex];
+        _scoredPairCellIndices.Add(cellIndex);
+        _scoredPairCellIndices.Add(pairedCellIndex);
+
+        const int pairScoreMultiplier = 2;
+        _currentRevealedReward += (cell.BaseScore + pairedCell.BaseScore) * pairScoreMultiplier;
+        _view.SetCurrentRewardText(_currentRevealedReward, IsInFocusedState());
+        _view.PlayPatternScoreReveal(cellIndex, cell.BaseScore, cell.IsBaseScoreEnhanced, pairScoreMultiplier);
+        _view.PlayPatternScoreReveal(pairedCellIndex, pairedCell.BaseScore, pairedCell.IsBaseScoreEnhanced, pairScoreMultiplier);
+    }
+
+    private int FindUnscoredRevealedMatch(int currentCellIndex, int patternId)
+    {
+        for (int i = 0; i < _model.Cells.Count; i++)
+        {
+            if (i == currentCellIndex || _scoredPairCellIndices.Contains(i))
+            {
+                continue;
+            }
+
+            ScratchCellModel candidate = _model.Cells[i];
+            if (candidate != null && candidate.IsScratchable && candidate.IsScratched && candidate.PatternId == patternId)
+            {
+                return i;
+            }
+        }
+
+        return -1;
     }
 
     private void HandleClaimRewardClicked()

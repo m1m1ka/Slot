@@ -1,6 +1,6 @@
 using System;
-using System;
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 
 namespace Core
@@ -57,6 +57,25 @@ namespace Core
         public static TextAsset LoadTextAsset(string resourcesPath)
         {
             return Load<TextAsset>(resourcesPath);
+        }
+
+        public static TMP_FontAsset LoadDefaultTmpFont()
+        {
+            return Load<TMP_FontAsset>("Font/MyFont");
+        }
+
+        public static void ApplyDefaultTmpFont(TextMeshProUGUI text)
+        {
+            if (text == null)
+            {
+                return;
+            }
+
+            TMP_FontAsset fontAsset = LoadDefaultTmpFont();
+            if (fontAsset != null)
+            {
+                text.font = fontAsset;
+            }
         }
 
         public static Sprite[] LoadSprites(string resourcesPath)

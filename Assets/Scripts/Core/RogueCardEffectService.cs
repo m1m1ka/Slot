@@ -11,6 +11,8 @@ namespace Core
         public RogueCardEffectService()
         {
             Register(new NoOpRogueCardEffect());
+            Register(new IncreasePatternBaseScoreEffect());
+            Register(new IncreaseScratchCardMultiplierEffect());
         }
 
         public void Register(IRogueCardEffect effect)
@@ -54,6 +56,38 @@ namespace Core
 
             public void Apply(RogueCardEffectConfig effectConfig, RogueCardEffectContext context)
             {
+            }
+        }
+
+        private class IncreasePatternBaseScoreEffect : IRogueCardEffect
+        {
+            public RogueCardEffectType EffectType => RogueCardEffectType.IncreasePatternBaseScore;
+
+            public void Apply(RogueCardEffectConfig effectConfig, RogueCardEffectContext context)
+            {
+                if (effectConfig == null || context?.GameSession?.RunModifiers == null)
+                {
+                    return;
+                }
+
+                context.GameSession.RunModifiers.AddPatternBaseScoreBonus(
+                    effectConfig.TargetId,
+                    Mathf.RoundToInt((float)effectConfig.Value));
+            }
+        }
+
+        private class IncreaseScratchCardMultiplierEffect : IRogueCardEffect
+        {
+            public RogueCardEffectType EffectType => RogueCardEffectType.IncreaseScratchCardMultiplier;
+
+            public void Apply(RogueCardEffectConfig effectConfig, RogueCardEffectContext context)
+            {
+                if (effectConfig == null || context?.GameSession?.RunModifiers == null)
+                {
+                    return;
+                }
+
+                context.GameSession.RunModifiers.AddScratchCardMultiplierBonus(effectConfig.Value);
             }
         }
     }

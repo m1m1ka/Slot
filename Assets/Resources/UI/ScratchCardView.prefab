@@ -103,10 +103,10 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: New Text
+  m_text: "+0"
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: 26fc19aa51f8570419cfa444c1ff1d29, type: 2}
+  m_sharedMaterial: {fileID: -2791760553555188194, guid: 26fc19aa51f8570419cfa444c1ff1d29, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -513,6 +513,13 @@ MonoBehaviour:
   _spawnDuration: 0.7
   _focusScale: 2.3
   _focusDuration: 0.2
+  _scorePulseScale: 1.25
+  _scorePulseDuration: 0.22
+  _scoreFloatDistance: 52
+  _scoreFloatDuration: 0.75
+  _scoreFloatFontSize: 28
+  _scoreFloatTextColor: {r: 0.96, g: 0.96, b: 0.92, a: 1}
+  _enhancedScoreFloatTextColor: {r: 0.35, g: 0.65, b: 1, a: 1}
 --- !u!114 &7685803675479400683
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -828,10 +835,10 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Claim
+  m_text: "\u5151\u5956"
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: 26fc19aa51f8570419cfa444c1ff1d29, type: 2}
+  m_sharedMaterial: {fileID: -2791760553555188194, guid: 26fc19aa51f8570419cfa444c1ff1d29, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []

@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using System;
+using Core;
 
 /// <summary>
 /// 视图层：单个商店购买/升级按钮项。
@@ -21,8 +22,12 @@ public class ShopItemView : MonoBehaviour
 
     private void Awake()
     {
+        AssetProvider.ApplyDefaultTmpFont(_nameText);
+        AssetProvider.ApplyDefaultTmpFont(_costText);
+
         if (_buyBtn != null)
         {
+            AssetProvider.ApplyDefaultTmpFont(_buyBtn.GetComponentInChildren<TextMeshProUGUI>(true));
             _buyBtn.onClick.AddListener(() => 
             {
                 OnBuyClicked?.Invoke(_mySlotId);

@@ -10,7 +10,10 @@ namespace Core
     /// </summary>
     public static class ScratchCardGenerator
     {
-        public static List<ScratchCellModel> GenerateCells(ScratchCardTypeConfig cardTypeConfig, ScratchAreaTemplateConfig areaTemplateConfig)
+        public static List<ScratchCellModel> GenerateCells(
+            ScratchCardTypeConfig cardTypeConfig,
+            ScratchAreaTemplateConfig areaTemplateConfig,
+            RogueCardRunModifierModel runModifiers = null)
         {
             var results = new List<ScratchCellModel>();
 
@@ -34,14 +37,24 @@ namespace Core
                 int row = areaTemplateConfig.Width > 0 ? i / areaTemplateConfig.Width : 0;
                 int column = areaTemplateConfig.Width > 0 ? i % areaTemplateConfig.Width : 0;
 
+                int baseScore = patternConfig != null ? patternConfig.BaseScore : 0;
+                bool isBaseScoreEnhanced = false;
+                if (patternConfig != null && runModifiers != null)
+                {
+                    int baseScoreBonus = runModifiers.GetPatternBaseScoreBonus(patternConfig.Id);
+                    baseScore += baseScoreBonus;
+                    isBaseScoreEnhanced = baseScoreBonus != 0;
+                }
+
                 results.Add(new ScratchCellModel(
                     i,
                     row,
                     column,
                     patternConfig != null ? patternConfig.Id : 0,
-                    patternConfig != null ? patternConfig.Name : "Empty",
-                    patternConfig != null ? patternConfig.BaseScore : 0,
-                    isScratchable));
+                    patternConfig != null ? patternConfig.Name : "空",
+                    baseScore,
+                    isScratchable,
+                    isBaseScoreEnhanced));
             }
 
             return results;
@@ -52,7 +65,11 @@ namespace Core
             int totalWeight = 0;
             for (int i = 0; i < patternPool.Entries.Count; i++)
             {
-                totalWeight += Mathf.Max(0, patternPool.Entries[i].Weight);
+                ScratchPatternPoolEntryConfig entry = patternPool.Entries[i];
+                if (entry != null)
+                {
+                    totalWeight += Mathf.Max(0, ScratchCardDefaultsProvider.GetPatternWeight(entry.PatternId));
+                }
             }
 
             if (totalWeight <= 0)
@@ -66,7 +83,12 @@ namespace Core
             for (int i = 0; i < patternPool.Entries.Count; i++)
             {
                 ScratchPatternPoolEntryConfig entry = patternPool.Entries[i];
-                accumulatedWeight += Mathf.Max(0, entry.Weight);
+                if (entry == null)
+                {
+                    continue;
+                }
+
+                accumulatedWeight += Mathf.Max(0, ScratchCardDefaultsProvider.GetPatternWeight(entry.PatternId));
 
                 if (randomValue < accumulatedWeight)
                 {

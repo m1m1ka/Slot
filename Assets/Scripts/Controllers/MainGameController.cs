@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UI; // 引入 UIManager 所在的空间
 using Core; // 引入 PoolManager
 using System.Collections.Generic;
@@ -26,6 +26,7 @@ public class MainGameController : MonoBehaviour
 
     // 存储当前动态加载的商店项引用
     private readonly List<ShopItemView> _shopItems = new List<ShopItemView>();
+    private readonly Dictionary<ShopItemView, double> _shopItemPrices = new Dictionary<ShopItemView, double>();
     private readonly List<ScratchCardController> _activeScratchCards = new List<ScratchCardController>();
 
     private int _nextScratchCardId = 1;
@@ -94,24 +95,29 @@ public class MainGameController : MonoBehaviour
             return;
         }
 
-        // 假设这里我们要初始化加载5个彩票购买选项
-        for (int i = 1; i <= 5; i++)
+        // 根据默认卡种配置生成彩票购买选项
+        foreach (ScratchCardTypeConfig cardTypeConfig in ScratchCardDefaultsProvider.GetAllCardTypes())
         {
+            if (cardTypeConfig == null)
+            {
+                continue;
+            }
+
             // 通过架构自带的核心对象池 (PoolManager) 生成 View
             GameObject itemObj = PoolManager.Instance.Spawn(shopItemPrefab, _mainGamePanel.SlotListRoot);
             ShopItemView itemView = itemObj.GetComponent<ShopItemView>();
 
             if (itemView != null)
             {
-                // 初始化配置数据（后期应从真正的 ConfigManager 拿配置）
-                // 目前先造一些假数据：价格分别是 100, 500, 2500, 12500, 62500
-                double mockCost = 100 * Mathf.Pow(5, i - 1);
-                itemView.SetData(i, "Scratch Card", mockCost);
+                // View 只展示配置数据，购买校验和扣费留在 Controller。
+                itemView.SetData(cardTypeConfig.Id, cardTypeConfig.Name, cardTypeConfig.Price);
+                itemView.UpdateAffordability(_playerModel != null && _levelModel != null && _levelModel.CanPurchaseScratchCard && _playerModel.Coins >= cardTypeConfig.Price);
 
                 // 核心：由统一的主 Controller 监听所有个体的购买点击意图
                 itemView.OnBuyClicked += HandleBuyRequest;
                 
                 _shopItems.Add(itemView);
+                _shopItemPrices[itemView] = cardTypeConfig.Price;
             }
         }
     }
@@ -122,11 +128,18 @@ public class MainGameController : MonoBehaviour
     private void HandleBuyRequest(int slotId)
     {
         AudioManager.Instance?.PlayCue(AudioCueId.UiClick);
-        Debug.Log($"收到请求：尝试购买解锁编号为 {slotId} 的肉鸽彩票。");
+        Debug.Log($"收到请求：尝试购买编号为 {slotId} 的刮刮卡。");
 
-        // 当前阶段为了方便测试，任何购买按钮都直接生成一张彩票。
-        double mockCost = 0;
-        RequestBuySlot(slotId, mockCost);
+        // 从配置读取价格，进入统一购买校验和扣费流程。
+        ScratchCardTypeConfig cardTypeConfig = ScratchCardDefaultsProvider.GetCardTypeForShopSlot(slotId);
+        if (cardTypeConfig == null)
+        {
+            Debug.LogWarning($"[MainGameController] Cannot buy scratch card: card type config not found for slotId={slotId}.");
+            AudioManager.Instance?.PlayCue(AudioCueId.UiDenied);
+            return;
+        }
+
+        RequestBuySlot(slotId, cardTypeConfig.Price);
     }
 
     /// <summary>
@@ -143,7 +156,7 @@ public class MainGameController : MonoBehaviour
         RefreshLevelDisplay();
 
         // TODO: 通知左侧 SlotShopItemView 和右侧 UpgradeItemView
-        // 刷新它们各自按钮的置灰/高亮状态（通过比较 newCoins 与 价格）
+        // 刷新它们各自按钮的置灰/高亮状态（通过比较 newCoins 与价格）
     }
 
     // -----------------------------------------------------
@@ -190,7 +203,7 @@ public class MainGameController : MonoBehaviour
                 return;
             }
 
-            Debug.Log($"成功花费 {cost} 购买彩票 {slotId}");
+            Debug.Log($"成功花费 {cost} 购买刮刮卡 {slotId}");
             RefreshLevelDisplay();
             AudioManager.Instance?.PlayCue(AudioCueId.BuyScratchCard);
             SpawnScratchCard(slotId);
@@ -228,6 +241,7 @@ public class MainGameController : MonoBehaviour
             if (item != null)
             {
                 item.OnBuyClicked -= HandleBuyRequest;
+                _shopItemPrices.Remove(item);
                 if (PoolManager.Instance != null && item.gameObject != null)
                 {
                     PoolManager.Instance.Despawn(item.gameObject);
@@ -247,7 +261,7 @@ public class MainGameController : MonoBehaviour
         }
         _activeScratchCards.Clear();
         
-        // （由于现在 Controller 挂载在面上，它随面板一起被销毁，不再需要调用 UIManager.ClosePanel，直接释放本级与下级资源即可）
+        // 由于现在 Controller 挂载在面板上，它随面板一起被销毁，不再需要调用 UIManager.ClosePanel。
     }
 
     private void SpawnScratchCard(int sourceSlotId)
@@ -290,13 +304,15 @@ public class MainGameController : MonoBehaviour
 
         Vector2 targetPosition = _mainGamePanel.GetRandomScratchCardAnchoredPosition();
         Vector2 spawnFrom = _mainGamePanel.GetScratchCardSpawnFromTop(targetPosition.x);
-        var generatedCells = ScratchCardGenerator.GenerateCells(cardTypeConfig, areaTemplateConfig);
+        RogueCardRunModifierModel runModifiers = _gameSession != null ? _gameSession.RunModifiers : null;
+        var generatedCells = ScratchCardGenerator.GenerateCells(cardTypeConfig, areaTemplateConfig, runModifiers);
         ScratchCardModel model = new ScratchCardModel(
             _nextScratchCardId++,
             sourceSlotId,
             cardTypeConfig,
             areaTemplateConfig,
-            generatedCells);
+            generatedCells,
+            runModifiers != null ? runModifiers.ScratchCardMultiplier : 1d);
 
         scratchCardController.Initialize(model, spawnFrom, targetPosition);
         scratchCardController.OnFocusStateChanged += HandleScratchCardFocusStateChanged;
@@ -436,6 +452,23 @@ public class MainGameController : MonoBehaviour
         {
             _mainGamePanel.UpdateLevelDisplay(_levelModel, _playerModel.Coins);
         }
+
+        if (_playerModel != null)
+        {
+            RefreshShopItemAffordability(_playerModel.Coins);
+        }
+    }
+
+    private void RefreshShopItemAffordability(double coins)
+    {
+        bool canPurchase = _levelModel != null && _levelModel.CanPurchaseScratchCard;
+        foreach (KeyValuePair<ShopItemView, double> itemPrice in _shopItemPrices)
+        {
+            if (itemPrice.Key != null)
+            {
+                itemPrice.Key.UpdateAffordability(canPurchase && coins >= itemPrice.Value);
+            }
+        }
     }
 
     private void ShowRogueRewardChoices()
@@ -534,16 +567,20 @@ public class MainGameController : MonoBehaviour
         ScratchPatternPoolConfig poolConfig = ScratchCardDefaultsProvider.GetPatternPool(cardTypeConfig.PatternPoolId);
         if (poolConfig == null || poolConfig.Entries == null || poolConfig.Entries.Count == 0)
         {
-            return new ScratchCardFocusPanelModel(cardTypeConfig.Name, "No Pattern Pool", new List<ScratchCardFocusPatternInfo>());
+            return new ScratchCardFocusPanelModel(
+                cardTypeConfig.Name,
+                "无图案池",
+                new List<ScratchCardFocusPatternInfo>(),
+                cardTypeConfig.WinDescription);
         }
 
         int totalWeight = 0;
         for (int i = 0; i < poolConfig.Entries.Count; i++)
         {
             ScratchPatternPoolEntryConfig entry = poolConfig.Entries[i];
-            if (entry != null && entry.Weight > 0)
+            if (entry != null)
             {
-                totalWeight += entry.Weight;
+                totalWeight += ScratchCardDefaultsProvider.GetPatternWeight(entry.PatternId);
             }
         }
 
@@ -551,7 +588,13 @@ public class MainGameController : MonoBehaviour
         for (int i = 0; i < poolConfig.Entries.Count; i++)
         {
             ScratchPatternPoolEntryConfig entry = poolConfig.Entries[i];
-            if (entry == null || entry.Weight <= 0)
+            if (entry == null)
+            {
+                continue;
+            }
+
+            int weight = ScratchCardDefaultsProvider.GetPatternWeight(entry.PatternId);
+            if (weight <= 0)
             {
                 continue;
             }
@@ -562,17 +605,24 @@ public class MainGameController : MonoBehaviour
                 continue;
             }
 
-            float probability = totalWeight > 0 ? (float)entry.Weight / totalWeight : 0f;
+            RogueCardRunModifierModel runModifiers = _gameSession != null ? _gameSession.RunModifiers : null;
+            int baseScoreBonus = runModifiers != null ? runModifiers.GetPatternBaseScoreBonus(patternConfig.Id) : 0;
+            float probability = totalWeight > 0 ? (float)weight / totalWeight : 0f;
             patterns.Add(new ScratchCardFocusPatternInfo(
                 patternConfig.Id,
                 patternConfig.Name,
-                patternConfig.BaseScore,
-                entry.Weight,
+                patternConfig.BaseScore + baseScoreBonus,
+                baseScoreBonus != 0,
+                weight,
                 probability,
                 patternConfig.AtlasPath,
                 patternConfig.SpriteName));
         }
 
-        return new ScratchCardFocusPanelModel(cardTypeConfig.Name, poolConfig.Name, patterns);
+        return new ScratchCardFocusPanelModel(
+            cardTypeConfig.Name,
+            poolConfig.Name,
+            patterns,
+            cardTypeConfig.WinDescription);
     }
 }

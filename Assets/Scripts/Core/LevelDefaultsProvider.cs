@@ -7,9 +7,9 @@ namespace Core
     {
         private static readonly Dictionary<int, LevelConfig> Levels = new Dictionary<int, LevelConfig>
         {
-            { 1, new LevelConfig { Id = 1, Name = "Level 1", RequiredCoins = 1100, ScratchCardPurchaseLimit = 5 } },
-            { 2, new LevelConfig { Id = 2, Name = "Level 2", RequiredCoins = 5000, ScratchCardPurchaseLimit = 6 } },
-            { 3, new LevelConfig { Id = 3, Name = "Level 3", RequiredCoins = 15000, ScratchCardPurchaseLimit = 7 } }
+            { 1, new LevelConfig { Id = 1, Name = "第1关", RequiredCoins = 1100, ScratchCardPurchaseLimit = 5 } },
+            { 2, new LevelConfig { Id = 2, Name = "第2关", RequiredCoins = 1300, ScratchCardPurchaseLimit = 6 } },
+            { 3, new LevelConfig { Id = 3, Name = "第3关", RequiredCoins = 1500, ScratchCardPurchaseLimit = 7 } }
         };
 
         public static LevelConfig GetLevel(int levelId)

@@ -44,10 +44,12 @@ namespace Core
                 }
             }
 
+            int score = model.TotalBaseScore + bonus;
             return new ScratchSettlementResult
             {
-                FinalScore = model.TotalBaseScore + bonus,
-                Summary = bonus > 0 ? "Matched three or more identical symbols." : "No triple match bonus.",
+                ScoreBeforeRewardMultiplier = score,
+                FinalScore = ScratchSettlementResult.ApplyMultiplier(score, model.RewardMultiplier),
+                Summary = bonus > 0 ? "出现三个或更多相同图案。" : "没有三连图案加成。",
                 WinningPatternIds = winningPatternIds
             };
         }

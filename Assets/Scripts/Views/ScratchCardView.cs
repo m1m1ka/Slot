@@ -37,6 +37,13 @@ public class ScratchCardView : MonoBehaviour, IPointerClickHandler, IDragHandler
     [SerializeField] private float _spawnDuration = 0.7f;
     [SerializeField] private float _focusScale = 4f;
     [SerializeField] private float _focusDuration = 0.28f;
+    [SerializeField] private float _scorePulseScale = 1.25f;
+    [SerializeField] private float _scorePulseDuration = 0.22f;
+    [SerializeField] private float _scoreFloatDistance = 52f;
+    [SerializeField] private float _scoreFloatDuration = 0.75f;
+    [SerializeField] private int _scoreFloatFontSize = 28;
+    [SerializeField] private Color _scoreFloatTextColor = new Color(0.96f, 0.96f, 0.92f, 1f);
+    [SerializeField] private Color _enhancedScoreFloatTextColor = new Color(0.35f, 0.65f, 1f, 1f);
 
     public event Action OnCardClicked;
     public event Action<float> OnScratchDragged;
@@ -178,12 +185,19 @@ public class ScratchCardView : MonoBehaviour, IPointerClickHandler, IDragHandler
         }
     }
 
-    public void ShowClaimRewardButton(int finalScore)
+    public void ShowClaimRewardButton(int displayScore, double rewardMultiplier = 1d)
     {
         EnsureClaimRewardButton();
         if (_claimRewardButton == null)
         {
             return;
+        }
+
+        if (_claimRewardText != null)
+        {
+            string multiplierText = rewardMultiplier > 1.0001d ? $" *{rewardMultiplier:0.##}" : string.Empty;
+            _claimRewardText.text = $"+{displayScore}{multiplierText}";
+            _claimRewardText.gameObject.SetActive(true);
         }
 
         _claimRewardButton.gameObject.SetActive(true);
@@ -210,6 +224,41 @@ public class ScratchCardView : MonoBehaviour, IPointerClickHandler, IDragHandler
 
         _claimRewardText.text = $"+{reward}";
         _claimRewardText.gameObject.SetActive(visible);
+    }
+
+    public void PlayPatternScoreReveal(int cellIndex, int score, bool isEnhanced, double scoreMultiplier = 1d)
+    {
+        if (_patternImages == null || cellIndex < 0 || cellIndex >= _patternImages.Length)
+        {
+            return;
+        }
+
+        Image targetImage = _patternImages[cellIndex];
+        if (targetImage == null || !targetImage.gameObject.activeInHierarchy)
+        {
+            return;
+        }
+
+        RectTransform targetRect = targetImage.rectTransform;
+        Vector3 originalScale = targetRect.localScale;
+        Quaternion originalRotation = targetRect.localRotation;
+
+        targetRect.DOKill();
+        targetRect.localScale = originalScale;
+        targetRect.localRotation = originalRotation;
+
+        Sequence patternSequence = DOTween.Sequence().SetUpdate(true);
+        patternSequence
+            .Append(targetRect.DOScale(originalScale * _scorePulseScale, _scorePulseDuration * 0.5f).SetEase(Ease.OutBack))
+            .Join(targetRect.DORotate(new Vector3(0f, 0f, 360f), _scorePulseDuration, RotateMode.LocalAxisAdd).SetEase(Ease.OutCubic))
+            .Append(targetRect.DOScale(originalScale, _scorePulseDuration * 0.5f).SetEase(Ease.OutCubic))
+            .OnComplete(() =>
+            {
+                targetRect.localScale = originalScale;
+                targetRect.localRotation = originalRotation;
+            });
+
+        PlayFloatingScoreText(targetRect, score, isEnhanced, scoreMultiplier);
     }
 
     public bool ContainsScreenPoint(Vector2 screenPoint)
@@ -661,6 +710,45 @@ public class ScratchCardView : MonoBehaviour, IPointerClickHandler, IDragHandler
         }
     }
 
+    private void PlayFloatingScoreText(RectTransform sourceRect, int score, bool isEnhanced, double scoreMultiplier)
+    {
+        if (sourceRect == null || _cardTransform == null)
+        {
+            return;
+        }
+
+        GameObject textObject = new GameObject("FloatingScoreText", typeof(RectTransform), typeof(CanvasGroup), typeof(TextMeshProUGUI));
+        textObject.transform.SetParent(_cardTransform, false);
+        textObject.transform.SetAsLastSibling();
+
+        RectTransform textRect = textObject.GetComponent<RectTransform>();
+        textRect.anchorMin = new Vector2(0.5f, 0.5f);
+        textRect.anchorMax = new Vector2(0.5f, 0.5f);
+        textRect.pivot = new Vector2(0.5f, 0.5f);
+        textRect.sizeDelta = new Vector2(96f, 42f);
+        textRect.position = sourceRect.position;
+
+        CanvasGroup canvasGroup = textObject.GetComponent<CanvasGroup>();
+        canvasGroup.alpha = 1f;
+
+        TextMeshProUGUI text = textObject.GetComponent<TextMeshProUGUI>();
+        AssetProvider.ApplyDefaultTmpFont(text);
+        string multiplierText = scoreMultiplier > 1.0001d ? $" *{scoreMultiplier:0.##}" : string.Empty;
+        text.text = $"+{score}{multiplierText}";
+        text.fontSize = _scoreFloatFontSize;
+        text.fontStyle = FontStyles.Bold;
+        text.alignment = TextAlignmentOptions.Center;
+        text.color = isEnhanced ? _enhancedScoreFloatTextColor : _scoreFloatTextColor;
+        text.raycastTarget = false;
+
+        Vector2 endPosition = textRect.anchoredPosition + Vector2.up * _scoreFloatDistance;
+        Sequence floatSequence = DOTween.Sequence().SetUpdate(true);
+        floatSequence
+            .Append(textRect.DOAnchorPos(endPosition, _scoreFloatDuration).SetEase(Ease.OutCubic))
+            .Join(canvasGroup.DOFade(0f, _scoreFloatDuration).SetEase(Ease.InCubic))
+            .OnComplete(() => Destroy(textObject));
+    }
+
     private ScratchSurfaceRuntime FindHoveredScratchSurface(Vector2 screenPoint)
     {
         Camera eventCamera = null;
@@ -704,6 +792,8 @@ public class ScratchCardView : MonoBehaviour, IPointerClickHandler, IDragHandler
             {
                 _claimRewardText = _claimRewardButton.GetComponentInChildren<TextMeshProUGUI>(true);
             }
+
+            AssetProvider.ApplyDefaultTmpFont(_claimRewardText);
 
             _claimRewardButton.onClick.RemoveListener(HandleClaimRewardButtonClicked);
             _claimRewardButton.onClick.AddListener(HandleClaimRewardButtonClicked);

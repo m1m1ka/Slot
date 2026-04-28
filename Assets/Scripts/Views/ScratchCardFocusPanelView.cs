@@ -15,14 +15,14 @@ public class ScratchCardFocusPanelView : MonoBehaviour
     [SerializeField] private Vector2 _panelAnchorMax = new Vector2(1f, 0.5f);
     [SerializeField] private Vector2 _panelPivot = new Vector2(1f, 0.5f);
     [SerializeField] private Vector2 _panelAnchoredPosition = new Vector2(-160f, 0f);
-    [SerializeField] private Vector2 _panelSize = new Vector2(400f, 390f);
+    [SerializeField] private Vector2 _panelSize = new Vector2(500f, 400f);
 
     [Header("Rows Root Layout")]
     [SerializeField] private Vector2 _rowsAnchorMin = new Vector2(0f, 1f);
     [SerializeField] private Vector2 _rowsAnchorMax = new Vector2(1f, 1f);
     [SerializeField] private Vector2 _rowsPivot = new Vector2(0.5f, 1f);
-    [SerializeField] private Vector2 _rowsAnchoredPosition = Vector2.zero;
-    [SerializeField] private Vector2 _rowsSize = new Vector2(0f, 390f);
+    [SerializeField] private Vector2 _rowsAnchoredPosition = new Vector2(0f, -82f);
+    [SerializeField] private Vector2 _rowsSize = new Vector2(0f, 310f);
     [SerializeField] private RectOffset _rowsPadding;
     [SerializeField] private float _rowSpacing = 6f;
     [SerializeField] private TextAnchor _rowsAlignment = TextAnchor.UpperCenter;
@@ -31,15 +31,16 @@ public class ScratchCardFocusPanelView : MonoBehaviour
     [SerializeField] private float _rowHeight = 54f;
     [SerializeField] private RectOffset _rowPadding;
     [SerializeField] private float _columnSpacing = 8f;
-    [SerializeField] private Vector2 _iconSize = new Vector2(40f, 40f);
+    [SerializeField] private Vector2 _iconSize = new Vector2(60f, 60f);
     [SerializeField] private float _nameWidth = 80f;
     [SerializeField] private float _probabilityWidth = 80f;
     [SerializeField] private float _scoreWidth = 80f;
 
     [Header("Text")]
-    [SerializeField] private int _nameFontSize = 20;
-    [SerializeField] private int _probabilityFontSize = 20;
-    [SerializeField] private int _scoreFontSize = 20;
+    [SerializeField] private int _nameFontSize = 30;
+    [SerializeField] private int _descriptionFontSize = 24;
+    [SerializeField] private int _probabilityFontSize = 30;
+    [SerializeField] private int _scoreFontSize = 30;
     [SerializeField] private FontStyles _nameFontStyle = FontStyles.Bold;
     [SerializeField] private FontStyles _probabilityFontStyle = FontStyles.Bold;
     [SerializeField] private FontStyles _scoreFontStyle = FontStyles.Bold;
@@ -52,6 +53,7 @@ public class ScratchCardFocusPanelView : MonoBehaviour
     [SerializeField] private Color _nameTextColor = new Color(0.96f, 0.96f, 0.92f, 1f);
     [SerializeField] private Color _probabilityTextColor = new Color(1f, 0.78f, 0.28f, 1f);
     [SerializeField] private Color _scoreTextColor = new Color(0.96f, 0.96f, 0.92f, 1f);
+    [SerializeField] private Color _enhancedScoreTextColor = new Color(0.35f, 0.65f, 1f, 1f);
 
     [Header("Animation")]
     [SerializeField] private float _showFadeDuration = 0.16f;
@@ -59,6 +61,7 @@ public class ScratchCardFocusPanelView : MonoBehaviour
 
     private RectTransform _rectTransform;
     private CanvasGroup _canvasGroup;
+    private TextMeshProUGUI _descriptionText;
     private RectTransform _rowsRoot;
     private Tween _fadeTween;
     private readonly List<RowView> _rows = new List<RowView>();
@@ -97,6 +100,11 @@ public class ScratchCardFocusPanelView : MonoBehaviour
             return;
         }
 
+        if (_descriptionText != null)
+        {
+            _descriptionText.text = model.WinDescription;
+        }
+
         IReadOnlyList<ScratchCardFocusPatternInfo> patterns = model.Patterns;
         int count = patterns != null ? patterns.Count : 0;
         EnsureRowCount(count);
@@ -115,6 +123,7 @@ public class ScratchCardFocusPanelView : MonoBehaviour
             row.NameText.text = pattern.PatternName;
             row.ProbabilityText.text = $"{pattern.Probability * 100f:0.#}%";
             row.ScoreText.text = $"+{pattern.BaseScore}";
+            row.ScoreText.color = pattern.IsBaseScoreEnhanced ? _enhancedScoreTextColor : _scoreTextColor;
 
             Sprite sprite = AssetProvider.LoadSpriteFromAtlas(pattern.AtlasPath, pattern.SpriteName);
             row.Icon.sprite = sprite;
@@ -183,6 +192,17 @@ public class ScratchCardFocusPanelView : MonoBehaviour
         {
             _canvasGroup = gameObject.AddComponent<CanvasGroup>();
         }
+
+        GameObject descriptionObject = new GameObject("WinDescription", typeof(RectTransform), typeof(TextMeshProUGUI));
+        descriptionObject.transform.SetParent(transform, false);
+        _descriptionText = descriptionObject.GetComponent<TextMeshProUGUI>();
+        PrepareText(_descriptionText);
+        _descriptionText.enableWordWrapping = true;
+        _descriptionText.overflowMode = TextOverflowModes.Ellipsis;
+        _descriptionText.fontSize = _descriptionFontSize;
+        _descriptionText.fontStyle = FontStyles.Bold;
+        _descriptionText.color = _nameTextColor;
+        _descriptionText.alignment = TextAlignmentOptions.TopLeft;
 
         GameObject rowsRootObject = new GameObject("Rows", typeof(RectTransform), typeof(VerticalLayoutGroup));
         rowsRootObject.transform.SetParent(transform, false);
@@ -256,6 +276,16 @@ public class ScratchCardFocusPanelView : MonoBehaviour
             return;
         }
 
+        if (_descriptionText != null)
+        {
+            RectTransform descriptionRect = _descriptionText.rectTransform;
+            descriptionRect.anchorMin = new Vector2(0f, 1f);
+            descriptionRect.anchorMax = new Vector2(1f, 1f);
+            descriptionRect.pivot = new Vector2(0.5f, 1f);
+            descriptionRect.anchoredPosition = new Vector2(0f, -8f);
+            descriptionRect.sizeDelta = new Vector2(-16f, 68f);
+        }
+
         VerticalLayoutGroup rowsLayout = _rowsRoot.GetComponent<VerticalLayoutGroup>();
         if (rowsLayout == null)
         {
@@ -319,7 +349,7 @@ public class ScratchCardFocusPanelView : MonoBehaviour
 
         ApplyTextStyle(row.NameText, _nameWidth, _nameFontSize, _nameFontStyle, _nameTextColor, _nameAlignment);
         ApplyTextStyle(row.ProbabilityText, _probabilityWidth, _probabilityFontSize, _probabilityFontStyle, _probabilityTextColor, _probabilityAlignment);
-        ApplyTextStyle(row.ScoreText, _scoreWidth, _scoreFontSize, _scoreFontStyle, _scoreTextColor, _scoreAlignment);
+        ApplyTextStyle(row.ScoreText, _scoreWidth, _scoreFontSize, _scoreFontStyle, row.ScoreText.color, _scoreAlignment);
     }
 
     private static void PrepareText(TextMeshProUGUI text)
@@ -327,6 +357,7 @@ public class ScratchCardFocusPanelView : MonoBehaviour
         text.enableWordWrapping = false;
         text.overflowMode = TextOverflowModes.Ellipsis;
         text.raycastTarget = false;
+        AssetProvider.ApplyDefaultTmpFont(text);
     }
 
     private void ApplyTextStyle(

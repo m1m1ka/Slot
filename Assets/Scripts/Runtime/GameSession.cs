@@ -9,9 +9,11 @@ public class GameSession
     /// </summary>
     public bool IsRunActive { get; private set; }
     public LevelProgressModel CurrentLevel { get; private set; }
+    public RogueCardRunModifierModel RunModifiers { get; } = new RogueCardRunModifierModel();
 
     public void StartNewRun()
     {
+        RunModifiers.Clear();
         IsRunActive = true;
     }
 
@@ -43,5 +45,6 @@ public class GameSession
     {
         IsRunActive = false;
         CurrentLevel = null;
+        RunModifiers.Clear();
     }
 }

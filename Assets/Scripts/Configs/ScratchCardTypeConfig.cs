@@ -8,6 +8,7 @@ namespace Configs
     {
         public int Id { get; set; }
         public string Name { get; set; }
+        public string WinDescription { get; set; }
         public int Price { get; set; }
         public int PatternPoolId { get; set; }
         public int AreaTemplateId { get; set; }

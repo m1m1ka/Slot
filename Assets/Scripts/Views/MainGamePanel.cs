@@ -1,15 +1,15 @@
-using UnityEngine;
-using TMPro; // 推荐使用 TextMeshPro 来显示文本
+﻿using UnityEngine;
+using TMPro; // 鎺ㄨ崘浣跨敤 TextMeshPro 鏉ユ樉绀烘枃鏈?
 using System;
 using System.Collections.Generic;
 using Configs;
 using Core;
 using DG.Tweening;
-using UI; // 引入你已有的 UI 命名空间，包含 UIPanel 基类
+using UI; // 寮曞叆浣犲凡鏈夌殑 UI 鍛藉悕绌洪棿锛屽寘鍚?UIPanel 鍩虹被
 using UnityEngine.UI;
 /// <summary>
-/// 视图层：只负责呈现UI并收集用户点击输入，不包含任何业务逻辑判断。
-/// 注意：这里继承自你已有的 UIPanel 基类。
+/// 瑙嗗浘灞傦細鍙礋璐ｅ憟鐜癠I骞舵敹闆嗙敤鎴风偣鍑昏緭鍏ワ紝涓嶅寘鍚换浣曚笟鍔￠€昏緫鍒ゆ柇銆?
+/// 娉ㄦ剰锛氳繖閲岀户鎵胯嚜浣犲凡鏈夌殑 UIPanel 鍩虹被銆?
 /// </summary>
 public class MainGamePanel : UIPanel
 {
@@ -22,14 +22,14 @@ public class MainGamePanel : UIPanel
     [SerializeField] private Slider _levelGoalSlider;
 
     [Header("Shop & Upgrade Lists Root")]
-    [SerializeField] private Transform _slotListRoot;       // 挂载左侧购买老虎机按钮的父节点
-    [SerializeField] private Transform _upgradeListRoot;    // 挂载右侧升级按钮的父节点
+    [SerializeField] private Transform _slotListRoot;       // 鎸傝浇宸︿晶璐拱鑰佽檸鏈烘寜閽殑鐖惰妭鐐?
+    [SerializeField] private Transform _upgradeListRoot;    // 鎸傝浇鍙充晶鍗囩骇鎸夐挳鐨勭埗鑺傜偣
 
     [Header("Scratch Card Root")]
-    [SerializeField] private RectTransform _scratchCardRoot; // 挂载动态生成的彩票表现层
+    [SerializeField] private RectTransform _scratchCardRoot; // 鎸傝浇鍔ㄦ€佺敓鎴愮殑褰╃エ琛ㄧ幇灞?
 
     [Header("Focus Overlay Root")]
-    [SerializeField] private RectTransform _focusOverlayRoot; // 挂载聚焦遮罩层的单独容器
+    [SerializeField] private RectTransform _focusOverlayRoot; // 鎸傝浇鑱氱劍閬僵灞傜殑鍗曠嫭瀹瑰櫒
 
     [Header("Focus Overlay")]
     [SerializeField] private Color _focusOverlayColor = new Color(0f, 0f, 0f, 0.55f);
@@ -40,7 +40,7 @@ public class MainGamePanel : UIPanel
     [SerializeField] private RectTransform _rogueOwnedCardsRoot;
     [SerializeField] private RectTransform _rogueChoiceOverlayRoot;
 
-    // 对外暴露列表的父节点供 Controller 挂载子物体引用
+    // 瀵瑰鏆撮湶鍒楄〃鐨勭埗鑺傜偣渚?Controller 鎸傝浇瀛愮墿浣撳紩鐢?
     public Transform SlotListRoot => _slotListRoot;
     public Transform UpgradeListRoot => _upgradeListRoot;
     public RectTransform ScratchCardRoot => _scratchCardRoot;
@@ -59,19 +59,20 @@ public class MainGamePanel : UIPanel
 
     public event Action<int> OnRogueRewardCardSelected;
 
-    // 如果面板上有通用的点击按钮，可以通过事件向Controller抛出
+    // 濡傛灉闈㈡澘涓婃湁閫氱敤鐨勭偣鍑绘寜閽紝鍙互閫氳繃浜嬩欢鍚慍ontroller鎶涘嚭
     // public event Action OnSomeGlobalButtonClicked;
 
     /// <summary>
-    /// 供 Controller 调用，用于刷新金币显示的表现
+    /// 渚?Controller 璋冪敤锛岀敤浜庡埛鏂伴噾甯佹樉绀虹殑琛ㄧ幇
     /// </summary>
-    /// <param name="currentCoins">玩家当前金币数量</param>
+    /// <param name="currentCoins">鐜╁褰撳墠閲戝竵鏁伴噺</param>
     public void UpdateCoinDisplay(double currentCoins)
     {
         if (_coinText != null)
         {
-            // 增量游戏通常需要格式化庞大数字 (如 1.2K, 3.5M)
-            // 这里暂且使用字符串格式化展示
+            // 澧為噺娓告垙閫氬父闇€瑕佹牸寮忓寲搴炲ぇ鏁板瓧 (濡?1.2K, 3.5M)
+            // 杩欓噷鏆備笖浣跨敤瀛楃涓叉牸寮忓寲灞曠ず
+            AssetProvider.ApplyDefaultTmpFont(_coinText);
             _coinText.text = currentCoins.ToString("N0");
         }
     }
@@ -85,11 +86,13 @@ public class MainGamePanel : UIPanel
 
         if (_levelText != null)
         {
+            AssetProvider.ApplyDefaultTmpFont(_levelText);
             _levelText.text = levelModel.LevelName;
         }
 
         if (_levelGoalText != null)
         {
+            AssetProvider.ApplyDefaultTmpFont(_levelGoalText);
             _levelGoalText.text = $"{currentCoins:N0} / {levelModel.RequiredCoins:N0}";
         }
 
@@ -97,12 +100,14 @@ public class MainGamePanel : UIPanel
 
         if (_purchaseLimitText != null)
         {
+            AssetProvider.ApplyDefaultTmpFont(_purchaseLimitText);
             _purchaseLimitText.text = $"{levelModel.RemainingScratchCardPurchases:N0} / {levelModel.ScratchCardPurchaseLimit:N0}";
         }
 
         if (_levelStateText != null)
         {
-            _levelStateText.text = levelModel.IsPassed ? "Passed" : "In Progress";
+            AssetProvider.ApplyDefaultTmpFont(_levelStateText);
+            _levelStateText.text = levelModel.IsPassed ? "已通关" : "进行中";
         }
     }
 
@@ -498,6 +503,7 @@ public class MainGamePanel : UIPanel
             return;
         }
 
+        AssetProvider.ApplyDefaultTmpFont(label);
         label.text = string.IsNullOrWhiteSpace(text) ? "-" : text;
     }
 
@@ -558,6 +564,6 @@ public class MainGamePanel : UIPanel
         _focusPanelView.Hide(true);
     }
 
-    // 后续可以增加动态实例化子项的方法
+    // 鍚庣画鍙互澧炲姞鍔ㄦ€佸疄渚嬪寲瀛愰」鐨勬柟娉?
     // public void AddSlotShopItem(SlotShopItemView itemPrefab) { ... }
 }

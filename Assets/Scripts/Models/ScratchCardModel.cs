@@ -27,6 +27,7 @@ public class ScratchCardModel
     public ScratchSettlementType SettlementType { get; }
     public IReadOnlyList<ScratchCellModel> Cells { get; }
     public int TotalBaseScore { get; }
+    public double RewardMultiplier { get; }
     public float ScratchProgress { get; private set; }
     public ScratchCardState State { get; private set; }
 
@@ -39,18 +40,20 @@ public class ScratchCardModel
         int sourceSlotId,
         ScratchCardTypeConfig cardTypeConfig,
         ScratchAreaTemplateConfig areaTemplateConfig,
-        IReadOnlyList<ScratchCellModel> cells)
+        IReadOnlyList<ScratchCellModel> cells,
+        double rewardMultiplier = 1d)
     {
         CardId = cardId;
         SourceSlotId = sourceSlotId;
         CardTypeId = cardTypeConfig != null ? cardTypeConfig.Id : 0;
-        CardTypeName = cardTypeConfig != null ? cardTypeConfig.Name : "Unknown Card";
+        CardTypeName = cardTypeConfig != null ? cardTypeConfig.Name : "未知刮刮卡";
         GridWidth = areaTemplateConfig != null ? areaTemplateConfig.Width : 0;
         GridHeight = areaTemplateConfig != null ? areaTemplateConfig.Height : 0;
         AreaTemplateId = areaTemplateConfig != null ? areaTemplateConfig.Id : 0;
         SettlementType = cardTypeConfig != null ? cardTypeConfig.SettlementType : ScratchSettlementType.SumScore;
         Cells = cells ?? Array.Empty<ScratchCellModel>();
         TotalBaseScore = CalculateTotalBaseScore(Cells);
+        RewardMultiplier = rewardMultiplier > 0d ? rewardMultiplier : 1d;
         ScratchProgress = 0f;
         State = ScratchCardState.Falling;
     }

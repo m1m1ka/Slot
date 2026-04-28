@@ -22,7 +22,7 @@ public class LevelProgressModel
     public LevelProgressModel(LevelConfig config)
     {
         LevelId = config != null ? config.Id : 0;
-        LevelName = config != null ? config.Name : "Unknown Level";
+        LevelName = config != null ? config.Name : "未知关卡";
         RequiredCoins = config != null ? config.RequiredCoins : 0;
         ScratchCardPurchaseLimit = Math.Max(0, config != null ? config.ScratchCardPurchaseLimit : 0);
     }

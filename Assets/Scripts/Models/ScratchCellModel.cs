@@ -9,10 +9,19 @@ public class ScratchCellModel
     public int PatternId { get; }
     public string PatternName { get; }
     public int BaseScore { get; }
+    public bool IsBaseScoreEnhanced { get; }
     public bool IsScratchable { get; }
     public bool IsScratched { get; private set; }
 
-    public ScratchCellModel(int cellIndex, int row, int column, int patternId, string patternName, int baseScore, bool isScratchable)
+    public ScratchCellModel(
+        int cellIndex,
+        int row,
+        int column,
+        int patternId,
+        string patternName,
+        int baseScore,
+        bool isScratchable,
+        bool isBaseScoreEnhanced = false)
     {
         CellIndex = cellIndex;
         Row = row;
@@ -21,6 +30,7 @@ public class ScratchCellModel
         PatternName = patternName;
         BaseScore = baseScore;
         IsScratchable = isScratchable;
+        IsBaseScoreEnhanced = isBaseScoreEnhanced;
     }
 
     public void MarkScratched()
