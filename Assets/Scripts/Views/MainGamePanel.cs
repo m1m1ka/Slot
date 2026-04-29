@@ -137,7 +137,9 @@ public class MainGamePanel : UIPanel
             .OnComplete(() => _levelGoalSliderTween = null);
     }
 
-    public void ShowRogueCardChoices(IReadOnlyList<RogueCardConfig> choices)
+    public void ShowRogueCardChoices(
+        IReadOnlyList<RogueCardConfig> choices,
+        IReadOnlyList<RogueCardInventoryEntryModel> ownedCards = null)
     {
         EnsureRogueChoiceOverlay();
         ClearRogueChoiceObjects();
@@ -157,7 +159,8 @@ public class MainGamePanel : UIPanel
                 continue;
             }
 
-            GameObject cardObject = CreateRogueChoiceCard(cardConfig, _rogueChoiceContentRoot);
+            int currentLevel = GetOwnedRogueCardLevel(ownedCards, cardConfig.Id);
+            GameObject cardObject = CreateRogueChoiceCard(cardConfig, _rogueChoiceContentRoot, currentLevel);
             _rogueChoiceObjects.Add(cardObject);
         }
     }
@@ -170,7 +173,7 @@ public class MainGamePanel : UIPanel
         }
     }
 
-    public void RefreshOwnedRogueCards(IReadOnlyList<RogueCardConfig> ownedCards)
+    public void RefreshOwnedRogueCards(IReadOnlyList<RogueCardInventoryEntryModel> ownedCards)
     {
         EnsureRogueOwnedCardsRoot();
         ClearOwnedRogueCardObjects();
@@ -183,13 +186,13 @@ public class MainGamePanel : UIPanel
         int count = ownedCards != null ? ownedCards.Count : 0;
         for (int i = 0; i < count; i++)
         {
-            RogueCardConfig cardConfig = ownedCards[i];
-            if (cardConfig == null)
+            RogueCardInventoryEntryModel ownedCard = ownedCards[i];
+            if (ownedCard == null)
             {
                 continue;
             }
 
-            GameObject cardObject = CreateOwnedRogueCard(cardConfig, _rogueOwnedCardsRoot);
+            GameObject cardObject = CreateOwnedRogueCard(ownedCard, _rogueOwnedCardsRoot);
             _ownedRogueCardObjects.Add(cardObject);
         }
     }
@@ -440,9 +443,12 @@ public class MainGamePanel : UIPanel
         layout.childForceExpandHeight = false;
     }
 
-    private GameObject CreateRogueChoiceCard(RogueCardConfig cardConfig, Transform parent)
+    private GameObject CreateRogueChoiceCard(RogueCardConfig cardConfig, Transform parent, int currentLevel)
     {
-        GameObject cardObject = CreateRogueCardVisual(cardConfig, parent);
+        int maxLevel = cardConfig != null ? cardConfig.GetMaxLevel() : 1;
+        int previewLevel = currentLevel > 0 ? Mathf.Min(currentLevel + 1, maxLevel) : 1;
+        string levelText = currentLevel >= maxLevel ? $"Lv.{maxLevel} 已满级" : currentLevel > 0 ? $"升级至 Lv.{previewLevel}" : $"Lv.{previewLevel}";
+        GameObject cardObject = CreateRogueCardVisual(cardConfig, parent, levelText, previewLevel);
         Button button = cardObject != null ? cardObject.GetComponent<Button>() : null;
         if (button == null && cardObject != null)
         {
@@ -459,12 +465,12 @@ public class MainGamePanel : UIPanel
         return cardObject;
     }
 
-    private GameObject CreateOwnedRogueCard(RogueCardConfig cardConfig, Transform parent)
+    private GameObject CreateOwnedRogueCard(RogueCardInventoryEntryModel ownedCard, Transform parent)
     {
-        return CreateRogueCardVisual(cardConfig, parent);
+        return CreateRogueCardVisual(ownedCard.Config, parent, $"Lv.{ownedCard.Level}", ownedCard.Level);
     }
 
-    private GameObject CreateRogueCardVisual(RogueCardConfig cardConfig, Transform parent)
+    private GameObject CreateRogueCardVisual(RogueCardConfig cardConfig, Transform parent, string levelText, int level)
     {
         GameObject cardPrefab = AssetProvider.LoadPrefab("UI/Card");
         if (cardPrefab == null)
@@ -477,9 +483,24 @@ public class MainGamePanel : UIPanel
         cardObject.name = $"RogueCard_{cardConfig.Id}";
 
         SetRogueCardText(cardObject.transform, "CardName", cardConfig.Name);
-        SetRogueCardText(cardObject.transform, "Rare", cardConfig.Rarity);
-        SetRogueCardText(cardObject.transform, "Description", cardConfig.Description);
+        SetRogueCardText(cardObject.transform, "Rare", $"{cardConfig.GetRarityDisplayName()}  {levelText}");
+        SetRogueCardText(cardObject.transform, "Description", cardConfig.GetDescriptionForLevel(level));
         return cardObject;
+    }
+
+    private static int GetOwnedRogueCardLevel(IReadOnlyList<RogueCardInventoryEntryModel> ownedCards, int cardId)
+    {
+        int count = ownedCards != null ? ownedCards.Count : 0;
+        for (int i = 0; i < count; i++)
+        {
+            RogueCardInventoryEntryModel ownedCard = ownedCards[i];
+            if (ownedCard != null && ownedCard.CardId == cardId)
+            {
+                return ownedCard.Level;
+            }
+        }
+
+        return 0;
     }
 
     private void SetRogueCardText(Transform root, string childName, string text)

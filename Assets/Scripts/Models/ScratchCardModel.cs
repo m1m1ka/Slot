@@ -27,13 +27,16 @@ public class ScratchCardModel
     public ScratchSettlementType SettlementType { get; }
     public IReadOnlyList<ScratchCellModel> Cells { get; }
     public int TotalBaseScore { get; }
-    public double RewardMultiplier { get; }
+    private double _rewardMultiplier = 1d;
+
+    public double RewardMultiplier => _rewardMultiplier;
     public float ScratchProgress { get; private set; }
     public ScratchCardState State { get; private set; }
 
     public event Action<float> OnScratchProgressChanged;
     public event Action<ScratchCardState> OnStateChanged;
     public event Action OnScratchCompleted;
+    public event Action<double> OnRewardMultiplierChanged;
 
     public ScratchCardModel(
         int cardId,
@@ -53,9 +56,31 @@ public class ScratchCardModel
         SettlementType = cardTypeConfig != null ? cardTypeConfig.SettlementType : ScratchSettlementType.SumScore;
         Cells = cells ?? Array.Empty<ScratchCellModel>();
         TotalBaseScore = CalculateTotalBaseScore(Cells);
-        RewardMultiplier = rewardMultiplier > 0d ? rewardMultiplier : 1d;
+        _rewardMultiplier = NormalizeRewardMultiplier(rewardMultiplier);
         ScratchProgress = 0f;
         State = ScratchCardState.Falling;
+    }
+
+    public void SetRewardMultiplier(double rewardMultiplier)
+    {
+        double normalizedMultiplier = NormalizeRewardMultiplier(rewardMultiplier);
+        if (Math.Abs(_rewardMultiplier - normalizedMultiplier) < 0.0001d)
+        {
+            return;
+        }
+
+        _rewardMultiplier = normalizedMultiplier;
+        OnRewardMultiplierChanged?.Invoke(_rewardMultiplier);
+    }
+
+    public void AddRewardMultiplierBonus(double bonus)
+    {
+        if (bonus <= 0d)
+        {
+            return;
+        }
+
+        SetRewardMultiplier(_rewardMultiplier + bonus);
     }
 
     public void SetState(ScratchCardState newState)
@@ -126,5 +151,10 @@ public class ScratchCardModel
         }
 
         return total;
+    }
+
+    private static double NormalizeRewardMultiplier(double rewardMultiplier)
+    {
+        return rewardMultiplier > 0d ? rewardMultiplier : 1d;
     }
 }

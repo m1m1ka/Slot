@@ -30,6 +30,7 @@ public class ScratchCardFocusPatternInfo
     public string PatternName { get; }
     public int BaseScore { get; }
     public bool IsBaseScoreEnhanced { get; }
+    public bool IsProbabilityEnhanced { get; }
     public int Weight { get; }
     public float Probability { get; }
     public string AtlasPath { get; }
@@ -40,6 +41,7 @@ public class ScratchCardFocusPatternInfo
         string patternName,
         int baseScore,
         bool isBaseScoreEnhanced,
+        bool isProbabilityEnhanced,
         int weight,
         float probability,
         string atlasPath,
@@ -49,6 +51,7 @@ public class ScratchCardFocusPatternInfo
         PatternName = string.IsNullOrWhiteSpace(patternName) ? $"图案 {patternId}" : patternName;
         BaseScore = baseScore;
         IsBaseScoreEnhanced = isBaseScoreEnhanced;
+        IsProbabilityEnhanced = isProbabilityEnhanced;
         Weight = weight;
         Probability = probability;
         AtlasPath = atlasPath;

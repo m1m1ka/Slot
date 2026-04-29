@@ -45,14 +45,14 @@ namespace Core
                 winningPatternIds.Add(pair.Key);
                 for (int i = 0; i < pairCount * 2; i++)
                 {
-                    pairScore += cells[i].BaseScore * PairScoreMultiplier;
+                    pairScore += ScratchPatternScoreService.GetCellScore(model, cells[i]) * PairScoreMultiplier;
                 }
             }
 
             return new ScratchSettlementResult
             {
                 ScoreBeforeRewardMultiplier = pairScore,
-                FinalScore = ScratchSettlementResult.ApplyMultiplier(pairScore, model.RewardMultiplier),
+                FinalScore = ScratchPatternScoreService.ApplyFinalScoreRules(model, pairScore),
                 Summary = pairScore > 0 ? "配对成功，分数获得×2。" : "没有配对，不获得分数。",
                 WinningPatternIds = winningPatternIds
             };

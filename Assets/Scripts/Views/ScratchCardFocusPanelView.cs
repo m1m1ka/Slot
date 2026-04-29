@@ -123,6 +123,7 @@ public class ScratchCardFocusPanelView : MonoBehaviour
             row.NameText.text = pattern.PatternName;
             row.ProbabilityText.text = $"{pattern.Probability * 100f:0.#}%";
             row.ScoreText.text = $"+{pattern.BaseScore}";
+            row.ProbabilityText.color = pattern.IsProbabilityEnhanced ? _enhancedScoreTextColor : _probabilityTextColor;
             row.ScoreText.color = pattern.IsBaseScoreEnhanced ? _enhancedScoreTextColor : _scoreTextColor;
 
             Sprite sprite = AssetProvider.LoadSpriteFromAtlas(pattern.AtlasPath, pattern.SpriteName);
@@ -348,7 +349,7 @@ public class ScratchCardFocusPanelView : MonoBehaviour
         }
 
         ApplyTextStyle(row.NameText, _nameWidth, _nameFontSize, _nameFontStyle, _nameTextColor, _nameAlignment);
-        ApplyTextStyle(row.ProbabilityText, _probabilityWidth, _probabilityFontSize, _probabilityFontStyle, _probabilityTextColor, _probabilityAlignment);
+        ApplyTextStyle(row.ProbabilityText, _probabilityWidth, _probabilityFontSize, _probabilityFontStyle, row.ProbabilityText.color, _probabilityAlignment);
         ApplyTextStyle(row.ScoreText, _scoreWidth, _scoreFontSize, _scoreFontStyle, row.ScoreText.color, _scoreAlignment);
     }
 

@@ -4,20 +4,50 @@ using Configs;
 
 public class RogueCardInventoryModel
 {
-    private readonly List<RogueCardConfig> _ownedCards = new List<RogueCardConfig>();
+    private readonly List<RogueCardInventoryEntryModel> _ownedCards = new List<RogueCardInventoryEntryModel>();
 
-    public IReadOnlyList<RogueCardConfig> OwnedCards => _ownedCards;
+    public IReadOnlyList<RogueCardInventoryEntryModel> OwnedCards => _ownedCards;
 
-    public event Action<RogueCardConfig> OnCardAdded;
+    public event Action<RogueCardInventoryEntryModel> OnCardChanged;
 
-    public void AddCard(RogueCardConfig cardConfig)
+    public RogueCardInventoryEntryModel AddCard(RogueCardConfig cardConfig)
     {
         if (cardConfig == null)
         {
-            return;
+            return null;
         }
 
-        _ownedCards.Add(cardConfig);
-        OnCardAdded?.Invoke(cardConfig);
+        RogueCardInventoryEntryModel ownedCard = FindByCardId(cardConfig.Id);
+        if (ownedCard != null)
+        {
+            ownedCard.Upgrade(cardConfig.GetMaxLevel());
+            OnCardChanged?.Invoke(ownedCard);
+            return ownedCard;
+        }
+
+        ownedCard = new RogueCardInventoryEntryModel(cardConfig);
+        _ownedCards.Add(ownedCard);
+        OnCardChanged?.Invoke(ownedCard);
+        return ownedCard;
+    }
+
+    public int GetCardLevel(int cardId)
+    {
+        RogueCardInventoryEntryModel ownedCard = FindByCardId(cardId);
+        return ownedCard != null ? ownedCard.Level : 0;
+    }
+
+    private RogueCardInventoryEntryModel FindByCardId(int cardId)
+    {
+        for (int i = 0; i < _ownedCards.Count; i++)
+        {
+            RogueCardInventoryEntryModel ownedCard = _ownedCards[i];
+            if (ownedCard != null && ownedCard.CardId == cardId)
+            {
+                return ownedCard;
+            }
+        }
+
+        return null;
     }
 }

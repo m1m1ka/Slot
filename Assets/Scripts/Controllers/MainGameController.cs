@@ -71,7 +71,7 @@ public class MainGameController : MonoBehaviour
 
         if (_rogueCardInventory != null)
         {
-            _rogueCardInventory.OnCardAdded += HandleRogueCardAdded;
+            _rogueCardInventory.OnCardChanged += HandleRogueCardChanged;
             _mainGamePanel?.RefreshOwnedRogueCards(_rogueCardInventory.OwnedCards);
         }
 
@@ -232,7 +232,7 @@ public class MainGameController : MonoBehaviour
 
         if (_rogueCardInventory != null)
         {
-            _rogueCardInventory.OnCardAdded -= HandleRogueCardAdded;
+            _rogueCardInventory.OnCardChanged -= HandleRogueCardChanged;
         }
 
         // 清理由于事件带来的绑定关系及所有的子 View 对象池回收
@@ -480,7 +480,7 @@ public class MainGameController : MonoBehaviour
 
         _currentRogueRewardOffer = _rogueCardRewardService.CreateRewardOffer(3);
         _rogueRewardOfferedForCurrentLevel = true;
-        _mainGamePanel.ShowRogueCardChoices(_currentRogueRewardOffer.Choices);
+        _mainGamePanel.ShowRogueCardChoices(_currentRogueRewardOffer.Choices, _rogueCardInventory?.OwnedCards);
     }
 
     private void HandleRogueRewardCardSelected(int cardId)
@@ -498,8 +498,8 @@ public class MainGameController : MonoBehaviour
         }
 
         _rogueCardInventory.AddCard(selectedCard);
-        _rogueCardEffectService.ApplyCard(
-            selectedCard,
+        _rogueCardEffectService.RebuildRunModifiers(
+            _rogueCardInventory.OwnedCards,
             new RogueCardEffectContext(AppRoot.Instance != null ? AppRoot.Instance.PlayerContext : null, _gameSession));
 
         _currentRogueRewardOffer = null;
@@ -542,7 +542,7 @@ public class MainGameController : MonoBehaviour
         return null;
     }
 
-    private void HandleRogueCardAdded(RogueCardConfig cardConfig)
+    private void HandleRogueCardChanged(RogueCardInventoryEntryModel card)
     {
         if (_mainGamePanel != null && _rogueCardInventory != null)
         {
@@ -565,36 +565,41 @@ public class MainGameController : MonoBehaviour
         }
 
         ScratchPatternPoolConfig poolConfig = ScratchCardDefaultsProvider.GetPatternPool(cardTypeConfig.PatternPoolId);
-        if (poolConfig == null || poolConfig.Entries == null || poolConfig.Entries.Count == 0)
+        RogueCardRunModifierModel runModifiers = _gameSession != null ? _gameSession.RunModifiers : null;
+        List<ScratchPatternWeightEntry> effectiveWeights = ScratchCardGenerator.BuildEffectivePatternWeights(
+            poolConfig,
+            cardTypeConfig.Id,
+            runModifiers);
+        if (effectiveWeights.Count == 0)
         {
             return new ScratchCardFocusPanelModel(
                 cardTypeConfig.Name,
-                "无图案池",
+                poolConfig != null ? poolConfig.Name : "无图案池",
                 new List<ScratchCardFocusPatternInfo>(),
                 cardTypeConfig.WinDescription);
         }
 
-        int totalWeight = 0;
-        for (int i = 0; i < poolConfig.Entries.Count; i++)
+        float totalWeight = 0f;
+        for (int i = 0; i < effectiveWeights.Count; i++)
         {
-            ScratchPatternPoolEntryConfig entry = poolConfig.Entries[i];
+            ScratchPatternWeightEntry entry = effectiveWeights[i];
             if (entry != null)
             {
-                totalWeight += ScratchCardDefaultsProvider.GetPatternWeight(entry.PatternId);
+                totalWeight += entry.Weight;
             }
         }
 
         var patterns = new List<ScratchCardFocusPatternInfo>();
-        for (int i = 0; i < poolConfig.Entries.Count; i++)
+        for (int i = 0; i < effectiveWeights.Count; i++)
         {
-            ScratchPatternPoolEntryConfig entry = poolConfig.Entries[i];
+            ScratchPatternWeightEntry entry = effectiveWeights[i];
             if (entry == null)
             {
                 continue;
             }
 
-            int weight = ScratchCardDefaultsProvider.GetPatternWeight(entry.PatternId);
-            if (weight <= 0)
+            float weight = entry.Weight;
+            if (weight <= 0f)
             {
                 continue;
             }
@@ -605,15 +610,16 @@ public class MainGameController : MonoBehaviour
                 continue;
             }
 
-            RogueCardRunModifierModel runModifiers = _gameSession != null ? _gameSession.RunModifiers : null;
             int baseScoreBonus = runModifiers != null ? runModifiers.GetPatternBaseScoreBonus(patternConfig.Id) : 0;
+            bool isProbabilityEnhanced = entry.IsDynamicAdded || (runModifiers != null && runModifiers.GetPatternWeightBonus(patternConfig.Id) != 0d);
             float probability = totalWeight > 0 ? (float)weight / totalWeight : 0f;
             patterns.Add(new ScratchCardFocusPatternInfo(
                 patternConfig.Id,
                 patternConfig.Name,
                 patternConfig.BaseScore + baseScoreBonus,
                 baseScoreBonus != 0,
-                weight,
+                isProbabilityEnhanced,
+                Mathf.RoundToInt(weight),
                 probability,
                 patternConfig.AtlasPath,
                 patternConfig.SpriteName));
@@ -621,7 +627,7 @@ public class MainGameController : MonoBehaviour
 
         return new ScratchCardFocusPanelModel(
             cardTypeConfig.Name,
-            poolConfig.Name,
+            poolConfig != null ? poolConfig.Name : "动态图案池",
             patterns,
             cardTypeConfig.WinDescription);
     }

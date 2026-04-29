@@ -986,7 +986,39 @@ Assets/Scripts/
 3. 再把“购买扣费”和“结算奖励入账”拆到独立 `Service`
 4. 最后再做更细粒度的逐格刮开判定、奖励动画、事件广播和存档接入
 
-### 13.6 当前阶段一句话记忆法
+### 13.6 动态图案与特殊图案效果
+
+后续部分肉鸽卡会在刮刮卡生成时动态加入额外图案，例如倍率图案、好脸图案、坏脸图案。该能力必须遵守下面的分层规则：
+
+1. 肉鸽卡只通过 `IRogueCardEffect` 写入 `RogueCardRunModifierModel`，不直接修改静态 `ScratchPatternConfig` 或 `ScratchPatternPoolConfig`
+2. 动态加入图案使用 `RogueCardEffectType.AddScratchPatternToPool`
+   - `TargetIds` 表示要加入的 `PatternId`
+   - `Value` 表示加入图案的基础权重
+   - `CardTypeIds` 可选；为空时对所有刮刮卡生效，填写时只对指定卡种生效
+3. `ScratchCardGenerator` 负责把卡种原始图案池与肉鸽动态加入图案合并，再统一应用概率修正并归一化抽取
+4. Focus 面板概率展示必须使用同一套合并后的权重，禁止在 View 或 Controller 中重复计算概率规则
+5. 特殊图案效果写在 `ScratchPatternConfig.EffectType / EffectValue` 中，并由 `ScratchPatternScoreService` 统一解释
+6. 结算器需要通过 `ScratchPatternScoreService.GetCellScore(...)` 和 `ScratchPatternScoreService.ApplyFinalScoreRules(...)` 处理特殊图案，不允许在各处按图案 id 写死规则
+
+当前支持的特殊图案效果：
+
+1. `None`：普通图案，按基础分计分
+2. `AddRewardMultiplierOnRevealed`：当该图案被刮开时，为当前刮刮卡追加倍率，追加值读取 `EffectValue`
+3. `ScoreHighestPatternBaseScoreMultiplier`：当该图案计分时，获得本张刮刮卡最高基础分图案的分数乘以 `EffectValue`，好脸图案默认可配为 `2`
+4. `ForceFinalRewardZero`：只要该图案出现在本张可刮区域，最终入账金币强制为 `0`
+
+示例配置：
+
+```json
+{
+  "effectType": "AddScratchPatternToPool",
+  "targetIds": [11],
+  "cardTypeIds": [1, 3],
+  "value": 10
+}
+```
+
+### 13.7 当前阶段一句话记忆法
 
 可以用这一句来记整条链路：
 

@@ -7,11 +7,11 @@ namespace Core
     {
         public ScratchSettlementResult Evaluate(ScratchCardModel model)
         {
-            int score = model != null ? model.TotalBaseScore : 0;
+            int score = ScratchPatternScoreService.SumScratchableScores(model);
             return new ScratchSettlementResult
             {
                 ScoreBeforeRewardMultiplier = score,
-                FinalScore = ScratchSettlementResult.ApplyMultiplier(score, model != null ? model.RewardMultiplier : 1d),
+                FinalScore = ScratchPatternScoreService.ApplyFinalScoreRules(model, score),
                 Summary = "累加所有可刮图案分数。"
             };
         }

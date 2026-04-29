@@ -1,3 +1,5 @@
+using Configs;
+
 /// <summary>
 /// 刮刮卡单元格实例数据。
 /// </summary>
@@ -10,6 +12,9 @@ public class ScratchCellModel
     public string PatternName { get; }
     public int BaseScore { get; }
     public bool IsBaseScoreEnhanced { get; }
+    public double RewardMultiplierBonusOnScore { get; }
+    public ScratchPatternEffectType PatternEffectType { get; }
+    public double PatternEffectValue { get; }
     public bool IsScratchable { get; }
     public bool IsScratched { get; private set; }
 
@@ -21,7 +26,10 @@ public class ScratchCellModel
         string patternName,
         int baseScore,
         bool isScratchable,
-        bool isBaseScoreEnhanced = false)
+        bool isBaseScoreEnhanced = false,
+        double rewardMultiplierBonusOnScore = 0d,
+        ScratchPatternEffectType patternEffectType = ScratchPatternEffectType.None,
+        double patternEffectValue = 0d)
     {
         CellIndex = cellIndex;
         Row = row;
@@ -31,6 +39,9 @@ public class ScratchCellModel
         BaseScore = baseScore;
         IsScratchable = isScratchable;
         IsBaseScoreEnhanced = isBaseScoreEnhanced;
+        RewardMultiplierBonusOnScore = rewardMultiplierBonusOnScore > 0d ? rewardMultiplierBonusOnScore : 0d;
+        PatternEffectType = patternEffectType;
+        PatternEffectValue = patternEffectValue;
     }
 
     public void MarkScratched()

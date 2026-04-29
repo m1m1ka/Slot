@@ -46,6 +46,7 @@ public class ScratchCardController : MonoBehaviour
 
         _view.BindCardData(_model.Cells);
         _view.SetupInitialVisual();
+        _view.SetClaimRewardMultiplier(_model.RewardMultiplier);
         _view.PlaySpawnAnimation(spawnFrom, spawnTo);
         _settlementResult = null;
         _rewardClaimed = false;
@@ -81,6 +82,7 @@ public class ScratchCardController : MonoBehaviour
         _model.OnScratchProgressChanged += HandleScratchProgressChanged;
         _model.OnStateChanged += HandleStateChanged;
         _model.OnScratchCompleted += HandleScratchCompleted;
+        _model.OnRewardMultiplierChanged += HandleRewardMultiplierChanged;
     }
 
     private void BindView()
@@ -162,6 +164,23 @@ public class ScratchCardController : MonoBehaviour
             $"Type={_model.CardTypeName}, Base={_model.TotalBaseScore}, Final={_settlementResult.FinalScore}, Summary={_settlementResult.Summary}");
     }
 
+    private void HandleRewardMultiplierChanged(double rewardMultiplier)
+    {
+        if (_view == null)
+        {
+            return;
+        }
+
+        if (_settlementResult != null)
+        {
+            _settlementResult.FinalScore = ScratchPatternScoreService.ApplyFinalScoreRules(
+                _model,
+                _settlementResult.ScoreBeforeRewardMultiplier);
+        }
+
+        _view.SetClaimRewardMultiplier(rewardMultiplier);
+    }
+
     private void HandleScratchLayerCleared()
     {
         AudioManager.Instance?.PlaySfx("Audio/Sfx/Pop");
@@ -181,6 +200,7 @@ public class ScratchCardController : MonoBehaviour
         }
 
         cell.MarkScratched();
+        ApplyCellRevealEffects(cell);
 
         if (_model.SettlementType == ScratchSettlementType.MatchAnyPair)
         {
@@ -188,12 +208,14 @@ public class ScratchCardController : MonoBehaviour
             return;
         }
 
-        _currentRevealedReward += cell.BaseScore;
+        int cellScore = ScratchPatternScoreService.GetCellScore(_model, cell);
+        _currentRevealedReward += cellScore;
+        ApplyCellRewardMultiplierBonus(cell);
         _view.SetCurrentRewardText(_currentRevealedReward, IsInFocusedState());
 
         if (_model.CardTypeId == 1)
         {
-            _view.PlayPatternScoreReveal(cellIndex, cell.BaseScore, cell.IsBaseScoreEnhanced);
+            _view.PlayPatternScoreReveal(cellIndex, cellScore, cell.IsBaseScoreEnhanced);
         }
     }
 
@@ -211,10 +233,36 @@ public class ScratchCardController : MonoBehaviour
         _scoredPairCellIndices.Add(pairedCellIndex);
 
         const int pairScoreMultiplier = 2;
-        _currentRevealedReward += (cell.BaseScore + pairedCell.BaseScore) * pairScoreMultiplier;
+        int cellScore = ScratchPatternScoreService.GetCellScore(_model, cell);
+        int pairedCellScore = ScratchPatternScoreService.GetCellScore(_model, pairedCell);
+        _currentRevealedReward += (cellScore + pairedCellScore) * pairScoreMultiplier;
+        ApplyCellRewardMultiplierBonus(cell);
+        ApplyCellRewardMultiplierBonus(pairedCell);
         _view.SetCurrentRewardText(_currentRevealedReward, IsInFocusedState());
-        _view.PlayPatternScoreReveal(cellIndex, cell.BaseScore, cell.IsBaseScoreEnhanced, pairScoreMultiplier);
-        _view.PlayPatternScoreReveal(pairedCellIndex, pairedCell.BaseScore, pairedCell.IsBaseScoreEnhanced, pairScoreMultiplier);
+        _view.PlayPatternScoreReveal(cellIndex, cellScore, cell.IsBaseScoreEnhanced, pairScoreMultiplier);
+        _view.PlayPatternScoreReveal(pairedCellIndex, pairedCellScore, pairedCell.IsBaseScoreEnhanced, pairScoreMultiplier);
+    }
+
+    private void ApplyCellRewardMultiplierBonus(ScratchCellModel cell)
+    {
+        double bonus = ScratchPatternScoreService.GetRewardMultiplierBonusOnScore(cell);
+        if (_model == null || bonus <= 0d)
+        {
+            return;
+        }
+
+        _model.AddRewardMultiplierBonus(bonus);
+    }
+
+    private void ApplyCellRevealEffects(ScratchCellModel cell)
+    {
+        double bonus = ScratchPatternScoreService.GetRewardMultiplierBonusOnReveal(cell);
+        if (_model == null || bonus <= 0d)
+        {
+            return;
+        }
+
+        _model.AddRewardMultiplierBonus(bonus);
     }
 
     private int FindUnscoredRevealedMatch(int currentCellIndex, int patternId)
@@ -315,6 +363,7 @@ public class ScratchCardController : MonoBehaviour
         _model.OnScratchProgressChanged -= HandleScratchProgressChanged;
         _model.OnStateChanged -= HandleStateChanged;
         _model.OnScratchCompleted -= HandleScratchCompleted;
+        _model.OnRewardMultiplierChanged -= HandleRewardMultiplierChanged;
     }
 
     private void UnbindView()

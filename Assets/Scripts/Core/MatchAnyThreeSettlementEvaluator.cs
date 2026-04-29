@@ -44,11 +44,11 @@ namespace Core
                 }
             }
 
-            int score = model.TotalBaseScore + bonus;
+            int score = ScratchPatternScoreService.SumScratchableScores(model) + bonus;
             return new ScratchSettlementResult
             {
                 ScoreBeforeRewardMultiplier = score,
-                FinalScore = ScratchSettlementResult.ApplyMultiplier(score, model.RewardMultiplier),
+                FinalScore = ScratchPatternScoreService.ApplyFinalScoreRules(model, score),
                 Summary = bonus > 0 ? "出现三个或更多相同图案。" : "没有三连图案加成。",
                 WinningPatternIds = winningPatternIds
             };

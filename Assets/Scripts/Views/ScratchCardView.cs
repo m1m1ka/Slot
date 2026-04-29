@@ -24,6 +24,7 @@ public class ScratchCardView : MonoBehaviour, IPointerClickHandler, IDragHandler
     [SerializeField] private Slider _scratchProgressSlider;
     [SerializeField] private Button _claimRewardButton;
     [SerializeField] private TextMeshProUGUI _claimRewardText;
+    [SerializeField] private TextMeshProUGUI _claimRewardMultiplierText;
 
     [Header("Scratch Settings")]
     [SerializeField] private int _scratchTextureWidth = 256;
@@ -103,6 +104,7 @@ public class ScratchCardView : MonoBehaviour, IPointerClickHandler, IDragHandler
     {
         InitializeScratchSurface();
         SetScratchProgress(0f);
+        SetClaimRewardMultiplier(1d);
         SetCurrentRewardText(0, false);
         SetFocused(false, instant: true);
         HideClaimRewardButton();
@@ -195,11 +197,11 @@ public class ScratchCardView : MonoBehaviour, IPointerClickHandler, IDragHandler
 
         if (_claimRewardText != null)
         {
-            string multiplierText = rewardMultiplier > 1.0001d ? $" *{rewardMultiplier:0.##}" : string.Empty;
-            _claimRewardText.text = $"+{displayScore}{multiplierText}";
+            _claimRewardText.text = $"+{displayScore}";
             _claimRewardText.gameObject.SetActive(true);
         }
 
+        SetClaimRewardMultiplier(rewardMultiplier, true);
         _claimRewardButton.gameObject.SetActive(true);
         _claimRewardButton.interactable = true;
     }
@@ -217,13 +219,42 @@ public class ScratchCardView : MonoBehaviour, IPointerClickHandler, IDragHandler
 
     public void SetCurrentRewardText(int reward, bool visible)
     {
-        if (_claimRewardText == null)
+        SetCurrentRewardText(reward, visible, null);
+    }
+
+    public void SetCurrentRewardText(int reward, bool visible, double? rewardMultiplier)
+    {
+        if (_claimRewardText != null)
+        {
+            _claimRewardText.text = $"+{reward}";
+            _claimRewardText.gameObject.SetActive(visible);
+        }
+
+        if (rewardMultiplier.HasValue)
+        {
+            SetClaimRewardMultiplier(rewardMultiplier.Value, visible);
+        }
+        else if (_claimRewardMultiplierText != null)
+        {
+            _claimRewardMultiplierText.gameObject.SetActive(visible);
+        }
+    }
+
+    public void SetClaimRewardMultiplier(double rewardMultiplier)
+    {
+        SetClaimRewardMultiplier(rewardMultiplier, _claimRewardMultiplierText != null && _claimRewardMultiplierText.gameObject.activeSelf);
+    }
+
+    public void SetClaimRewardMultiplier(double rewardMultiplier, bool visible)
+    {
+        EnsureClaimRewardMultiplierText();
+        if (_claimRewardMultiplierText == null)
         {
             return;
         }
 
-        _claimRewardText.text = $"+{reward}";
-        _claimRewardText.gameObject.SetActive(visible);
+        _claimRewardMultiplierText.text = FormatRewardMultiplier(rewardMultiplier);
+        _claimRewardMultiplierText.gameObject.SetActive(visible);
     }
 
     public void PlayPatternScoreReveal(int cellIndex, int score, bool isEnhanced, double scoreMultiplier = 1d)
@@ -794,11 +825,53 @@ public class ScratchCardView : MonoBehaviour, IPointerClickHandler, IDragHandler
             }
 
             AssetProvider.ApplyDefaultTmpFont(_claimRewardText);
+            EnsureClaimRewardMultiplierText();
 
             _claimRewardButton.onClick.RemoveListener(HandleClaimRewardButtonClicked);
             _claimRewardButton.onClick.AddListener(HandleClaimRewardButtonClicked);
             return;
         }
+    }
+
+    private void EnsureClaimRewardMultiplierText()
+    {
+        if (_claimRewardMultiplierText == null && _claimRewardText != null)
+        {
+            GameObject multiplierObject = new GameObject("RewardMultiplierText", typeof(RectTransform), typeof(CanvasRenderer), typeof(TextMeshProUGUI));
+            multiplierObject.transform.SetParent(_claimRewardText.transform.parent, false);
+            multiplierObject.transform.SetSiblingIndex(_claimRewardText.transform.GetSiblingIndex() + 1);
+
+            RectTransform sourceRect = _claimRewardText.rectTransform;
+            RectTransform multiplierRect = multiplierObject.GetComponent<RectTransform>();
+            multiplierRect.anchorMin = sourceRect.anchorMin;
+            multiplierRect.anchorMax = sourceRect.anchorMax;
+            multiplierRect.pivot = sourceRect.pivot;
+            multiplierRect.sizeDelta = new Vector2(92f, sourceRect.sizeDelta.y);
+            multiplierRect.anchoredPosition = sourceRect.anchoredPosition + new Vector2(sourceRect.sizeDelta.x * 0.5f + 42f, 0f);
+            multiplierRect.localScale = sourceRect.localScale;
+            multiplierRect.localRotation = sourceRect.localRotation;
+
+            TextMeshProUGUI sourceText = _claimRewardText;
+            _claimRewardMultiplierText = multiplierObject.GetComponent<TextMeshProUGUI>();
+            _claimRewardMultiplierText.font = sourceText.font;
+            _claimRewardMultiplierText.fontSize = sourceText.fontSize;
+            _claimRewardMultiplierText.fontStyle = sourceText.fontStyle;
+            _claimRewardMultiplierText.alignment = TextAlignmentOptions.Center;
+            _claimRewardMultiplierText.color = sourceText.color;
+            _claimRewardMultiplierText.raycastTarget = false;
+        }
+
+        AssetProvider.ApplyDefaultTmpFont(_claimRewardMultiplierText);
+        if (_claimRewardMultiplierText != null && string.IsNullOrEmpty(_claimRewardMultiplierText.text))
+        {
+            _claimRewardMultiplierText.text = FormatRewardMultiplier(1d);
+        }
+    }
+
+    private static string FormatRewardMultiplier(double rewardMultiplier)
+    {
+        double normalizedMultiplier = rewardMultiplier > 0d ? rewardMultiplier : 1d;
+        return $"×{normalizedMultiplier:0.##}";
     }
 
     private void HandleClaimRewardButtonClicked()

@@ -13,11 +13,11 @@ namespace Core
             }
 
             int rowBonus = model.GridHeight * 50;
-            int score = model.TotalBaseScore + rowBonus;
+            int score = ScratchPatternScoreService.SumScratchableScores(model) + rowBonus;
             return new ScratchSettlementResult
             {
                 ScoreBeforeRewardMultiplier = score,
-                FinalScore = ScratchSettlementResult.ApplyMultiplier(score, model.RewardMultiplier),
+                FinalScore = ScratchPatternScoreService.ApplyFinalScoreRules(model, score),
                 Summary = "已应用行加成。",
             };
         }
