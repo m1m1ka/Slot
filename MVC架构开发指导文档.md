@@ -924,14 +924,14 @@ Assets/Scripts/
    定义区域模板结构
 5. `Assets/Scripts/Configs/ScratchSettlementType.cs`
    定义结算策略枚举
-6. `Assets/Scripts/Core/ScratchCardDefaultsProvider.cs`
+6. `Assets/Scripts/Core/DataSupport/ScratchCardDefaultsProvider.cs`
    当前临时卡种 / 区域 / 图案池默认数据提供者
-7. `Assets/Scripts/Core/ScratchPatternDefaultProvider.cs`
+7. `Assets/Scripts/Core/DataSupport/ScratchPatternDefaultProvider.cs`
    当前临时图案默认数据提供者
 
 #### 13.3.2 生成与运行时数据
 
-1. `Assets/Scripts/Core/ScratchCardGenerator.cs`
+1. `Assets/Scripts/Core/DataSupport/ScratchCardGenerator.cs`
    负责生成格子数据
 2. `Assets/Scripts/Models/ScratchCardModel.cs`
    负责整张卡实例状态
@@ -951,19 +951,19 @@ Assets/Scripts/
 
 #### 13.3.4 结算与资源
 
-1. `Assets/Scripts/Core/IScratchSettlementEvaluator.cs`
+1. `Assets/Scripts/Core/Services/IScratchSettlementEvaluator.cs`
    统一结算接口
-2. `Assets/Scripts/Core/ScratchSettlementEvaluatorFactory.cs`
+2. `Assets/Scripts/Core/Services/ScratchSettlementEvaluatorFactory.cs`
    结算器工厂
-3. `Assets/Scripts/Core/SumScoreSettlementEvaluator.cs`
+3. `Assets/Scripts/Core/Services/SumScoreSettlementEvaluator.cs`
    累加基础分
-4. `Assets/Scripts/Core/MatchAnyThreeSettlementEvaluator.cs`
+4. `Assets/Scripts/Core/Services/MatchAnyThreeSettlementEvaluator.cs`
    三消类示例规则
-5. `Assets/Scripts/Core/RowSumBonusSettlementEvaluator.cs`
+5. `Assets/Scripts/Core/Services/RowSumBonusSettlementEvaluator.cs`
    行加成类示例规则
-6. `Assets/Scripts/Core/ScratchSettlementResult.cs`
+6. `Assets/Scripts/Core/DataSupport/ScratchSettlementResult.cs`
    结算结果数据
-7. `Assets/Scripts/Core/AssetProvider.cs`
+7. `Assets/Scripts/Core/Services/AssetProvider.cs`
    图案图集、预制体等资源统一加载入口
 
 ### 13.4 当前这套链路最容易混乱的点
