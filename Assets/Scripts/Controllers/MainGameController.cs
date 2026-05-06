@@ -110,7 +110,12 @@ public class MainGameController : MonoBehaviour
             if (itemView != null)
             {
                 // View 只展示配置数据，购买校验和扣费留在 Controller。
-                itemView.SetData(cardTypeConfig.Id, cardTypeConfig.Name, cardTypeConfig.Price);
+                itemView.SetData(
+                    cardTypeConfig.Id,
+                    cardTypeConfig.Name,
+                    cardTypeConfig.Price,
+                    cardTypeConfig.ShopIconAtlasPath,
+                    cardTypeConfig.ShopIconSpriteName);
                 itemView.UpdateAffordability(_playerModel != null && _levelModel != null && _levelModel.CanPurchaseScratchCard && _playerModel.Coins >= cardTypeConfig.Price);
 
                 // 核心：由统一的主 Controller 监听所有个体的购买点击意图

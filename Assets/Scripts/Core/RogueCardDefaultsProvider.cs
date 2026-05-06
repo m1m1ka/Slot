@@ -24,6 +24,7 @@ namespace Core
                     new RogueCardLevelConfig
                     {
                         Level = 1,
+                        Rarity = RogueCardRarity.Common,
                         Description = "樱桃图案基础分增加 5。",
                         Effects = new List<RogueCardEffectConfig>
                         {
@@ -33,6 +34,7 @@ namespace Core
                     new RogueCardLevelConfig
                     {
                         Level = 2,
+                        Rarity = RogueCardRarity.Common,
                         Description = "樱桃与柠檬图案基础分增加 12。",
                         Effects = new List<RogueCardEffectConfig>
                         {
@@ -42,6 +44,7 @@ namespace Core
                     new RogueCardLevelConfig
                     {
                         Level = 3,
+                        Rarity = RogueCardRarity.Common,
                         Description = "樱桃、柠檬与橙子图案基础分增加 22。",
                         Effects = new List<RogueCardEffectConfig>
                         {
@@ -61,6 +64,7 @@ namespace Core
                     new RogueCardLevelConfig
                     {
                         Level = 1,
+                        Rarity = RogueCardRarity.Common,
                         Description = "刮刮卡奖励倍率 +0.1。",
                         Effects = new List<RogueCardEffectConfig>
                         {
@@ -70,6 +74,7 @@ namespace Core
                     new RogueCardLevelConfig
                     {
                         Level = 2,
+                        Rarity = RogueCardRarity.Common,
                         Description = "刮刮卡奖励倍率 +0.25。",
                         Effects = new List<RogueCardEffectConfig>
                         {
@@ -79,6 +84,7 @@ namespace Core
                     new RogueCardLevelConfig
                     {
                         Level = 3,
+                        Rarity = RogueCardRarity.Common,
                         Description = "刮刮卡奖励倍率 +0.45。",
                         Effects = new List<RogueCardEffectConfig>
                         {
@@ -98,6 +104,7 @@ namespace Core
                     new RogueCardLevelConfig
                     {
                         Level = 1,
+                        Rarity = RogueCardRarity.Common,
                         Description = "铃铛图案基础分增加 8。",
                         Effects = new List<RogueCardEffectConfig>
                         {
@@ -107,6 +114,7 @@ namespace Core
                     new RogueCardLevelConfig
                     {
                         Level = 2,
+                        Rarity = RogueCardRarity.Common,
                         Description = "铃铛与横条图案基础分增加 18。",
                         Effects = new List<RogueCardEffectConfig>
                         {
@@ -116,6 +124,7 @@ namespace Core
                     new RogueCardLevelConfig
                     {
                         Level = 3,
+                        Rarity = RogueCardRarity.Common,
                         Description = "铃铛、横条与星星图案基础分增加 32。",
                         Effects = new List<RogueCardEffectConfig>
                         {
@@ -135,6 +144,7 @@ namespace Core
                     new RogueCardLevelConfig
                     {
                         Level = 1,
+                        Rarity = RogueCardRarity.Rare,
                         Description = "后续奖励规则可接入这张卡。",
                         Effects = new List<RogueCardEffectConfig>
                         {
@@ -238,7 +248,7 @@ namespace Core
                 for (int levelIndex = 0; levelIndex < levelCount; levelIndex++)
                 {
                     RogueCardLevelData levelData = cardData.levels[levelIndex];
-                    RogueCardLevelConfig levelConfig = BuildLevelConfig(cardData.id, levelData);
+                    RogueCardLevelConfig levelConfig = BuildLevelConfig(cardData.id, rarity, levelData);
                     if (levelConfig != null)
                     {
                         cardConfig.Levels.Add(levelConfig);
@@ -259,7 +269,7 @@ namespace Core
             return cards;
         }
 
-        private static RogueCardLevelConfig BuildLevelConfig(int cardId, RogueCardLevelData levelData)
+        private static RogueCardLevelConfig BuildLevelConfig(int cardId, RogueCardRarity cardRarity, RogueCardLevelData levelData)
         {
             if (levelData == null || levelData.level <= 0)
             {
@@ -270,6 +280,7 @@ namespace Core
             var levelConfig = new RogueCardLevelConfig
             {
                 Level = levelData.level,
+                Rarity = TryParseRarity(levelData.rarity, out RogueCardRarity levelRarity) ? levelRarity : cardRarity,
                 Description = levelData.description,
                 Effects = new List<RogueCardEffectConfig>()
             };
@@ -377,6 +388,7 @@ namespace Core
         private class RogueCardLevelData
         {
             public int level;
+            public string rarity;
             public string description;
             public List<RogueCardEffectData> effects;
         }

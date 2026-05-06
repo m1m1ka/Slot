@@ -472,10 +472,23 @@ public class MainGamePanel : UIPanel
 
     private GameObject CreateRogueCardVisual(RogueCardConfig cardConfig, Transform parent, string levelText, int level)
     {
-        GameObject cardPrefab = AssetProvider.LoadPrefab("UI/Card");
+        if (cardConfig == null)
+        {
+            return null;
+        }
+
+        RogueCardRarity displayRarity = cardConfig.GetRarityForLevel(level);
+        string prefabPath = GetRogueCardPrefabPath(displayRarity);
+        GameObject cardPrefab = AssetProvider.LoadPrefab(prefabPath);
+        if (cardPrefab == null && !string.Equals(prefabPath, "UI/RogueCard_Common"))
+        {
+            Debug.LogWarning($"[MainGamePanel] Failed to load {prefabPath}; fallback to UI/RogueCard_Common.");
+            cardPrefab = AssetProvider.LoadPrefab("UI/RogueCard_Common");
+        }
+
         if (cardPrefab == null)
         {
-            Debug.LogError("[MainGamePanel] Failed to load UI/Card prefab for rogue card display.");
+            Debug.LogError("[MainGamePanel] Failed to load rogue card prefab for display.");
             return null;
         }
 
@@ -483,9 +496,25 @@ public class MainGamePanel : UIPanel
         cardObject.name = $"RogueCard_{cardConfig.Id}";
 
         SetRogueCardText(cardObject.transform, "CardName", cardConfig.Name);
-        SetRogueCardText(cardObject.transform, "Rare", $"{cardConfig.GetRarityDisplayName()}  {levelText}");
+        SetRogueCardText(cardObject.transform, "Rare", $"{RogueCardConfig.GetRarityDisplayName(displayRarity)}  {levelText}");
         SetRogueCardText(cardObject.transform, "Description", cardConfig.GetDescriptionForLevel(level));
         return cardObject;
+    }
+
+    private static string GetRogueCardPrefabPath(RogueCardRarity rarity)
+    {
+        switch (rarity)
+        {
+            case RogueCardRarity.Rare:
+                return "UI/RogueCard_Rare";
+            case RogueCardRarity.Epic:
+                return "UI/RogueCard_Epic";
+            case RogueCardRarity.Legendary:
+                return "UI/RogueCard_Legendary";
+            case RogueCardRarity.Common:
+            default:
+                return "UI/RogueCard_Common";
+        }
     }
 
     private static int GetOwnedRogueCardLevel(IReadOnlyList<RogueCardInventoryEntryModel> ownedCards, int cardId)

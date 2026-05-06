@@ -11,6 +11,7 @@ using Core;
 public class ShopItemView : MonoBehaviour 
 {
     [Header("UI 引用")]
+    [SerializeField] private Image _iconImage;
     [SerializeField] private TextMeshProUGUI _nameText;
     [SerializeField] private TextMeshProUGUI _costText;
     [SerializeField] private Button _buyBtn;
@@ -22,6 +23,7 @@ public class ShopItemView : MonoBehaviour
 
     private void Awake()
     {
+        EnsureIconImage();
         AssetProvider.ApplyDefaultTmpFont(_nameText);
         AssetProvider.ApplyDefaultTmpFont(_costText);
 
@@ -41,7 +43,7 @@ public class ShopItemView : MonoBehaviour
     /// <param name="slotId">唯一标识ID</param>
     /// <param name="slotName">老虎机名称</param>
     /// <param name="cost">购买需要的价格</param>
-    public void SetData(int slotId, string slotName, double cost)
+    public void SetData(int slotId, string slotName, double cost, string iconAtlasPath = null, string iconSpriteName = null)
     {
         _mySlotId = slotId;
         
@@ -50,6 +52,8 @@ public class ShopItemView : MonoBehaviour
             
         if (_costText != null) 
             _costText.text = $"{cost:N0}";
+
+        SetIcon(iconAtlasPath, iconSpriteName);
     }
 
     /// <summary>
@@ -60,6 +64,40 @@ public class ShopItemView : MonoBehaviour
         if (_buyBtn != null)
         {
             _buyBtn.interactable = canAfford;
+        }
+    }
+
+    private void SetIcon(string atlasPath, string spriteName)
+    {
+        EnsureIconImage();
+        if (_iconImage == null)
+        {
+            return;
+        }
+
+        Sprite icon = !string.IsNullOrWhiteSpace(atlasPath) && !string.IsNullOrWhiteSpace(spriteName)
+            ? AssetProvider.LoadSpriteFromAtlas(atlasPath, spriteName)
+            : null;
+        _iconImage.sprite = icon;
+        _iconImage.preserveAspect = true;
+        _iconImage.enabled = icon != null;
+    }
+
+    private void EnsureIconImage()
+    {
+        if (_iconImage != null)
+        {
+            return;
+        }
+
+        Image[] images = GetComponentsInChildren<Image>(true);
+        for (int i = 0; i < images.Length; i++)
+        {
+            if (images[i] != null && images[i].name == "Icon")
+            {
+                _iconImage = images[i];
+                return;
+            }
         }
     }
 }

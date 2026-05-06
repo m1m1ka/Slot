@@ -62,6 +62,7 @@ public class ScratchCardView : MonoBehaviour, IPointerClickHandler, IDragHandler
     private Canvas _parentCanvas;
     private Vector2 _lastHoverScreenPosition = new Vector2(float.MinValue, float.MinValue);
     private readonly List<ScratchSurfaceRuntime> _scratchSurfaces = new List<ScratchSurfaceRuntime>();
+    private readonly Dictionary<RawImage, Texture> _scratchCoverSourceTextures = new Dictionary<RawImage, Texture>();
 
     private class ScratchSurfaceRuntime
     {
@@ -408,6 +409,12 @@ public class ScratchCardView : MonoBehaviour, IPointerClickHandler, IDragHandler
                 continue;
             }
 
+            if (!_scratchCoverSourceTextures.TryGetValue(coverImage, out Texture sourceTexture))
+            {
+                sourceTexture = coverImage.texture;
+                _scratchCoverSourceTextures[coverImage] = sourceTexture;
+            }
+
             var surface = new ScratchSurfaceRuntime
             {
                 CoverImage = coverImage,
@@ -420,25 +427,77 @@ public class ScratchCardView : MonoBehaviour, IPointerClickHandler, IDragHandler
                 IsFullyCleared = false,
             };
 
-            surface.Texture = new Texture2D(surface.Width, surface.Height, TextureFormat.RGBA32, false);
-            surface.Texture.wrapMode = TextureWrapMode.Clamp;
-            surface.Texture.filterMode = FilterMode.Bilinear;
-            surface.MaxAlphaAmount = surface.TotalPixelCount * 255f;
-            surface.Pixels = new Color32[surface.TotalPixelCount];
-
-            Color32 coverColor = _scratchCoverColor;
-            for (int pixelIndex = 0; pixelIndex < surface.Pixels.Length; pixelIndex++)
-            {
-                surface.Pixels[pixelIndex] = coverColor;
-            }
+            surface.Texture = CreateScratchTextureCopy(sourceTexture, surface.Width, surface.Height);
+            surface.Pixels = surface.Texture.GetPixels32();
+            surface.MaxAlphaAmount = CalculateMaxAlphaAmount(surface.Pixels);
 
             surface.Texture.SetPixels32(surface.Pixels);
             surface.Texture.Apply();
             surface.CoverImage.texture = surface.Texture;
-            surface.CoverImage.color = Color.white;
 
             _scratchSurfaces.Add(surface);
         }
+    }
+
+    private Texture2D CreateScratchTextureCopy(Texture sourceTexture, int width, int height)
+    {
+        Texture2D runtimeTexture = new Texture2D(width, height, TextureFormat.RGBA32, false)
+        {
+            wrapMode = TextureWrapMode.Clamp,
+            filterMode = FilterMode.Bilinear
+        };
+
+        if (sourceTexture == null)
+        {
+            FillTexture(runtimeTexture, _scratchCoverColor);
+            return runtimeTexture;
+        }
+
+        RenderTexture previousRenderTexture = RenderTexture.active;
+        RenderTexture temporaryRenderTexture = RenderTexture.GetTemporary(width, height, 0, RenderTextureFormat.ARGB32);
+
+        Graphics.Blit(sourceTexture, temporaryRenderTexture);
+        RenderTexture.active = temporaryRenderTexture;
+        runtimeTexture.ReadPixels(new Rect(0f, 0f, width, height), 0, 0);
+        runtimeTexture.Apply();
+
+        RenderTexture.active = previousRenderTexture;
+        RenderTexture.ReleaseTemporary(temporaryRenderTexture);
+        return runtimeTexture;
+    }
+
+    private void FillTexture(Texture2D texture, Color color)
+    {
+        if (texture == null)
+        {
+            return;
+        }
+
+        Color32 coverColor = color;
+        Color32[] pixels = new Color32[texture.width * texture.height];
+        for (int pixelIndex = 0; pixelIndex < pixels.Length; pixelIndex++)
+        {
+            pixels[pixelIndex] = coverColor;
+        }
+
+        texture.SetPixels32(pixels);
+        texture.Apply();
+    }
+
+    private static float CalculateMaxAlphaAmount(Color32[] pixels)
+    {
+        if (pixels == null || pixels.Length == 0)
+        {
+            return 0f;
+        }
+
+        float alphaAmount = 0f;
+        for (int i = 0; i < pixels.Length; i++)
+        {
+            alphaAmount += pixels[i].a;
+        }
+
+        return alphaAmount;
     }
 
     private void TryScratchAt(PointerEventData eventData)

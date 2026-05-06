@@ -9,6 +9,8 @@ namespace Core
     /// </summary>
     public static class ScratchCardDefaultsProvider
     {
+        private const string ShopIconAtlasPath = "Icons/ScratchCardsListView";
+
         private static readonly Dictionary<int, ScratchPatternPoolConfig> PatternPools = new Dictionary<int, ScratchPatternPoolConfig>
         {
             {
@@ -124,6 +126,17 @@ namespace Core
                 }
             },
             {
+                4,
+                new ScratchAreaTemplateConfig
+                {
+                    Id = 4,
+                    Name = "方形 2×2",
+                    Width = 2,
+                    Height = 2,
+                    ScratchableCellIndices = new List<int> { 0, 1, 2, 3 }
+                }
+            },
+            {
                 3,
                 new ScratchAreaTemplateConfig
                 {
@@ -138,11 +151,11 @@ namespace Core
 
         private static readonly Dictionary<int, ScratchCardTypeConfig> CardTypes = new Dictionary<int, ScratchCardTypeConfig>
         {
-            { 1, new ScratchCardTypeConfig { Id = 1, Name = "入门单排卡", WinDescription = "刮开的每个图案都会直接获得对应基础分。", Price = 10, PatternPoolId = 1, AreaTemplateId = 1, SettlementType = ScratchSettlementType.SumScore, PrefabPath = "UI/ScratchCardView" } },
-            { 2, new ScratchCardTypeConfig { Id = 2, Name = "经典配对卡", WinDescription = "只有刮出一对相同图案才会得分；成对图案分数获得×2。", Price = 30, PatternPoolId = 2, AreaTemplateId = 2, SettlementType = ScratchSettlementType.MatchAnyPair, PrefabPath = "UI/ScratchCardView" } },
-            { 3, new ScratchCardTypeConfig { Id = 3, Name = "奖励网格卡", WinDescription = "刮开的所有图案都会累加基础分。", Price = 70, PatternPoolId = 3, AreaTemplateId = 2, SettlementType = ScratchSettlementType.SumScore, PrefabPath = "UI/ScratchCardView" } },
-            { 4, new ScratchCardTypeConfig { Id = 4, Name = "十字幸运卡", WinDescription = "刮开十字区域后，基础分会额外获得行数加成。", Price = 120, PatternPoolId = 4, AreaTemplateId = 3, SettlementType = ScratchSettlementType.RowSumBonus, PrefabPath = "UI/ScratchCardView" } },
-            { 5, new ScratchCardTypeConfig { Id = 5, Name = "高额玩家卡", WinDescription = "任意图案出现三个或更多时，会获得额外三连奖励。", Price = 250, PatternPoolId = 5, AreaTemplateId = 2, SettlementType = ScratchSettlementType.MatchAnyThree, PrefabPath = "UI/ScratchCardView" } }
+            { 1, new ScratchCardTypeConfig { Id = 1, Name = "入门单排卡", WinDescription = "刮开的每个图案都会直接获得对应基础分。", Price = 10, PatternPoolId = 1, AreaTemplateId = 4, SettlementType = ScratchSettlementType.SumScore, PrefabPath = "UI/ScratchCardView_1", ShopIconAtlasPath = ShopIconAtlasPath, ShopIconSpriteName = "ScratchCards_1" } },
+            { 2, new ScratchCardTypeConfig { Id = 2, Name = "经典配对卡", WinDescription = "只有刮出一对相同图案才会得分；成对图案分数获得×2。", Price = 30, PatternPoolId = 2, AreaTemplateId = 2, SettlementType = ScratchSettlementType.MatchAnyPair, PrefabPath = "UI/ScratchCardView_2", ShopIconAtlasPath = ShopIconAtlasPath, ShopIconSpriteName = "ScratchCards_2" } },
+            { 3, new ScratchCardTypeConfig { Id = 3, Name = "奖励网格卡", WinDescription = "刮开的所有图案都会累加基础分。", Price = 70, PatternPoolId = 3, AreaTemplateId = 2, SettlementType = ScratchSettlementType.SumScore, PrefabPath = "UI/ScratchCardView_1", ShopIconAtlasPath = ShopIconAtlasPath, ShopIconSpriteName = "ScratchCards_3" } },
+            { 4, new ScratchCardTypeConfig { Id = 4, Name = "十字幸运卡", WinDescription = "刮开十字区域后，基础分会额外获得行数加成。", Price = 120, PatternPoolId = 4, AreaTemplateId = 3, SettlementType = ScratchSettlementType.RowSumBonus, PrefabPath = "UI/ScratchCardView_1", ShopIconAtlasPath = ShopIconAtlasPath, ShopIconSpriteName = "ScratchCards_4" } },
+            { 5, new ScratchCardTypeConfig { Id = 5, Name = "高额玩家卡", WinDescription = "任意图案出现三个或更多时，会获得额外三连奖励。", Price = 250, PatternPoolId = 5, AreaTemplateId = 2, SettlementType = ScratchSettlementType.MatchAnyThree, PrefabPath = "UI/ScratchCardView_1", ShopIconAtlasPath = ShopIconAtlasPath, ShopIconSpriteName = "ScratchCards_5" } }
         };
 
         public static ScratchCardTypeConfig GetCardType(int cardTypeId)

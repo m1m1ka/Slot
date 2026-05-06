@@ -73,7 +73,23 @@ namespace Configs
 
         public string GetRarityDisplayName()
         {
-            switch (Rarity)
+            return GetRarityDisplayName(Rarity);
+        }
+
+        public RogueCardRarity GetRarityForLevel(int level)
+        {
+            RogueCardLevelConfig levelConfig = GetLevelConfig(level);
+            return levelConfig != null ? levelConfig.Rarity : Rarity;
+        }
+
+        public string GetRarityDisplayNameForLevel(int level)
+        {
+            return GetRarityDisplayName(GetRarityForLevel(level));
+        }
+
+        public static string GetRarityDisplayName(RogueCardRarity rarity)
+        {
+            switch (rarity)
             {
                 case RogueCardRarity.Common:
                     return "普通";
@@ -84,7 +100,7 @@ namespace Configs
                 case RogueCardRarity.Legendary:
                     return "传说";
                 default:
-                    return Rarity.ToString();
+                    return rarity.ToString();
             }
         }
     }

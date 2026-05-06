@@ -14,5 +14,7 @@ namespace Configs
         public int AreaTemplateId { get; set; }
         public ScratchSettlementType SettlementType { get; set; }
         public string PrefabPath { get; set; }
+        public string ShopIconAtlasPath { get; set; }
+        public string ShopIconSpriteName { get; set; }
     }
 }

@@ -1,193 +1,268 @@
-{
-  "cards": [
-    {
-      "id": 1,
-      "name": "水果大亨",
-      "rarity": "Common",
-      "description": "水果图案基础分提升。",
-      "levels": [
-        {
-          "level": 1,
-          "description": "水果图案基础分+10",
-          "effects": [
-            {
-              "effectType": "IncreasePatternBaseScore",
-              "targetIds": [1, 2, 3, 4],
-              "value": 10
-            }
-          ]
-        },
-        {
-          "level": 2,
-          "description": "水果图案基础分+30",
-          "effects": [
-            {
-              "effectType": "IncreasePatternBaseScore",
-              "targetIds": [1, 2, 3, 4],
-              "value": 30
-            }
-          ]
-        },
-        {
-          "level": 3,
-          "description": "水果图案基础分+80",
-          "effects": [
-            {
-              "effectType": "IncreasePatternBaseScore",
-              "targetIds": [1, 2, 3, 4],
-              "value": 80
-            }
-          ]
-        },
-        {
-          "level": 4,
-          "description": "水果图案基础分+150",
-          "effects": [
-            {
-              "effectType": "IncreasePatternBaseScore",
-              "targetIds": [1, 2, 3, 4],
-              "value": 150
-            }
-          ]
-        },
-        {
-          "level": 5,
-          "description": "水果图案基础分+300",
-          "effects": [
-            {
-              "effectType": "IncreasePatternBaseScore",
-              "targetIds": [1, 2, 3, 4],
-              "value": 300
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": 2,
-      "name": "葡萄架",
-      "rarity": "Common",
-      "description": "葡萄图案概率提升。",
-      "levels": [
-        {
-          "level": 1,
-          "description": "葡萄图案概率+5%",
-          "effects": [
-            {
-              "effectType": "IncreasePatternProbability",
-              "targetIds": [4],
-              "value": 5
-            }
-          ]
-        },
-        {
-          "level": 2,
-          "description": "葡萄图案概率+10%",
-          "effects": [
-            {
-              "effectType": "IncreasePatternProbability",
-              "targetIds": [4],
-              "value": 10
-            }
-          ]
-        },
-        {
-          "level": 3,
-          "description": "葡萄图案概率+20%",
-          "effects": [
-            {
-              "effectType": "IncreasePatternProbability",
-              "targetIds": [4],
-              "value": 20
-            }
-          ]
-        },
-        {
-          "level": 4,
-          "description": "葡萄图案概率+30%",
-          "effects": [
-            {
-              "effectType": "IncreasePatternProbability",
-              "targetIds": [4],
-              "value": 30
-            }
-          ]
-        },
-        {
-          "level": 5,
-          "description": "葡萄图案概率+50%",
-          "effects": [
-            {
-              "effectType": "IncreasePatternProbability",
-              "targetIds": [4],
-              "value": 50
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": 3,
-      "name": "水果忍者",
-      "rarity": "Rare",
-      "description": "水果图案计分时提升本张刮刮卡倍率。",
-      "levels": [
-        {
-          "level": 1,
-          "description": "每有一个水果图案计分，倍率+0.1",
-          "effects": [
-            {
-              "effectType": "IncreaseScratchCardMultiplier",
-              "targetIds": [1, 2, 3, 4],
-              "value": 0.1
-            }
-          ]
-        },
-        {
-          "level": 2,
-          "description": "每有一个水果图案计分，倍率+0.2",
-          "effects": [
-            {
-              "effectType": "IncreaseScratchCardMultiplier",
-              "targetIds": [1, 2, 3, 4],
-              "value": 0.2
-            }
-          ]
-        },
-        {
-          "level": 3,
-          "description": "每有一个水果图案计分，倍率+0.3",
-          "effects": [
-            {
-              "effectType": "IncreaseScratchCardMultiplier",
-              "targetIds": [1, 2, 3, 4],
-              "value": 0.3
-            }
-          ]
-        },
-        {
-          "level": 4,
-          "description": "每有一个水果图案计分，倍率+0.5",
-          "effects": [
-            {
-              "effectType": "IncreaseScratchCardMultiplier",
-              "targetIds": [1, 2, 3, 4],
-              "value": 0.5
-            }
-          ]
-        },
-        {
-          "level": 5,
-          "description": "每有一个水果图案计分，倍率+1",
-          "effects": [
-            {
-              "effectType": "IncreaseScratchCardMultiplier",
-              "targetIds": [1, 2, 3, 4],
-              "value": 1
-            }
-          ]
-        }
-      ]
-    }
-  ]
+﻿{
+    "cards":  [
+                  {
+                      "id":  1,
+                      "name":  "水果大亨",
+                      "rarity":  "Common",
+                      "description":  "水果图案基础分提升。",
+                      "levels":  [
+                                     {
+                                         "level":  1,
+                                         "description":  "水果图案基础分+10",
+                                         "effects":  [
+                                                         {
+                                                             "effectType":  "IncreasePatternBaseScore",
+                                                             "targetIds":  [
+                                                                               1,
+                                                                               2,
+                                                                               3,
+                                                                               4
+                                                                           ],
+                                                             "value":  10
+                                                         }
+                                                     ],
+                                         "rarity":  "Common"
+                                     },
+                                     {
+                                         "level":  2,
+                                         "description":  "水果图案基础分+30",
+                                         "effects":  [
+                                                         {
+                                                             "effectType":  "IncreasePatternBaseScore",
+                                                             "targetIds":  [
+                                                                               1,
+                                                                               2,
+                                                                               3,
+                                                                               4
+                                                                           ],
+                                                             "value":  30
+                                                         }
+                                                     ],
+                                         "rarity":  "Common"
+                                     },
+                                     {
+                                         "level":  3,
+                                         "description":  "水果图案基础分+80",
+                                         "effects":  [
+                                                         {
+                                                             "effectType":  "IncreasePatternBaseScore",
+                                                             "targetIds":  [
+                                                                               1,
+                                                                               2,
+                                                                               3,
+                                                                               4
+                                                                           ],
+                                                             "value":  80
+                                                         }
+                                                     ],
+                                         "rarity":  "Rare"
+                                     },
+                                     {
+                                         "level":  4,
+                                         "description":  "水果图案基础分+150",
+                                         "effects":  [
+                                                         {
+                                                             "effectType":  "IncreasePatternBaseScore",
+                                                             "targetIds":  [
+                                                                               1,
+                                                                               2,
+                                                                               3,
+                                                                               4
+                                                                           ],
+                                                             "value":  150
+                                                         }
+                                                     ],
+                                         "rarity":  "Rare"
+                                     },
+                                     {
+                                         "level":  5,
+                                         "description":  "水果图案基础分+300",
+                                         "effects":  [
+                                                         {
+                                                             "effectType":  "IncreasePatternBaseScore",
+                                                             "targetIds":  [
+                                                                               1,
+                                                                               2,
+                                                                               3,
+                                                                               4
+                                                                           ],
+                                                             "value":  300
+                                                         }
+                                                     ],
+                                         "rarity":  "Epic"
+                                     }
+                                 ]
+                  },
+                  {
+                      "id":  2,
+                      "name":  "葡萄架",
+                      "rarity":  "Common",
+                      "description":  "葡萄图案概率提升。",
+                      "levels":  [
+                                     {
+                                         "level":  1,
+                                         "description":  "葡萄图案概率+5%",
+                                         "effects":  [
+                                                         {
+                                                             "effectType":  "IncreasePatternProbability",
+                                                             "targetIds":  [
+                                                                               4
+                                                                           ],
+                                                             "value":  5
+                                                         }
+                                                     ],
+                                         "rarity":  "Common"
+                                     },
+                                     {
+                                         "level":  2,
+                                         "description":  "葡萄图案概率+10%",
+                                         "effects":  [
+                                                         {
+                                                             "effectType":  "IncreasePatternProbability",
+                                                             "targetIds":  [
+                                                                               4
+                                                                           ],
+                                                             "value":  10
+                                                         }
+                                                     ],
+                                         "rarity":  "Common"
+                                     },
+                                     {
+                                         "level":  3,
+                                         "description":  "葡萄图案概率+20%",
+                                         "effects":  [
+                                                         {
+                                                             "effectType":  "IncreasePatternProbability",
+                                                             "targetIds":  [
+                                                                               4
+                                                                           ],
+                                                             "value":  20
+                                                         }
+                                                     ],
+                                         "rarity":  "Rare"
+                                     },
+                                     {
+                                         "level":  4,
+                                         "description":  "葡萄图案概率+30%",
+                                         "effects":  [
+                                                         {
+                                                             "effectType":  "IncreasePatternProbability",
+                                                             "targetIds":  [
+                                                                               4
+                                                                           ],
+                                                             "value":  30
+                                                         }
+                                                     ],
+                                         "rarity":  "Rare"
+                                     },
+                                     {
+                                         "level":  5,
+                                         "description":  "葡萄图案概率+50%",
+                                         "effects":  [
+                                                         {
+                                                             "effectType":  "IncreasePatternProbability",
+                                                             "targetIds":  [
+                                                                               4
+                                                                           ],
+                                                             "value":  50
+                                                         }
+                                                     ],
+                                         "rarity":  "Epic"
+                                     }
+                                 ]
+                  },
+                  {
+                      "id":  3,
+                      "name":  "水果忍者",
+                      "rarity":  "Rare",
+                      "description":  "水果图案计分时提升本张刮刮卡倍率。",
+                      "levels":  [
+                                     {
+                                         "level":  1,
+                                         "description":  "每有一个水果图案计分，倍率+0.1",
+                                         "effects":  [
+                                                         {
+                                                             "effectType":  "IncreaseScratchCardMultiplier",
+                                                             "targetIds":  [
+                                                                               1,
+                                                                               2,
+                                                                               3,
+                                                                               4
+                                                                           ],
+                                                             "value":  0.1
+                                                         }
+                                                     ],
+                                         "rarity":  "Rare"
+                                     },
+                                     {
+                                         "level":  2,
+                                         "description":  "每有一个水果图案计分，倍率+0.2",
+                                         "effects":  [
+                                                         {
+                                                             "effectType":  "IncreaseScratchCardMultiplier",
+                                                             "targetIds":  [
+                                                                               1,
+                                                                               2,
+                                                                               3,
+                                                                               4
+                                                                           ],
+                                                             "value":  0.2
+                                                         }
+                                                     ],
+                                         "rarity":  "Rare"
+                                     },
+                                     {
+                                         "level":  3,
+                                         "description":  "每有一个水果图案计分，倍率+0.3",
+                                         "effects":  [
+                                                         {
+                                                             "effectType":  "IncreaseScratchCardMultiplier",
+                                                             "targetIds":  [
+                                                                               1,
+                                                                               2,
+                                                                               3,
+                                                                               4
+                                                                           ],
+                                                             "value":  0.3
+                                                         }
+                                                     ],
+                                         "rarity":  "Epic"
+                                     },
+                                     {
+                                         "level":  4,
+                                         "description":  "每有一个水果图案计分，倍率+0.5",
+                                         "effects":  [
+                                                         {
+                                                             "effectType":  "IncreaseScratchCardMultiplier",
+                                                             "targetIds":  [
+                                                                               1,
+                                                                               2,
+                                                                               3,
+                                                                               4
+                                                                           ],
+                                                             "value":  0.5
+                                                         }
+                                                     ],
+                                         "rarity":  "Epic"
+                                     },
+                                     {
+                                         "level":  5,
+                                         "description":  "每有一个水果图案计分，倍率+1",
+                                         "effects":  [
+                                                         {
+                                                             "effectType":  "IncreaseScratchCardMultiplier",
+                                                             "targetIds":  [
+                                                                               1,
+                                                                               2,
+                                                                               3,
+                                                                               4
+                                                                           ],
+                                                             "value":  1
+                                                         }
+                                                     ],
+                                         "rarity":  "Legendary"
+                                     }
+                                 ]
+                  }
+              ]
 }
