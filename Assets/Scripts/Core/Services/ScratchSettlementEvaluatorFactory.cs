@@ -11,6 +11,7 @@ namespace Core
         {
             return settlementType switch
             {
+                ScratchSettlementType.FirstRevealedPattern => new FirstRevealedPatternSettlementEvaluator(),
                 ScratchSettlementType.MatchAnyPair => new MatchAnyPairSettlementEvaluator(),
                 ScratchSettlementType.MatchAnyThree => new MatchAnyThreeSettlementEvaluator(),
                 ScratchSettlementType.RowSumBonus => new RowSumBonusSettlementEvaluator(),

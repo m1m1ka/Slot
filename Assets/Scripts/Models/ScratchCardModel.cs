@@ -24,8 +24,8 @@ public class ScratchCardModel
     public int GridWidth { get; }
     public int GridHeight { get; }
     public int AreaTemplateId { get; }
-    public ScratchSettlementType SettlementType { get; }
     public IReadOnlyList<ScratchCellModel> Cells { get; }
+    public IReadOnlyList<ScratchToolConfig> ScratchTools { get; }
     public int TotalBaseScore { get; }
     private double _rewardMultiplier = 1d;
 
@@ -44,6 +44,7 @@ public class ScratchCardModel
         ScratchCardTypeConfig cardTypeConfig,
         ScratchAreaTemplateConfig areaTemplateConfig,
         IReadOnlyList<ScratchCellModel> cells,
+        IReadOnlyList<ScratchToolConfig> scratchTools,
         double rewardMultiplier = 1d)
     {
         CardId = cardId;
@@ -53,8 +54,8 @@ public class ScratchCardModel
         GridWidth = areaTemplateConfig != null ? areaTemplateConfig.Width : 0;
         GridHeight = areaTemplateConfig != null ? areaTemplateConfig.Height : 0;
         AreaTemplateId = areaTemplateConfig != null ? areaTemplateConfig.Id : 0;
-        SettlementType = cardTypeConfig != null ? cardTypeConfig.SettlementType : ScratchSettlementType.SumScore;
         Cells = cells ?? Array.Empty<ScratchCellModel>();
+        ScratchTools = scratchTools ?? Array.Empty<ScratchToolConfig>();
         TotalBaseScore = CalculateTotalBaseScore(Cells);
         _rewardMultiplier = NormalizeRewardMultiplier(rewardMultiplier);
         ScratchProgress = 0f;

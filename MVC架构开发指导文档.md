@@ -69,7 +69,7 @@ Assets/Scripts/
 
 ### 4.1. 刮刮乐核心 MVC 划分
 *   **Model (`ScratchCardModel.cs`)**：
-    纯 C# 类，只负责存储单张刮刮卡的运行时实例状态，例如 `CardId`、`CardTypeId`、`GridWidth`、`GridHeight`、`SettlementType`、`Cells`、`ScratchProgress`、`State` 等。格子内容由 `ScratchCellModel` 表达。Model 只广播状态变化事件，例如 `OnScratchProgressChanged`、`OnStateChanged`、`OnScratchCompleted`。
+    纯 C# 类，只负责存储单张刮刮卡的运行时实例状态，例如 `CardId`、`CardTypeId`、`GridWidth`、`GridHeight`、`ScratchTools`、`Cells`、`ScratchProgress`、`State` 等。格子内容由 `ScratchCellModel` 表达。Model 只广播状态变化事件，例如 `OnScratchProgressChanged`、`OnStateChanged`、`OnScratchCompleted`。
 *   **View (`ScratchCardView.cs`)**：
     挂载在 UI 预制体上的 `MonoBehaviour`。负责图案显示、涂层 `RawImage` 擦除、DOTween 动画、聚焦表现和用户输入采集。View 不决定图案如何生成，也不决定奖励如何结算，只把“点击”“刮除进度变化”“入场结束”等意图抛给对应的 Controller。
 *   **Controller (`ScratchCardController.cs`)**：
@@ -78,7 +78,7 @@ Assets/Scripts/
 
 ### 4.2. 动态结算机制与策略模式 (Strategy Pattern)
 由于各种肉鸽彩票判赢和多重翻倍规则差异巨大，严禁在 Controller 内部堆砌 `if-else`。  
-当前项目统一使用 `IScratchSettlementEvaluator` 作为结算策略接口，并由 `ScratchSettlementEvaluatorFactory` 根据 `ScratchSettlementType` 选择具体实现。针对不同的彩票（累加基础分、任意三同图案、行加成、连线赢等），应新增独立 Evaluator，例如 `SumScoreSettlementEvaluator`、`MatchAnyThreeSettlementEvaluator`、`RowSumBonusSettlementEvaluator`。禁止在 `ScratchCardController` 中按卡种写大量判断。
+当前项目统一使用 `IScratchSettlementEvaluator` 作为结算策略接口，并由玩家拥有的 `ScratchToolConfig` 决定要启用哪些结算规则。`ScratchToolSettlementService` 会遍历 `ScratchCardModel.ScratchTools`，再通过 `ScratchSettlementEvaluatorFactory` 根据 `ScratchSettlementType` 选择具体实现。针对新的刮具规则，应新增独立 Evaluator，例如 `FirstRevealedPatternSettlementEvaluator`、`MatchAnyPairSettlementEvaluator`、`MatchAnyThreeSettlementEvaluator`。禁止在 `ScratchCardController` 中按卡种写大量判断。
 
 ### 4.3. 全局遗物乘区与 EventBus（流派化）
 1. **全局乘区解耦**：
@@ -700,7 +700,7 @@ Assets/Scripts/
 3. 根据卡种配置读取：
    - 图案池 `ScratchPatternPoolConfig`
    - 可刮区域模板 `ScratchAreaTemplateConfig`
-   - 结算方式 `ScratchSettlementType`
+   - 玩家当前拥有的刮具集合 `PlayerContext.ScratchTools`
    - 预制体路径 `PrefabPath`
 4. 通过 `ScratchCardGenerator` 生成本张卡的格子数据 `ScratchCellModel`
 5. 用这些数据创建运行时实例 `ScratchCardModel`
@@ -711,7 +711,7 @@ Assets/Scripts/
 10. 玩家划过涂层，`ScratchCardView` 擦除遮罩并把进度上报给 `ScratchCardController`
 11. `ScratchCardController` 驱动 `ScratchCardModel` 更新刮开进度与状态
 12. `ScratchCardModel` 达到完成条件后触发 `OnScratchCompleted`
-13. `ScratchCardController` 根据 `SettlementType` 选择对应结算策略 `IScratchSettlementEvaluator`
+13. `ScratchCardController` 调用 `ScratchToolSettlementService`，由玩家拥有的刮具集合触发对应结算策略 `IScratchSettlementEvaluator`
 14. 输出结算结果 `ScratchSettlementResult`
 
 ### 13.2 各层职责划分
@@ -722,7 +722,7 @@ Assets/Scripts/
 
 1. `ScratchCardTypeConfig`
    作用：
-   - 定义卡种 id、名称、价格、图案池、区域模板、结算方式、预制体路径
+   - 定义卡种 id、名称、价格、图案池、区域模板、预制体路径
    - 表示“玩家购买的是哪一种卡”
 
 2. `ScratchPatternConfig`
@@ -746,10 +746,15 @@ Assets/Scripts/
    - 定义宽高、可刮格子索引
    - 表示“这张卡的布局是什么，哪些格子真的可刮”
 
-5. `ScratchSettlementType`
+5. `ScratchToolConfig`
+   作用：
+   - 定义刮具 id、名称、描述与 `ScratchSettlementType`
+   - 表示“玩家当前构筑里有哪些结算规则”
+
+6. `ScratchSettlementType`
    作用：
    - 定义结算规则类型
-   - 表示“这张卡最后按什么规则算分”
+   - 表示“某个刮具按什么规则算分”
 
 当前这些配置的默认来源是：
 
@@ -796,7 +801,7 @@ Assets/Scripts/
      - `GridWidth`
      - `GridHeight`
      - `AreaTemplateId`
-     - `SettlementType`
+     - `ScratchTools`
      - `Cells`
      - `TotalBaseScore`
      - `ScratchProgress`
@@ -891,12 +896,20 @@ Assets/Scripts/
    作用：
    - 根据 `ScratchSettlementType` 返回对应结算器
 
-3. 当前已有结算器
+3. `ScratchToolSettlementService`
+   作用：
+   - 遍历 `ScratchCardModel.ScratchTools`
+   - 聚合每个刮具对应 Evaluator 的 `ScratchSettlementResult`
+   - 同一图案允许在不同刮具规则下分别计分；同一刮具规则内部必须自行保证不会重复触发同一次规则
+
+4. 当前已有结算器
+   - `FirstRevealedPatternSettlementEvaluator`
+   - `MatchAnyPairSettlementEvaluator`
    - `SumScoreSettlementEvaluator`
    - `MatchAnyThreeSettlementEvaluator`
    - `RowSumBonusSettlementEvaluator`
 
-4. `ScratchSettlementResult`
+5. `ScratchSettlementResult`
    作用：
    - 承载最终结算结果
    - 包括：
@@ -924,9 +937,13 @@ Assets/Scripts/
    定义区域模板结构
 5. `Assets/Scripts/Configs/ScratchSettlementType.cs`
    定义结算策略枚举
-6. `Assets/Scripts/Core/DataSupport/ScratchCardDefaultsProvider.cs`
+6. `Assets/Scripts/Configs/ScratchToolConfig.cs`
+   定义刮具配置结构
+7. `Assets/Scripts/Core/DataSupport/ScratchToolDefaultsProvider.cs`
+   当前临时刮具默认数据提供者
+8. `Assets/Scripts/Core/DataSupport/ScratchCardDefaultsProvider.cs`
    当前临时卡种 / 区域 / 图案池默认数据提供者
-7. `Assets/Scripts/Core/DataSupport/ScratchPatternDefaultProvider.cs`
+9. `Assets/Scripts/Core/DataSupport/ScratchPatternDefaultProvider.cs`
    当前临时图案默认数据提供者
 
 #### 13.3.2 生成与运行时数据
@@ -937,6 +954,8 @@ Assets/Scripts/
    负责整张卡实例状态
 3. `Assets/Scripts/Models/ScratchCellModel.cs`
    负责单格实例状态
+4. `Assets/Scripts/Models/ScratchToolInventoryModel.cs`
+   负责玩家已拥有刮具集合
 
 #### 13.3.3 交互与表现
 
@@ -955,15 +974,21 @@ Assets/Scripts/
    统一结算接口
 2. `Assets/Scripts/Core/Services/ScratchSettlementEvaluatorFactory.cs`
    结算器工厂
-3. `Assets/Scripts/Core/Services/SumScoreSettlementEvaluator.cs`
+3. `Assets/Scripts/Core/Services/ScratchToolSettlementService.cs`
+   玩家刮具聚合结算服务
+4. `Assets/Scripts/Core/Services/FirstRevealedPatternSettlementEvaluator.cs`
+   第一个刮开图案计分规则
+5. `Assets/Scripts/Core/Services/MatchAnyPairSettlementEvaluator.cs`
+   一对相同图案计分规则
+6. `Assets/Scripts/Core/Services/SumScoreSettlementEvaluator.cs`
    累加基础分
-4. `Assets/Scripts/Core/Services/MatchAnyThreeSettlementEvaluator.cs`
+7. `Assets/Scripts/Core/Services/MatchAnyThreeSettlementEvaluator.cs`
    三消类示例规则
-5. `Assets/Scripts/Core/Services/RowSumBonusSettlementEvaluator.cs`
+8. `Assets/Scripts/Core/Services/RowSumBonusSettlementEvaluator.cs`
    行加成类示例规则
-6. `Assets/Scripts/Core/DataSupport/ScratchSettlementResult.cs`
+9. `Assets/Scripts/Core/DataSupport/ScratchSettlementResult.cs`
    结算结果数据
-7. `Assets/Scripts/Core/Services/AssetProvider.cs`
+10. `Assets/Scripts/Core/Services/AssetProvider.cs`
    图案图集、预制体等资源统一加载入口
 
 ### 13.4 当前这套链路最容易混乱的点
@@ -975,9 +1000,21 @@ Assets/Scripts/
 3. `ScratchCardView` 是“输入和表现层”，不是“业务结算层”
 4. `ScratchCardModel` 是“实例状态容器”，不是“配置读取器”
 5. `ScratchCardDefaultsProvider` / `ScratchPatternDefaultProvider` 只是当前默认数据源，后续应被正式配表替换
-6. `IScratchSettlementEvaluator` 才是未来扩展多种结算规则的稳定入口
+6. `ScratchToolSettlementService + IScratchSettlementEvaluator` 才是未来扩展多种刮具结算规则的稳定入口
 
-### 13.5 后续扩展时的推荐改造方向
+### 13.5 刮具构筑与结算规则
+
+刮刮卡本身只决定“价格、图案池、布局、预制体、商店图标”等静态内容，不再决定结算方式。结算方式被抽离为玩家肉鸽构筑的一部分，以“刮具”形式存在：
+
+1. `PlayerContext.ScratchTools` 持有玩家当前拥有的刮具集合。
+2. `ScratchToolConfig.SettlementType` 指向一个具体结算规则。
+3. 创建 `ScratchCardModel` 时，`MainGameController` 将玩家当前刮具集合注入 `ScratchCardModel.ScratchTools`。
+4. 刮开图案和完成刮刮卡时，`ScratchCardController` 只能调用 `ScratchToolSettlementService`，不允许再按卡种或刮具类型写分支。
+5. 同一图案允许在不同结算规则下反复触发。例如第一个刮开的水果可以被“默认刮具”计分，也可以在之后凑成一对时被“配对刮具”再次计分。
+6. 同一结算规则内部必须记录已消耗的计分对象，不能让同一格子重复参与同一规则。例如“配对刮具”中有 3 个相同图案时只能组成 1 对；有 4 个相同图案时可以组成 2 对，但第一对的两个格子不能再次参与第二对。
+7. 每新增一种刮具，应优先新增一个 `IScratchSettlementEvaluator` 实现，再在 `ScratchSettlementEvaluatorFactory` 注册，不应修改 `ScratchCardController` 主流程。
+
+### 13.6 后续扩展时的推荐改造方向
 
 如果刮刮卡玩法继续变复杂，建议按下面顺序演进：
 
@@ -986,7 +1023,7 @@ Assets/Scripts/
 3. 再把“购买扣费”和“结算奖励入账”拆到独立 `Service`
 4. 最后再做更细粒度的逐格刮开判定、奖励动画、事件广播和存档接入
 
-### 13.6 动态图案与特殊图案效果
+### 13.7 动态图案与特殊图案效果
 
 后续部分肉鸽卡会在刮刮卡生成时动态加入额外图案，例如倍率图案、好脸图案、坏脸图案。该能力必须遵守下面的分层规则：
 

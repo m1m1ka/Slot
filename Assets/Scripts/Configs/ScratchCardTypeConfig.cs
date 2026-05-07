@@ -1,8 +1,8 @@
 namespace Configs
 {
     /// <summary>
-    /// 刮刮卡种类配置。
-    /// 定义某种卡的价格、图案池、区域模板与结算方式。
+    /// 刮刮卡种类配置，只描述卡本身的价格、图案池、区域模板和资源路径。
+    /// 结算方式由玩家拥有的刮具配置决定。
     /// </summary>
     public class ScratchCardTypeConfig : IConfig
     {
@@ -12,7 +12,6 @@ namespace Configs
         public int Price { get; set; }
         public int PatternPoolId { get; set; }
         public int AreaTemplateId { get; set; }
-        public ScratchSettlementType SettlementType { get; set; }
         public string PrefabPath { get; set; }
         public string ShopIconAtlasPath { get; set; }
         public string ShopIconSpriteName { get; set; }

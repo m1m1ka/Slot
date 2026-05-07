@@ -17,6 +17,7 @@ public class ScratchCellModel
     public double PatternEffectValue { get; }
     public bool IsScratchable { get; }
     public bool IsScratched { get; private set; }
+    public int ScratchOrder { get; private set; } = -1;
 
     public ScratchCellModel(
         int cellIndex,
@@ -44,7 +45,7 @@ public class ScratchCellModel
         PatternEffectValue = patternEffectValue;
     }
 
-    public void MarkScratched()
+    public void MarkScratched(int scratchOrder = -1)
     {
         if (!IsScratchable)
         {
@@ -52,5 +53,6 @@ public class ScratchCellModel
         }
 
         IsScratched = true;
+        ScratchOrder = scratchOrder;
     }
 }

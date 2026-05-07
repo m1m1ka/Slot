@@ -22,7 +22,7 @@ namespace Core
             for (int i = 0; i < model.Cells.Count; i++)
             {
                 ScratchCellModel cell = model.Cells[i];
-                if (cell == null || !cell.IsScratchable)
+                if (cell == null || !cell.IsScratchable || !cell.IsScratched)
                 {
                     continue;
                 }

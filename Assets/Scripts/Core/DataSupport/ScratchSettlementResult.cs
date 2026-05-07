@@ -11,6 +11,8 @@ namespace Core
         public int FinalScore { get; set; }
         public string Summary { get; set; }
         public List<int> WinningPatternIds { get; set; } = new List<int>();
+        public List<int> ScoredCellIndices { get; set; } = new List<int>();
+        public List<double> ScoredCellScoreMultipliers { get; set; } = new List<double>();
 
         public static int ApplyMultiplier(int score, double multiplier)
         {

@@ -13,49 +13,59 @@ namespace Core
                 return new ScratchSettlementResult();
             }
 
-            var cellsByPattern = new Dictionary<int, List<ScratchCellModel>>();
-            for (int i = 0; i < model.Cells.Count; i++)
-            {
-                ScratchCellModel cell = model.Cells[i];
-                if (cell == null || !cell.IsScratchable || !cell.IsScratched)
-                {
-                    continue;
-                }
-
-                if (!cellsByPattern.TryGetValue(cell.PatternId, out List<ScratchCellModel> cells))
-                {
-                    cells = new List<ScratchCellModel>();
-                    cellsByPattern[cell.PatternId] = cells;
-                }
-
-                cells.Add(cell);
-            }
+            List<ScratchCellModel> scratchedCells = GetScratchedCellsByRevealOrder(model);
+            var unpairedCellsByPattern = new Dictionary<int, ScratchCellModel>();
+            var winningPatternIds = new List<int>();
+            var scoredCellIndices = new List<int>();
+            var scoredCellScoreMultipliers = new List<double>();
 
             int pairScore = 0;
-            var winningPatternIds = new List<int>();
-            foreach (KeyValuePair<int, List<ScratchCellModel>> pair in cellsByPattern)
+            for (int i = 0; i < scratchedCells.Count; i++)
             {
-                List<ScratchCellModel> cells = pair.Value;
-                int pairCount = cells.Count / 2;
-                if (pairCount <= 0)
+                ScratchCellModel cell = scratchedCells[i];
+                if (!unpairedCellsByPattern.TryGetValue(cell.PatternId, out ScratchCellModel pairedCell))
                 {
+                    unpairedCellsByPattern[cell.PatternId] = cell;
                     continue;
                 }
 
-                winningPatternIds.Add(pair.Key);
-                for (int i = 0; i < pairCount * 2; i++)
-                {
-                    pairScore += ScratchPatternScoreService.GetCellScore(model, cells[i]) * PairScoreMultiplier;
-                }
+                pairScore += (ScratchPatternScoreService.GetCellScore(model, pairedCell) +
+                              ScratchPatternScoreService.GetCellScore(model, cell)) * PairScoreMultiplier;
+
+                winningPatternIds.Add(cell.PatternId);
+                scoredCellIndices.Add(pairedCell.CellIndex);
+                scoredCellIndices.Add(cell.CellIndex);
+                scoredCellScoreMultipliers.Add(PairScoreMultiplier);
+                scoredCellScoreMultipliers.Add(PairScoreMultiplier);
+
+                unpairedCellsByPattern.Remove(cell.PatternId);
             }
 
             return new ScratchSettlementResult
             {
                 ScoreBeforeRewardMultiplier = pairScore,
                 FinalScore = ScratchPatternScoreService.ApplyFinalScoreRules(model, pairScore),
-                Summary = pairScore > 0 ? "配对成功，分数获得×2。" : "没有配对，不获得分数。",
-                WinningPatternIds = winningPatternIds
+                Summary = pairScore > 0 ? "配对成功，成对图案分数获得x2。" : "没有配对，不获得分数。",
+                WinningPatternIds = winningPatternIds,
+                ScoredCellIndices = scoredCellIndices,
+                ScoredCellScoreMultipliers = scoredCellScoreMultipliers
             };
+        }
+
+        private static List<ScratchCellModel> GetScratchedCellsByRevealOrder(ScratchCardModel model)
+        {
+            var scratchedCells = new List<ScratchCellModel>();
+            for (int i = 0; i < model.Cells.Count; i++)
+            {
+                ScratchCellModel cell = model.Cells[i];
+                if (cell != null && cell.IsScratchable && cell.IsScratched)
+                {
+                    scratchedCells.Add(cell);
+                }
+            }
+
+            scratchedCells.Sort((left, right) => left.ScratchOrder.CompareTo(right.ScratchOrder));
+            return scratchedCells;
         }
     }
 }

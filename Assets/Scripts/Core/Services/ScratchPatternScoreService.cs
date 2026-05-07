@@ -54,7 +54,7 @@ namespace Core
             for (int i = 0; i < model.Cells.Count; i++)
             {
                 ScratchCellModel cell = model.Cells[i];
-                if (cell != null && cell.IsScratchable && cell.PatternEffectType == ScratchPatternEffectType.ForceFinalRewardZero)
+                if (cell != null && cell.IsScratchable && cell.IsScratched && cell.PatternEffectType == ScratchPatternEffectType.ForceFinalRewardZero)
                 {
                     return true;
                 }
@@ -86,7 +86,7 @@ namespace Core
             for (int i = 0; i < model.Cells.Count; i++)
             {
                 ScratchCellModel cell = model.Cells[i];
-                if (cell != null && cell.IsScratchable)
+                if (cell != null && cell.IsScratchable && cell.IsScratched)
                 {
                     score += GetCellScore(model, cell);
                 }

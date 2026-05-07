@@ -19,6 +19,7 @@ public class MainGameController : MonoBehaviour
     private GameSession _gameSession;
     private LevelProgressModel _levelModel;
     private RogueCardInventoryModel _rogueCardInventory;
+    private ScratchToolInventoryModel _scratchToolInventory;
     private readonly RogueCardRewardService _rogueCardRewardService = new RogueCardRewardService();
     private readonly RogueCardEffectService _rogueCardEffectService = new RogueCardEffectService();
     private RogueCardRewardOfferModel _currentRogueRewardOffer;
@@ -28,6 +29,7 @@ public class MainGameController : MonoBehaviour
     private readonly List<ShopItemView> _shopItems = new List<ShopItemView>();
     private readonly Dictionary<ShopItemView, double> _shopItemPrices = new Dictionary<ShopItemView, double>();
     private readonly List<ScratchCardController> _activeScratchCards = new List<ScratchCardController>();
+    private readonly List<ScratchToolView> _scratchToolViews = new List<ScratchToolView>();
 
     private int _nextScratchCardId = 1;
 
@@ -48,6 +50,7 @@ public class MainGameController : MonoBehaviour
         _playerModel = appRoot.PlayerContext.Player;
         _gameSession = appRoot.GameSession;
         _rogueCardInventory = appRoot.PlayerContext.RogueCards;
+        _scratchToolInventory = appRoot.PlayerContext.ScratchTools;
     }
 
     private void Start()
@@ -61,6 +64,7 @@ public class MainGameController : MonoBehaviour
 
         // 1. 批量生成购物面板的购买按钮
         LoadShopItems();
+        LoadScratchToolViews();
 
         // 2. 将数据层的事件绑定到当前 Controller 的响应方法中
         _playerModel.OnCoinsChanged += HandleCoinsChanged;
@@ -73,6 +77,11 @@ public class MainGameController : MonoBehaviour
         {
             _rogueCardInventory.OnCardChanged += HandleRogueCardChanged;
             _mainGamePanel?.RefreshOwnedRogueCards(_rogueCardInventory.OwnedCards);
+        }
+
+        if (_scratchToolInventory != null)
+        {
+            _scratchToolInventory.OnToolAdded += HandleScratchToolAdded;
         }
 
         // 3. 初始刷新一次视图
@@ -240,6 +249,11 @@ public class MainGameController : MonoBehaviour
             _rogueCardInventory.OnCardChanged -= HandleRogueCardChanged;
         }
 
+        if (_scratchToolInventory != null)
+        {
+            _scratchToolInventory.OnToolAdded -= HandleScratchToolAdded;
+        }
+
         // 清理由于事件带来的绑定关系及所有的子 View 对象池回收
         foreach (var item in _shopItems)
         {
@@ -254,6 +268,8 @@ public class MainGameController : MonoBehaviour
             }
         }
         _shopItems.Clear();
+
+        ClearScratchToolViews();
 
         foreach (var scratchCard in _activeScratchCards)
         {
@@ -317,6 +333,7 @@ public class MainGameController : MonoBehaviour
             cardTypeConfig,
             areaTemplateConfig,
             generatedCells,
+            _scratchToolInventory?.OwnedTools,
             runModifiers != null ? runModifiers.ScratchCardMultiplier : 1d);
 
         scratchCardController.Initialize(model, spawnFrom, targetPosition);
@@ -462,6 +479,65 @@ public class MainGameController : MonoBehaviour
         {
             RefreshShopItemAffordability(_playerModel.Coins);
         }
+    }
+
+    private void LoadScratchToolViews()
+    {
+        if (_mainGamePanel == null || _mainGamePanel.ScratchToolsListRoot == null)
+        {
+            return;
+        }
+
+        ClearScratchToolViews();
+
+        GameObject scratchToolPrefab = AssetProvider.LoadPrefab("UI/ScratchToolView");
+        if (scratchToolPrefab == null)
+        {
+            Debug.LogError("没有找到 UI/ScratchToolView 预制体，无法生成刮具列表！");
+            return;
+        }
+
+        IReadOnlyList<ScratchToolConfig> ownedTools = _scratchToolInventory?.OwnedTools;
+        int count = ownedTools != null ? ownedTools.Count : 0;
+        for (int i = 0; i < count; i++)
+        {
+            ScratchToolConfig toolConfig = ownedTools[i];
+            if (toolConfig == null)
+            {
+                continue;
+            }
+
+            GameObject itemObj = PoolManager.Instance.Spawn(scratchToolPrefab, _mainGamePanel.ScratchToolsListRoot);
+            ScratchToolView toolView = itemObj.GetComponent<ScratchToolView>();
+            if (toolView == null)
+            {
+                Debug.LogWarning("[MainGameController] ScratchToolView 预制体缺少 ScratchToolView 组件。");
+                PoolManager.Instance.Despawn(itemObj);
+                continue;
+            }
+
+            toolView.Bind(toolConfig);
+            _scratchToolViews.Add(toolView);
+        }
+    }
+
+    private void ClearScratchToolViews()
+    {
+        for (int i = 0; i < _scratchToolViews.Count; i++)
+        {
+            ScratchToolView toolView = _scratchToolViews[i];
+            if (toolView != null && PoolManager.Instance != null)
+            {
+                PoolManager.Instance.Despawn(toolView.gameObject);
+            }
+        }
+
+        _scratchToolViews.Clear();
+    }
+
+    private void HandleScratchToolAdded(ScratchToolConfig toolConfig)
+    {
+        LoadScratchToolViews();
     }
 
     private void RefreshShopItemAffordability(double coins)

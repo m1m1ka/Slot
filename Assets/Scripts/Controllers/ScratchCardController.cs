@@ -20,7 +20,9 @@ public class ScratchCardController : MonoBehaviour
     private float _lastScratchInputTime = float.MinValue;
     private bool _isScratchLoopPlaying;
     private int _currentRevealedReward;
-    private readonly HashSet<int> _scoredPairCellIndices = new HashSet<int>();
+    private int _scratchRevealOrder;
+    private readonly HashSet<string> _rewardMultiplierAppliedScoreKeys = new HashSet<string>();
+    private readonly HashSet<string> _animatedScoreKeys = new HashSet<string>();
 
     private const float ScratchLoopStopDelay = 0.2f;
 
@@ -51,7 +53,9 @@ public class ScratchCardController : MonoBehaviour
         _settlementResult = null;
         _rewardClaimed = false;
         _currentRevealedReward = 0;
-        _scoredPairCellIndices.Clear();
+        _scratchRevealOrder = 0;
+        _rewardMultiplierAppliedScoreKeys.Clear();
+        _animatedScoreKeys.Clear();
     }
 
     private void Update()
@@ -155,8 +159,7 @@ public class ScratchCardController : MonoBehaviour
 
     private void HandleScratchCompleted()
     {
-        IScratchSettlementEvaluator evaluator = ScratchSettlementEvaluatorFactory.Create(_model.SettlementType);
-        _settlementResult = evaluator.Evaluate(_model);
+        _settlementResult = ScratchToolSettlementService.Evaluate(_model);
         _view.ShowClaimRewardButton(_settlementResult.ScoreBeforeRewardMultiplier, _model.RewardMultiplier);
 
         Debug.Log(
@@ -199,59 +202,95 @@ public class ScratchCardController : MonoBehaviour
             return;
         }
 
-        cell.MarkScratched();
+        cell.MarkScratched(++_scratchRevealOrder);
         ApplyCellRevealEffects(cell);
 
-        if (_model.SettlementType == ScratchSettlementType.MatchAnyPair)
-        {
-            TryScorePair(cellIndex, cell);
-            return;
-        }
-
-        int cellScore = ScratchPatternScoreService.GetCellScore(_model, cell);
-        _currentRevealedReward += cellScore;
-        ApplyCellRewardMultiplierBonus(cell);
+        int previousReward = _currentRevealedReward;
+        ScratchSettlementResult previewResult = ScratchToolSettlementService.Evaluate(_model);
+        _currentRevealedReward = previewResult.ScoreBeforeRewardMultiplier;
+        ApplyScoredCellRewardMultiplierBonuses(previewResult);
         _view.SetCurrentRewardText(_currentRevealedReward, IsInFocusedState());
 
-        if (_model.CardTypeId == 1)
+        if (_currentRevealedReward > previousReward)
         {
-            _view.PlayPatternScoreReveal(cellIndex, cellScore, cell.IsBaseScoreEnhanced);
+            PlayNewScoreAnimations(previewResult);
         }
     }
 
-    private void TryScorePair(int cellIndex, ScratchCellModel cell)
+    private void ApplyScoredCellRewardMultiplierBonuses(ScratchSettlementResult result)
     {
-        int pairedCellIndex = FindUnscoredRevealedMatch(cellIndex, cell.PatternId);
-        if (pairedCellIndex < 0)
+        if (result?.ScoredCellIndices == null || _model?.Cells == null)
         {
-            _view.SetCurrentRewardText(_currentRevealedReward, IsInFocusedState());
             return;
         }
 
-        ScratchCellModel pairedCell = _model.Cells[pairedCellIndex];
-        _scoredPairCellIndices.Add(cellIndex);
-        _scoredPairCellIndices.Add(pairedCellIndex);
+        for (int i = 0; i < result.ScoredCellIndices.Count; i++)
+        {
+            int scoredCellIndex = result.ScoredCellIndices[i];
+            double scoreMultiplier = GetScoredCellMultiplier(result, i);
+            string scoreKey = BuildScoreKey(scoredCellIndex, scoreMultiplier);
+            if (!_rewardMultiplierAppliedScoreKeys.Add(scoreKey))
+            {
+                continue;
+            }
 
-        const int pairScoreMultiplier = 2;
-        int cellScore = ScratchPatternScoreService.GetCellScore(_model, cell);
-        int pairedCellScore = ScratchPatternScoreService.GetCellScore(_model, pairedCell);
-        _currentRevealedReward += (cellScore + pairedCellScore) * pairScoreMultiplier;
-        ApplyCellRewardMultiplierBonus(cell);
-        ApplyCellRewardMultiplierBonus(pairedCell);
-        _view.SetCurrentRewardText(_currentRevealedReward, IsInFocusedState());
-        _view.PlayPatternScoreReveal(cellIndex, cellScore, cell.IsBaseScoreEnhanced, pairScoreMultiplier);
-        _view.PlayPatternScoreReveal(pairedCellIndex, pairedCellScore, pairedCell.IsBaseScoreEnhanced, pairScoreMultiplier);
+            ScratchCellModel cell = scoredCellIndex >= 0 && scoredCellIndex < _model.Cells.Count
+                ? _model.Cells[scoredCellIndex]
+                : null;
+            double bonus = ScratchPatternScoreService.GetRewardMultiplierBonusOnScore(cell);
+            if (bonus > 0d)
+            {
+                _model.AddRewardMultiplierBonus(bonus);
+            }
+        }
     }
 
-    private void ApplyCellRewardMultiplierBonus(ScratchCellModel cell)
+    private void PlayNewScoreAnimations(ScratchSettlementResult result)
     {
-        double bonus = ScratchPatternScoreService.GetRewardMultiplierBonusOnScore(cell);
-        if (_model == null || bonus <= 0d)
+        if (result?.ScoredCellIndices == null || _model?.Cells == null)
         {
             return;
         }
 
-        _model.AddRewardMultiplierBonus(bonus);
+        for (int i = 0; i < result.ScoredCellIndices.Count; i++)
+        {
+            int scoredCellIndex = result.ScoredCellIndices[i];
+            double scoreMultiplier = GetScoredCellMultiplier(result, i);
+            string scoreKey = BuildScoreKey(scoredCellIndex, scoreMultiplier);
+            if (!_animatedScoreKeys.Add(scoreKey))
+            {
+                continue;
+            }
+
+            if (scoredCellIndex < 0 || scoredCellIndex >= _model.Cells.Count)
+            {
+                continue;
+            }
+
+            ScratchCellModel scoredCell = _model.Cells[scoredCellIndex];
+            if (scoredCell == null)
+            {
+                continue;
+            }
+
+            int cellScore = ScratchPatternScoreService.GetCellScore(_model, scoredCell);
+            _view.PlayPatternScoreReveal(scoredCellIndex, cellScore, scoredCell.IsBaseScoreEnhanced, scoreMultiplier);
+        }
+    }
+
+    private static double GetScoredCellMultiplier(ScratchSettlementResult result, int index)
+    {
+        if (result?.ScoredCellScoreMultipliers != null && index >= 0 && index < result.ScoredCellScoreMultipliers.Count)
+        {
+            return result.ScoredCellScoreMultipliers[index];
+        }
+
+        return 1d;
+    }
+
+    private static string BuildScoreKey(int cellIndex, double scoreMultiplier)
+    {
+        return $"{cellIndex}:{scoreMultiplier:0.####}";
     }
 
     private void ApplyCellRevealEffects(ScratchCellModel cell)
@@ -263,25 +302,6 @@ public class ScratchCardController : MonoBehaviour
         }
 
         _model.AddRewardMultiplierBonus(bonus);
-    }
-
-    private int FindUnscoredRevealedMatch(int currentCellIndex, int patternId)
-    {
-        for (int i = 0; i < _model.Cells.Count; i++)
-        {
-            if (i == currentCellIndex || _scoredPairCellIndices.Contains(i))
-            {
-                continue;
-            }
-
-            ScratchCellModel candidate = _model.Cells[i];
-            if (candidate != null && candidate.IsScratchable && candidate.IsScratched && candidate.PatternId == patternId)
-            {
-                return i;
-            }
-        }
-
-        return -1;
     }
 
     private void HandleClaimRewardClicked()

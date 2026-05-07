@@ -24,6 +24,7 @@ public class MainGamePanel : UIPanel
     [Header("Shop & Upgrade Lists Root")]
     [SerializeField] private Transform _slotListRoot;       // 鎸傝浇宸︿晶璐拱鑰佽檸鏈烘寜閽殑鐖惰妭鐐?
     [SerializeField] private Transform _upgradeListRoot;    // 鎸傝浇鍙充晶鍗囩骇鎸夐挳鐨勭埗鑺傜偣
+    [SerializeField] private Transform _scratchToolsListRoot;
 
     [Header("Scratch Card Root")]
     [SerializeField] private RectTransform _scratchCardRoot; // 鎸傝浇鍔ㄦ€佺敓鎴愮殑褰╃エ琛ㄧ幇灞?
@@ -43,6 +44,14 @@ public class MainGamePanel : UIPanel
     // 瀵瑰鏆撮湶鍒楄〃鐨勭埗鑺傜偣渚?Controller 鎸傝浇瀛愮墿浣撳紩鐢?
     public Transform SlotListRoot => _slotListRoot;
     public Transform UpgradeListRoot => _upgradeListRoot;
+    public Transform ScratchToolsListRoot
+    {
+        get
+        {
+            EnsureScratchToolsListRoot();
+            return _scratchToolsListRoot;
+        }
+    }
     public RectTransform ScratchCardRoot => _scratchCardRoot;
     public RectTransform FocusOverlayRoot => _focusOverlayRoot;
 
@@ -361,6 +370,45 @@ public class MainGamePanel : UIPanel
         overlayObject.SetActive(false);
     }
 
+    private void EnsureScratchToolsListRoot()
+    {
+        if (_scratchToolsListRoot != null)
+        {
+            return;
+        }
+
+        Transform foundRoot = FindChildRecursive(transform, "ScratchToolsList");
+        if (foundRoot != null)
+        {
+            _scratchToolsListRoot = foundRoot;
+        }
+    }
+
+    private static Transform FindChildRecursive(Transform root, string childName)
+    {
+        if (root == null || string.IsNullOrWhiteSpace(childName))
+        {
+            return null;
+        }
+
+        for (int i = 0; i < root.childCount; i++)
+        {
+            Transform child = root.GetChild(i);
+            if (child != null && child.name == childName)
+            {
+                return child;
+            }
+
+            Transform found = FindChildRecursive(child, childName);
+            if (found != null)
+            {
+                return found;
+            }
+        }
+
+        return null;
+    }
+
     private void EnsureRogueChoiceOverlay()
     {
         if (_rogueChoiceOverlayObject != null)
@@ -467,7 +515,13 @@ public class MainGamePanel : UIPanel
 
     private GameObject CreateOwnedRogueCard(RogueCardInventoryEntryModel ownedCard, Transform parent)
     {
-        return CreateRogueCardVisual(ownedCard.Config, parent, $"Lv.{ownedCard.Level}", ownedCard.Level);
+        GameObject cardObject = CreateRogueCardVisual(ownedCard.Config, parent, $"Lv.{ownedCard.Level}", ownedCard.Level);
+        if (cardObject != null && cardObject.GetComponent<RogueCardHoverView>() == null)
+        {
+            cardObject.AddComponent<RogueCardHoverView>();
+        }
+
+        return cardObject;
     }
 
     private GameObject CreateRogueCardVisual(RogueCardConfig cardConfig, Transform parent, string levelText, int level)
