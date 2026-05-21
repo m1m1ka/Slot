@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: d7904e2ca4093954ab6bb06843164fd1
+guid: 4edc5c7c40ef3764a881835f208c6249
 TextureImporter:
   internalIDToNameTable: []
   externalObjects: {}
@@ -93,6 +93,19 @@ TextureImporter:
     ignorePlatformSupport: 0
     androidETC2FallbackOverride: 0
     forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 3
+    buildTarget: WebGL
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
   spriteSheet:
     serializedVersion: 2
     sprites:
@@ -100,93 +113,9 @@ TextureImporter:
       name: ScratchTools_0
       rect:
         serializedVersion: 2
-        x: 50
-        y: 587
-        width: 239
-        height: 242
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      outline: []
-      physicsShape: []
-      tessellationDetail: 0
-      bones: []
-      spriteID: 3f20706aa77ece14fae3daf3ee948e45
-      internalID: 1889600064
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: ScratchTools_1
-      rect:
-        serializedVersion: 2
-        x: 349
-        y: 588
-        width: 240
-        height: 241
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      outline: []
-      physicsShape: []
-      tessellationDetail: 0
-      bones: []
-      spriteID: 38bc38bede482ef44bfa3fad5bb9526e
-      internalID: -656156981
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: ScratchTools_2
-      rect:
-        serializedVersion: 2
-        x: 646
-        y: 588
-        width: 233
-        height: 239
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      outline: []
-      physicsShape: []
-      tessellationDetail: 0
-      bones: []
-      spriteID: 8c31cad7c92422943a25b8cb9485f304
-      internalID: 1071104274
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: ScratchTools_3
-      rect:
-        serializedVersion: 2
-        x: 929
-        y: 593
-        width: 268
-        height: 218
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      outline: []
-      physicsShape: []
-      tessellationDetail: 0
-      bones: []
-      spriteID: ac6bec0f43a55b64aa6dfccc4a1eb0df
-      internalID: -1067682080
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: ScratchTools_4
-      rect:
-        serializedVersion: 2
-        x: 1243
-        y: 589
-        width: 228
+        x: 165
+        y: 546
+        width: 221
         height: 230
       alignment: 0
       pivot: {x: 0, y: 0}
@@ -195,8 +124,92 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 7285867b4ab1356439f4310609f33882
-      internalID: 1204684240
+      spriteID: d8785a65758806340a26dcda22a03ef7
+      internalID: -1550244180
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: ScratchTools_1
+      rect:
+        serializedVersion: 2
+        x: 519
+        y: 558
+        width: 253
+        height: 198
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 6a0ddf97e4cb60d45a36898c53a438da
+      internalID: 691209972
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: ScratchTools_2
+      rect:
+        serializedVersion: 2
+        x: 891
+        y: 543
+        width: 244
+        height: 222
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 97603ae2c4f1c7a46a77a0b03a31dc2f
+      internalID: -798049420
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: ScratchTools_3
+      rect:
+        serializedVersion: 2
+        x: 1258
+        y: 529
+        width: 294
+        height: 213
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: e0693a5ab23e9da4eb28cfdc9cc32831
+      internalID: 1134984530
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: ScratchTools_4
+      rect:
+        serializedVersion: 2
+        x: 191
+        y: 172
+        width: 164
+        height: 240
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: ce05a0d58737ba448ae18d35230be03e
+      internalID: -796743842
       vertices: []
       indices: 
       edges: []
@@ -205,10 +218,10 @@ TextureImporter:
       name: ScratchTools_5
       rect:
         serializedVersion: 2
-        x: 94
-        y: 555
-        width: 4
-        height: 4
+        x: 523
+        y: 176
+        width: 233
+        height: 225
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -216,8 +229,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 4659c4546d3b9fd468d0033375a191bb
-      internalID: -1411644677
+      spriteID: 28b64c81a0a1bb24888d6e6f3f9f1dac
+      internalID: -1459723765
       vertices: []
       indices: 
       edges: []
@@ -226,10 +239,10 @@ TextureImporter:
       name: ScratchTools_6
       rect:
         serializedVersion: 2
-        x: 95
-        y: 519
-        width: 4
-        height: 4
+        x: 906
+        y: 185
+        width: 218
+        height: 202
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -237,8 +250,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 081fc6d9e098a0842bcf41e592a542fe
-      internalID: -592683875
+      spriteID: 3c9fe775e7c6a9646b6c373793f870fa
+      internalID: -1309128082
       vertices: []
       indices: 
       edges: []
@@ -247,93 +260,9 @@ TextureImporter:
       name: ScratchTools_7
       rect:
         serializedVersion: 2
-        x: 58
-        y: 210
-        width: 214
-        height: 239
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      outline: []
-      physicsShape: []
-      tessellationDetail: 0
-      bones: []
-      spriteID: 979d684caa61f4f4ab76f7157b194ba6
-      internalID: 659291538
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: ScratchTools_8
-      rect:
-        serializedVersion: 2
-        x: 383
-        y: 209
-        width: 155
-        height: 234
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      outline: []
-      physicsShape: []
-      tessellationDetail: 0
-      bones: []
-      spriteID: 15bd126f8e2855348bdb853a68075ecd
-      internalID: -518851277
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: ScratchTools_9
-      rect:
-        serializedVersion: 2
-        x: 629
-        y: 219
-        width: 227
-        height: 199
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      outline: []
-      physicsShape: []
-      tessellationDetail: 0
-      bones: []
-      spriteID: dd0e6506e4ac26b44b2e8e43fac45099
-      internalID: 551088540
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: ScratchTools_10
-      rect:
-        serializedVersion: 2
-        x: 931
-        y: 214
-        width: 217
-        height: 211
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      outline: []
-      physicsShape: []
-      tessellationDetail: 0
-      bones: []
-      spriteID: 12ed02b52760a534b9eb6275e9a3312a
-      internalID: -120703818
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: ScratchTools_11
-      rect:
-        serializedVersion: 2
-        x: 1245
-        y: 212
-        width: 202
+        x: 1277
+        y: 180
+        width: 220
         height: 219
       alignment: 0
       pivot: {x: 0, y: 0}
@@ -342,8 +271,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: c3b83c3dfab2c3847b5c168c8b816e1e
-      internalID: 1345572616
+      spriteID: cc5160a5496cd94429ed096d212bcf02
+      internalID: 162647392
       vertices: []
       indices: 
       edges: []
@@ -359,18 +288,14 @@ TextureImporter:
     weights: []
     secondaryTextures: []
     nameFileIdTable:
-      ScratchTools_0: 1889600064
-      ScratchTools_1: -656156981
-      ScratchTools_10: -120703818
-      ScratchTools_11: 1345572616
-      ScratchTools_2: 1071104274
-      ScratchTools_3: -1067682080
-      ScratchTools_4: 1204684240
-      ScratchTools_5: -1411644677
-      ScratchTools_6: -592683875
-      ScratchTools_7: 659291538
-      ScratchTools_8: -518851277
-      ScratchTools_9: 551088540
+      ScratchTools_0: -1550244180
+      ScratchTools_1: 691209972
+      ScratchTools_2: -798049420
+      ScratchTools_3: 1134984530
+      ScratchTools_4: -796743842
+      ScratchTools_5: -1459723765
+      ScratchTools_6: -1309128082
+      ScratchTools_7: 162647392
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

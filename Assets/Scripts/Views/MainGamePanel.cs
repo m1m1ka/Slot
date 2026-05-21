@@ -13,6 +13,8 @@ using UnityEngine.UI;
 /// </summary>
 public class MainGamePanel : UIPanel
 {
+    private const string FloatingTextPrefabPath = "UI/FloatingText";
+
     [Header("UI References")]
     [SerializeField] private TextMeshProUGUI _coinText;
     [SerializeField] private TextMeshProUGUI _levelText;
@@ -37,6 +39,24 @@ public class MainGamePanel : UIPanel
     [SerializeField] private float _focusOverlayFadeDuration = 0.18f;
     [SerializeField] private float _levelGoalSliderTweenDuration = 0.2f;
 
+    [Header("Focused Score")]
+    [SerializeField] private RectTransform _scorePanelRoot;
+    [SerializeField] private TextMeshProUGUI _scoreText;
+    [SerializeField] private TextMeshProUGUI _scoreMultiplierText;
+    [SerializeField] private float _scorePulseScale = 1.12f;
+    [SerializeField] private float _scorePulseDuration = 0.16f;
+    [SerializeField] private float _scoreChangePulseScale = 1.28f;
+    [SerializeField] private float _scoreChangePulseDuration = 0.36f;
+    [SerializeField] private float _scoreFloatDistance = 52f;
+    [SerializeField] private float _scoreFloatDuration = 0.75f;
+    [SerializeField] private Vector2 _scoreChangeFloatStartOffset = Vector2.zero;
+    [SerializeField] private float _scoreChangeFloatIntroDuration = 0.18f;
+    [SerializeField] private float _scoreChangeFloatHoldDuration = 0.28f;
+    [SerializeField] private float _scoreChangeFloatMoveDuration = 0.28f;
+    [SerializeField] private int _scoreFloatFontSize = 28;
+    [SerializeField] private Color _scoreFloatTextColor = new Color(0.96f, 0.96f, 0.92f, 1f);
+    [SerializeField] private Color _enhancedScoreFloatTextColor = new Color(0.35f, 0.65f, 1f, 1f);
+
     [Header("Rogue Cards")]
     [SerializeField] private RectTransform _rogueOwnedCardsRoot;
     [SerializeField] private RectTransform _rogueChoiceOverlayRoot;
@@ -59,6 +79,11 @@ public class MainGamePanel : UIPanel
     private Image _focusOverlayImage;
     private Tween _focusOverlayTween;
     private Tween _levelGoalSliderTween;
+    private Tween _scoreTextPulseTween;
+    private Tween _scoreMultiplierPulseTween;
+    private bool _hasFocusedScoreSnapshot;
+    private int _lastFocusedScore;
+    private double _lastFocusedRewardMultiplier;
     [SerializeField] private ScratchCardFocusPanelView _configuredFocusPanelView;
     private ScratchCardFocusPanelView _focusPanelView;
     private GameObject _rogueChoiceOverlayObject;
@@ -67,6 +92,12 @@ public class MainGamePanel : UIPanel
     private readonly List<GameObject> _ownedRogueCardObjects = new List<GameObject>();
 
     public event Action<int> OnRogueRewardCardSelected;
+
+    private void Awake()
+    {
+        EnsureScorePanel();
+        SetScorePanelVisible(false);
+    }
 
     // 濡傛灉闈㈡澘涓婃湁閫氱敤鐨勭偣鍑绘寜閽紝鍙互閫氳繃浜嬩欢鍚慍ontroller鎶涘嚭
     // public event Action OnSomeGlobalButtonClicked;
@@ -253,6 +284,223 @@ public class MainGamePanel : UIPanel
             });
 
         HideScratchCardFocusPanel();
+        SetScorePanelVisible(false);
+    }
+
+    public void UpdateFocusedScore(int reward, double rewardMultiplier, bool visible)
+    {
+        EnsureScorePanel();
+        if (!visible)
+        {
+            SetScorePanelVisible(false);
+            _hasFocusedScoreSnapshot = false;
+            return;
+        }
+
+        SetScorePanelVisible(true);
+
+        if (_hasFocusedScoreSnapshot)
+        {
+            PlayFocusedScoreChangeFloats(reward, rewardMultiplier);
+        }
+
+        if (_scoreText != null)
+        {
+            AssetProvider.ApplyDefaultTmpFont(_scoreText);
+            _scoreText.text = reward.ToString();
+        }
+
+        if (_scoreMultiplierText != null)
+        {
+            AssetProvider.ApplyDefaultTmpFont(_scoreMultiplierText);
+            _scoreMultiplierText.text = FormatRewardMultiplier(rewardMultiplier);
+        }
+
+        _lastFocusedScore = reward;
+        _lastFocusedRewardMultiplier = rewardMultiplier;
+        _hasFocusedScoreSnapshot = true;
+    }
+
+    public void PlayFocusedScoreReveal(RectTransform sourceRect, int score, bool isEnhanced, double scoreMultiplier)
+    {
+        EnsureScorePanel();
+        RectTransform parentRect = _scorePanelRoot != null
+            ? _scorePanelRoot
+            : transform as RectTransform;
+        if (parentRect == null)
+        {
+            return;
+        }
+
+        PlayScorePanelPulse();
+
+        Vector3 startPosition = sourceRect != null ? sourceRect.position : parentRect.position;
+        int displayScore = ScratchSettlementResult.ApplyMultiplier(score, scoreMultiplier);
+        PlayFloatingText(parentRect, startPosition, displayScore.ToString(), isEnhanced ? _enhancedScoreFloatTextColor : _scoreFloatTextColor);
+    }
+
+    private void PlayFocusedScoreChangeFloats(int reward, double rewardMultiplier)
+    {
+        int scoreDelta = reward - _lastFocusedScore;
+        if (scoreDelta != 0 && _scoreText != null)
+        {
+            _scoreTextPulseTween = PlayScoreTextPulse(
+                _scoreText.rectTransform,
+                _scoreTextPulseTween,
+                _scoreChangePulseScale,
+                _scoreChangePulseDuration);
+            PlayScoreChangeFloatingText(
+                _scoreText.rectTransform,
+                FormatSignedInt(scoreDelta),
+                _scoreFloatTextColor);
+        }
+
+        double multiplierDelta = rewardMultiplier - _lastFocusedRewardMultiplier;
+        if (Math.Abs(multiplierDelta) > 0.0001d && _scoreMultiplierText != null)
+        {
+            _scoreMultiplierPulseTween = PlayScoreTextPulse(
+                _scoreMultiplierText.rectTransform,
+                _scoreMultiplierPulseTween,
+                _scoreChangePulseScale,
+                _scoreChangePulseDuration);
+            PlayScoreChangeFloatingText(
+                _scoreMultiplierText.rectTransform,
+                FormatSignedDouble(multiplierDelta),
+                _scoreFloatTextColor);
+        }
+    }
+
+    private void PlayScoreChangeFloatingText(RectTransform sourceRect, string value, Color color)
+    {
+        if (sourceRect == null)
+        {
+            PlayFloatingText(
+                _scorePanelRoot,
+                _scorePanelRoot != null ? _scorePanelRoot.position : transform.position,
+                value,
+                color,
+                _scoreChangeFloatHoldDuration,
+                _scoreChangeFloatMoveDuration);
+            return;
+        }
+
+        PlayFloatingText(
+            _scorePanelRoot,
+            sourceRect.position,
+            value,
+            color,
+            _scoreChangeFloatHoldDuration,
+            _scoreChangeFloatMoveDuration,
+            GetScoreChangeFloatOffsetPosition(sourceRect),
+            _scoreChangeFloatIntroDuration);
+    }
+
+    private Vector3 GetScoreChangeFloatOffsetPosition(RectTransform sourceRect)
+    {
+        if (sourceRect == null)
+        {
+            return _scorePanelRoot != null ? _scorePanelRoot.position : transform.position;
+        }
+
+        return sourceRect.TransformPoint(_scoreChangeFloatStartOffset);
+    }
+
+    private void PlayFloatingText(
+        RectTransform parentRect,
+        Vector3 startPosition,
+        string value,
+        Color color,
+        float holdDuration = 0f,
+        float moveDuration = -1f,
+        Vector3? introEndPosition = null,
+        float introDuration = 0f)
+    {
+        if (parentRect == null)
+        {
+            return;
+        }
+
+        GameObject textObject = AssetProvider.InstantiatePrefab(FloatingTextPrefabPath, parentRect);
+        if (textObject == null)
+        {
+            return;
+        }
+
+        textObject.transform.SetAsLastSibling();
+
+        RectTransform textRect = textObject.transform as RectTransform;
+        if (textRect == null)
+        {
+            Destroy(textObject);
+            return;
+        }
+
+        textRect.anchorMin = new Vector2(0.5f, 0.5f);
+        textRect.anchorMax = new Vector2(0.5f, 0.5f);
+        textRect.pivot = new Vector2(0.5f, 0.5f);
+        textRect.position = startPosition;
+
+        CanvasGroup canvasGroup = textObject.GetComponent<CanvasGroup>();
+        if (canvasGroup == null)
+        {
+            canvasGroup = textObject.AddComponent<CanvasGroup>();
+        }
+
+        canvasGroup.alpha = 1f;
+
+        TextMeshProUGUI text = textObject.GetComponent<TextMeshProUGUI>();
+        if (text == null)
+        {
+            text = textObject.GetComponentInChildren<TextMeshProUGUI>(true);
+        }
+
+        if (text == null)
+        {
+            Destroy(textObject);
+            return;
+        }
+
+        AssetProvider.ApplyDefaultTmpFont(text);
+        text.text = value;
+        text.fontStyle = FontStyles.Bold;
+        text.alignment = TextAlignmentOptions.Center;
+        text.color = color;
+        text.raycastTarget = false;
+
+        Vector3 originalScale = textRect.localScale;
+        float resolvedIntroDuration = Mathf.Max(0f, introDuration);
+        float resolvedHoldDuration = Mathf.Max(0f, holdDuration);
+        float resolvedMoveDuration = moveDuration > 0f ? moveDuration : _scoreFloatDuration;
+        Vector2 floatStartAnchoredPosition = textRect.anchoredPosition;
+        if (introEndPosition.HasValue)
+        {
+            Vector3 localIntroEndPosition = parentRect.InverseTransformPoint(introEndPosition.Value);
+            floatStartAnchoredPosition = new Vector2(localIntroEndPosition.x, localIntroEndPosition.y);
+        }
+
+        Sequence floatSequence = DOTween.Sequence().SetUpdate(true);
+        if (introEndPosition.HasValue && resolvedIntroDuration > 0f)
+        {
+            textRect.localScale = Vector3.zero;
+            floatSequence
+                .Append(textRect.DOMove(introEndPosition.Value, resolvedIntroDuration).SetEase(Ease.OutCubic))
+                .Join(textRect.DOScale(originalScale, resolvedIntroDuration).SetEase(Ease.OutBack));
+        }
+        else if (introEndPosition.HasValue)
+        {
+            textRect.position = introEndPosition.Value;
+        }
+
+        if (resolvedHoldDuration > 0f)
+        {
+            floatSequence.AppendInterval(resolvedHoldDuration);
+        }
+
+        Vector2 endPosition = floatStartAnchoredPosition + Vector2.up * _scoreFloatDistance;
+        floatSequence
+            .Append(textRect.DOAnchorPos(endPosition, resolvedMoveDuration).SetEase(Ease.InCubic))
+            .Join(canvasGroup.DOFade(0f, resolvedMoveDuration).SetEase(Ease.InCubic))
+            .OnComplete(() => Destroy(textObject));
     }
 
     public void ShowScratchCardFocusPanel(ScratchCardFocusPanelModel model)
@@ -641,11 +889,153 @@ public class MainGamePanel : UIPanel
     {
         _focusOverlayTween?.Kill();
         _levelGoalSliderTween?.Kill();
+        _scoreTextPulseTween?.Kill();
+        _scoreMultiplierPulseTween?.Kill();
+    }
+
+    private void EnsureScorePanel()
+    {
+        if (_scorePanelRoot == null)
+        {
+            Transform foundPanel = FindChildRecursive(transform, "ScorePanel");
+            if (foundPanel != null)
+            {
+                _scorePanelRoot = foundPanel as RectTransform;
+            }
+        }
+
+        if (_scorePanelRoot == null)
+        {
+            return;
+        }
+
+        if (_scoreText == null)
+        {
+            Transform foundScoreText = FindChildRecursive(_scorePanelRoot, "ScoreText");
+            if (foundScoreText != null)
+            {
+                _scoreText = foundScoreText.GetComponent<TextMeshProUGUI>();
+            }
+        }
+
+        if (_scoreMultiplierText == null)
+        {
+            _scoreMultiplierText = FindScorePanelTextByName("MultiplierText")
+                ?? FindScorePanelTextByName("RewardMultiplierText")
+                ?? FindScorePanelTextByName("Multiply")
+                ?? FindScorePanelTextByName("CoinValue")
+                ?? FindScorePanelValueText();
+        }
+    }
+
+    private TextMeshProUGUI FindScorePanelTextByName(string childName)
+    {
+        if (_scorePanelRoot == null)
+        {
+            return null;
+        }
+
+        Transform child = FindChildRecursive(_scorePanelRoot, childName);
+        return child != null ? child.GetComponent<TextMeshProUGUI>() : null;
+    }
+
+    private TextMeshProUGUI FindScorePanelValueText()
+    {
+        if (_scorePanelRoot == null)
+        {
+            return null;
+        }
+
+        TextMeshProUGUI[] texts = _scorePanelRoot.GetComponentsInChildren<TextMeshProUGUI>(true);
+        for (int i = 0; i < texts.Length; i++)
+        {
+            TextMeshProUGUI text = texts[i];
+            if (text == null || text == _scoreText)
+            {
+                continue;
+            }
+
+            string value = text.text;
+            if (string.Equals(value, "分数", StringComparison.Ordinal) ||
+                string.Equals(value, "倍率", StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            return text;
+        }
+
+        return null;
+    }
+
+    private void SetScorePanelVisible(bool visible)
+    {
+        EnsureScorePanel();
+        if (_scorePanelRoot != null)
+        {
+            _scorePanelRoot.gameObject.SetActive(visible);
+            if (visible)
+            {
+                _scorePanelRoot.SetAsLastSibling();
+            }
+        }
+    }
+
+    private void PlayScorePanelPulse()
+    {
+        if (!gameObject.activeInHierarchy)
+        {
+            return;
+        }
+
+        _scoreTextPulseTween = PlayScoreTextPulse(
+            _scoreText != null ? _scoreText.rectTransform : null,
+            _scoreTextPulseTween,
+            _scorePulseScale,
+            _scorePulseDuration);
+        _scoreMultiplierPulseTween = PlayScoreTextPulse(
+            _scoreMultiplierText != null ? _scoreMultiplierText.rectTransform : null,
+            _scoreMultiplierPulseTween,
+            _scorePulseScale,
+            _scorePulseDuration);
+    }
+
+    private Tween PlayScoreTextPulse(RectTransform target, Tween currentTween, float pulseScale, float pulseDuration)
+    {
+        if (target == null)
+        {
+            return currentTween;
+        }
+
+        currentTween?.Kill();
+        target.localScale = Vector3.one;
+        float resolvedPulseScale = Mathf.Max(1f, pulseScale);
+        float halfDuration = Mathf.Max(0.01f, pulseDuration * 0.5f);
+        return DOTween.Sequence()
+            .SetUpdate(true)
+            .Append(target.DOScale(Vector3.one * resolvedPulseScale, halfDuration).SetEase(Ease.OutCubic))
+            .Append(target.DOScale(Vector3.one, halfDuration).SetEase(Ease.OutCubic));
+    }
+
+    private static string FormatRewardMultiplier(double rewardMultiplier)
+    {
+        double normalizedMultiplier = rewardMultiplier > 0d ? rewardMultiplier : 1d;
+        return $"{normalizedMultiplier:0.##}";
+    }
+
+    private static string FormatSignedInt(int value)
+    {
+        return value > 0 ? $"+{value}" : value.ToString();
+    }
+
+    private static string FormatSignedDouble(double value)
+    {
+        return value > 0d ? $"+{value:0.##}" : $"{value:0.##}";
     }
 
     private void EnsureFocusPanel()
     {
-        if (_focusPanelView != null || _focusOverlayRoot == null)
+        if (_focusPanelView != null)
         {
             return;
         }
@@ -656,16 +1046,27 @@ public class MainGamePanel : UIPanel
             return;
         }
 
-        _focusPanelView = _focusOverlayRoot.GetComponentInChildren<ScratchCardFocusPanelView>(true);
+        if (_focusOverlayRoot != null)
+        {
+            _focusPanelView = _focusOverlayRoot.GetComponentInChildren<ScratchCardFocusPanelView>(true);
+        }
+
         if (_focusPanelView != null)
         {
             return;
         }
 
-        GameObject panelObject = new GameObject("ScratchCardFocusPanel", typeof(RectTransform), typeof(CanvasGroup));
-        panelObject.transform.SetParent(_focusOverlayRoot, false);
-        _focusPanelView = panelObject.AddComponent<ScratchCardFocusPanelView>();
-        _focusPanelView.Hide(true);
+        _focusPanelView = GetComponentInChildren<ScratchCardFocusPanelView>(true);
+        if (_focusPanelView != null)
+        {
+            return;
+        }
+
+        _focusPanelView = FindObjectOfType<ScratchCardFocusPanelView>(true);
+        if (_focusPanelView == null)
+        {
+            Debug.LogWarning("[MainGamePanel] ScratchCardFocusPanelView 未配置，图案列表不会显示。请在场景常驻 Scroll View 上挂载该组件并拖入引用。");
+        }
     }
 
     // 鍚庣画鍙互澧炲姞鍔ㄦ€佸疄渚嬪寲瀛愰」鐨勬柟娉?

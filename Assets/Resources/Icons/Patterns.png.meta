@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: 6a11dec567bc6d346be3a97365db4ad2
+guid: 5e377a9c1f0711844928cea5c99178f9
 TextureImporter:
   internalIDToNameTable: []
   externalObjects: {}
@@ -48,7 +48,7 @@ TextureImporter:
   spriteMeshType: 1
   alignment: 0
   spritePivot: {x: 0.5, y: 0.5}
-  spritePixelsToUnits: 2000
+  spritePixelsToUnits: 100
   spriteBorder: {x: 0, y: 0, z: 0, w: 0}
   spriteGenerateFallbackPhysicsShape: 1
   alphaUsage: 1
@@ -113,10 +113,10 @@ TextureImporter:
       name: Cherry
       rect:
         serializedVersion: 2
-        x: 75
-        y: 1459
-        width: 534
-        height: 511
+        x: 80
+        y: 480
+        width: 191
+        height: 190
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -124,8 +124,50 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 2f7502d194b19ae4295238842dad6dde
-      internalID: 1342092515
+      spriteID: 87238915d8daedf45a9b4a0b704f9657
+      internalID: 1018473507
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Patterns_1
+      rect:
+        serializedVersion: 2
+        x: 135
+        y: 558
+        width: 114
+        height: 109
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: e302021901f4d4e438137d58a08cc47f
+      internalID: -1439411821
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Patterns_2
+      rect:
+        serializedVersion: 2
+        x: 176
+        y: 480
+        width: 94
+        height: 88
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 56ce51b43641b1846a3c333fad4e6920
+      internalID: 1149741974
       vertices: []
       indices: 
       edges: []
@@ -134,10 +176,10 @@ TextureImporter:
       name: Lemon
       rect:
         serializedVersion: 2
-        x: 784
-        y: 1457
-        width: 481
-        height: 474
+        x: 382
+        y: 476
+        width: 199
+        height: 195
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -145,8 +187,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: e76b4a32fa2187b45a72bb76a6bad184
-      internalID: 679683770
+      spriteID: a719a03abfcd8db4a88ccd396a581b8d
+      internalID: 1387597589
       vertices: []
       indices: 
       edges: []
@@ -155,10 +197,10 @@ TextureImporter:
       name: Orange
       rect:
         serializedVersion: 2
-        x: 1442
-        y: 1449
-        width: 534
-        height: 501
+        x: 668
+        y: 471
+        width: 171
+        height: 196
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -166,50 +208,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 45ca2edeb4c6790429c333e2ee02852c
-      internalID: 1275936243
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: Bell
-      rect:
-        serializedVersion: 2
-        x: 89
-        y: 733
-        width: 486
-        height: 570
-      alignment: 0
-      pivot: {x: 0.5, y: 0.5}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      outline: []
-      physicsShape: []
-      tessellationDetail: 0
-      bones: []
-      spriteID: 9531646f026492c409933e4b0f3f8b8c
-      internalID: -1774285491
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: Bar
-      rect:
-        serializedVersion: 2
-        x: 753
-        y: 753
-        width: 547
-        height: 490
-      alignment: 0
-      pivot: {x: 0.5, y: 0.5}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      outline: []
-      physicsShape: []
-      tessellationDetail: 0
-      bones: []
-      spriteID: 68bcf2a31a111f1449564d3e0b0df6dc
-      internalID: 730746235
+      spriteID: 150809bbb090dcc4cbf755dcbf058ccd
+      internalID: 1528437569
       vertices: []
       indices: 
       edges: []
@@ -218,10 +218,10 @@ TextureImporter:
       name: Grape
       rect:
         serializedVersion: 2
-        x: 1461
-        y: 721
-        width: 515
-        height: 601
+        x: 956
+        y: 473
+        width: 154
+        height: 211
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -229,8 +229,71 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 83c96a95f7337cf4e99fb5de7550f5b7
-      internalID: 2017243126
+      spriteID: eeca70a1d19037e46bd6292be88a5cfa
+      internalID: -106123669
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Bell
+      rect:
+        serializedVersion: 2
+        x: 1237
+        y: 501
+        width: 157
+        height: 169
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 57e7f6fe2d6fbb84197dd58a09207cd9
+      internalID: 1368108494
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Bar
+      rect:
+        serializedVersion: 2
+        x: 1490
+        y: 480
+        width: 175
+        height: 141
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: f2a5029caf828d8478b510b1f657f80f
+      internalID: 2018074677
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Patterns_8
+      rect:
+        serializedVersion: 2
+        x: 1292
+        y: 471
+        width: 47
+        height: 26
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 62a54e1438f43d746b7c5b7947771b5a
+      internalID: 1765778503
       vertices: []
       indices: 
       edges: []
@@ -239,10 +302,10 @@ TextureImporter:
       name: Star
       rect:
         serializedVersion: 2
-        x: 101
-        y: 83
-        width: 495
-        height: 492
+        x: 363
+        y: 198
+        width: 170
+        height: 162
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -250,20 +313,20 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 62223b17608e72e4a8e37605a8583fd9
-      internalID: -536778032
+      spriteID: c254490ca7ef08743915824a0e973e83
+      internalID: -394238183
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: pattern_7
+      name: Diamond
       rect:
         serializedVersion: 2
-        x: 759
-        y: 85
-        width: 522
-        height: 449
+        x: 638
+        y: 187
+        width: 200
+        height: 157
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -271,8 +334,29 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 335e280d0e710714facee526097b1ac1
-      internalID: 82930628
+      spriteID: cb391fad0f6c6d848abfb3f45ef4c7da
+      internalID: 1480803185
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Crown
+      rect:
+        serializedVersion: 2
+        x: 929
+        y: 226
+        width: 185
+        height: 136
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 01568551e426d80439ff32533f865ae0
+      internalID: -591544606
       vertices: []
       indices: 
       edges: []
@@ -281,10 +365,10 @@ TextureImporter:
       name: Seven
       rect:
         serializedVersion: 2
-        x: 1486
-        y: 86
-        width: 389
-        height: 500
+        x: 1245
+        y: 196
+        width: 146
+        height: 157
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -292,20 +376,20 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: b38aeb69825251c4ea57cb683909d7d5
-      internalID: -703412078
+      spriteID: e6974a65429c8594ca55636b2d4e9dfb
+      internalID: -339007300
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: pattern_9
+      name: Patterns_13
       rect:
         serializedVersion: 2
-        x: 1738
-        y: 71
-        width: 6
-        height: 8
+        x: 960
+        y: 200
+        width: 124
+        height: 20
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -313,8 +397,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: b8cc8a04d31223b47aa26ee6cc6ca8be
-      internalID: -1608771963
+      spriteID: 4bce4c84656efdf40a3f834503e4698e
+      internalID: -1652981678
       vertices: []
       indices: 
       edges: []
@@ -330,16 +414,20 @@ TextureImporter:
     weights: []
     secondaryTextures: []
     nameFileIdTable:
-      Bar: 730746235
-      Bell: -1774285491
-      Cherry: 1342092515
-      Grape: 2017243126
-      Lemon: 679683770
-      Orange: 1275936243
-      Seven: -703412078
-      Star: -536778032
-      pattern_7: 82930628
-      pattern_9: -1608771963
+      Bar: 2018074677
+      Bell: 1368108494
+      Cherry: 1018473507
+      Crown: -591544606
+      Diamond: 1480803185
+      Grape: -106123669
+      Lemon: 1387597589
+      Orange: 1528437569
+      Patterns_1: -1439411821
+      Patterns_13: -1652981678
+      Patterns_2: 1149741974
+      Patterns_8: 1765778503
+      Seven: -339007300
+      Star: -394238183
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

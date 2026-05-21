@@ -1,3 +1,5 @@
+using UnityEngine;
+
 namespace Core
 {
     /// <summary>
@@ -12,7 +14,28 @@ namespace Core
                 return new ScratchSettlementResult();
             }
 
-            int rowBonus = model.GridHeight * 50;
+            bool[] scratchedRows = new bool[Mathf.Max(0, model.GridHeight)];
+            for (int i = 0; i < model.Cells.Count; i++)
+            {
+                ScratchCellModel cell = model.Cells[i];
+                if (cell == null || !cell.IsScratchable || !cell.IsScratched || cell.Row < 0 || cell.Row >= scratchedRows.Length)
+                {
+                    continue;
+                }
+
+                scratchedRows[cell.Row] = true;
+            }
+
+            int scratchedRowCount = 0;
+            for (int i = 0; i < scratchedRows.Length; i++)
+            {
+                if (scratchedRows[i])
+                {
+                    scratchedRowCount++;
+                }
+            }
+
+            int rowBonus = scratchedRowCount * 50;
             int score = ScratchPatternScoreService.SumScratchableScores(model) + rowBonus;
             return new ScratchSettlementResult
             {

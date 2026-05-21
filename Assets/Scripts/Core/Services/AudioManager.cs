@@ -445,6 +445,9 @@ namespace Core
             RegisterCue(new AudioCueDefinition { Id = AudioCueId.BuyScratchCard, ResourcesPath = "Audio/Sfx/BuyScrathCard", VolumeScale = 0.95f, Cooldown = 0.05f });
             RegisterCue(new AudioCueDefinition { Id = AudioCueId.GainMoney, ResourcesPath = "Audio/Sfx/GainMoney", VolumeScale = 1f, Cooldown = 0.05f });
             RegisterCue(new AudioCueDefinition { Id = AudioCueId.Sratching, ResourcesPath = "Audio/Sfx/Scratching", VolumeScale = 0.8f });
+            RegisterCue(new AudioCueDefinition { Id = AudioCueId.ScratchRight, ResourcesPath = "Audio/Sfx/Scratch_Right", VolumeScale = 0.8f, Cooldown = 0.05f });
+            RegisterCue(new AudioCueDefinition { Id = AudioCueId.ScratchLeft, ResourcesPath = "Audio/Sfx/Scratch_Left", VolumeScale = 0.8f, Cooldown = 0.05f });
+            RegisterCue(new AudioCueDefinition { Id = AudioCueId.Ding, ResourcesPath = "Audio/Sfx/Ding", VolumeScale = 0.9f, Cooldown = 0.04f });
             RegisterCue(new AudioCueDefinition { Id = AudioCueId.MainMusic, Kind = AudioCueKind.Music, ResourcesPath = "Audio/Music/Main", VolumeScale = 1f, FadeDuration = 0.6f, Loop = true });
         }
 

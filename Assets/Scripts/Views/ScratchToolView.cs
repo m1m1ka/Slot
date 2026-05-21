@@ -65,7 +65,7 @@ public class ScratchToolView : MonoBehaviour, IPointerEnterHandler, IPointerExit
         }
     }
 
-    private void SetIcon(string atlasPath, string spriteName)
+    private void SetIcon(string folderPath, string spriteName)
     {
         EnsureIconImage();
         if (_iconImage == null)
@@ -73,13 +73,14 @@ public class ScratchToolView : MonoBehaviour, IPointerEnterHandler, IPointerExit
             return;
         }
 
-        bool hasConfiguredIcon = !string.IsNullOrWhiteSpace(atlasPath) && !string.IsNullOrWhiteSpace(spriteName);
-        Sprite icon = hasConfiguredIcon ? AssetProvider.LoadSpriteFromAtlas(atlasPath, spriteName) : null;
+        bool hasConfiguredIcon = !string.IsNullOrWhiteSpace(folderPath) && !string.IsNullOrWhiteSpace(spriteName);
         if (!hasConfiguredIcon)
         {
+            _iconImage.enabled = false;
             return;
         }
 
+        Sprite icon = AssetProvider.Load<Sprite>($"{folderPath}/{spriteName}");
         if (icon == null)
         {
             _iconImage.enabled = false;

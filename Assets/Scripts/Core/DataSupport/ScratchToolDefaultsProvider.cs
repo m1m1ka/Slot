@@ -5,7 +5,7 @@ namespace Core
 {
     public static class ScratchToolDefaultsProvider
     {
-        private const string IconAtlasPath = "Icons/ScratchTools";
+        private const string IconFolderPath = "Icons/ScratchTools";
 
         private static readonly Dictionary<int, ScratchToolConfig> Tools = new Dictionary<int, ScratchToolConfig>
         {
@@ -17,8 +17,8 @@ namespace Core
                     Name = "默认刮具",
                     Description = "第一个刮开的图案计分。",
                     SettlementType = ScratchSettlementType.FirstRevealedPattern,
-                    IconAtlasPath = IconAtlasPath,
-                    IconSpriteName = "ScratchTools_0"
+                    IconAtlasPath = IconFolderPath,
+                    IconSpriteName = "Coin"
                 }
             },
             {
@@ -29,8 +29,8 @@ namespace Core
                     Name = "配对刮具",
                     Description = "每凑出一对相同图案就计分；已配对图案不再参与后续配对，成对图案分数获得x2。",
                     SettlementType = ScratchSettlementType.MatchAnyPair,
-                    IconAtlasPath = IconAtlasPath,
-                    IconSpriteName = "ScratchTools_1"
+                    IconAtlasPath = IconFolderPath,
+                    IconSpriteName = "Shell"
                 }
             }
         };

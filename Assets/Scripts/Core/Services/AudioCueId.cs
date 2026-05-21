@@ -16,6 +16,9 @@ namespace Core
         BuyScratchCard = 206,
         GainMoney = 207,
         Sratching = 208,
+        ScratchRight = 209,
+        ScratchLeft = 210,
+        Ding = 211,
 
         MainMusic = 1000
     }

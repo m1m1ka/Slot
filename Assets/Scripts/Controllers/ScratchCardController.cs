@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using Configs;
 using Core;
@@ -12,21 +13,34 @@ public class ScratchCardController : MonoBehaviour
 {
     public event System.Action<ScratchCardController, bool> OnFocusStateChanged;
     public event System.Action<ScratchCardController, ScratchSettlementResult> OnRewardClaimed;
+    public event System.Action<ScratchCardController, int, double, bool> OnScoreDisplayChanged;
+    public event System.Action<ScratchCardController, RectTransform, int, bool, double> OnPatternScoreRevealed;
 
     private ScratchCardView _view;
     private ScratchCardModel _model;
     private ScratchSettlementResult _settlementResult;
     private bool _rewardClaimed;
+    private bool _isSettling;
+    private Coroutine _settlementCoroutine;
     private float _lastScratchInputTime = float.MinValue;
-    private bool _isScratchLoopPlaying;
+    private bool _isScratchSoundPlaying;
+    private AudioCueId _currentScratchSoundCueId = AudioCueId.None;
     private int _currentRevealedReward;
     private int _scratchRevealOrder;
+    private int _settlementDingIndex;
     private readonly HashSet<string> _rewardMultiplierAppliedScoreKeys = new HashSet<string>();
     private readonly HashSet<string> _animatedScoreKeys = new HashSet<string>();
 
     private const float ScratchLoopStopDelay = 0.2f;
+    private const float ToolSettlementStepDelay = 0.35f;
+    private const float PatternSettlementStepDelay = 0.18f;
+    private const float ScratchDirectionSoundThreshold = 0.5f;
+    private const float SettlementDingBasePitch = 1f;
+    private const float SettlementDingPitchStep = 0.12f;
+    private const float SettlementDingMaxPitch = 1.8f;
 
     public ScratchCardModel Model => _model;
+    public int CurrentRevealedReward => _currentRevealedReward;
 
     public void Initialize(ScratchCardModel model, Vector2 spawnFrom, Vector2 spawnTo)
     {
@@ -48,12 +62,14 @@ public class ScratchCardController : MonoBehaviour
 
         _view.BindCardData(_model.Cells);
         _view.SetupInitialVisual();
-        _view.SetClaimRewardMultiplier(_model.RewardMultiplier);
         _view.PlaySpawnAnimation(spawnFrom, spawnTo);
         _settlementResult = null;
         _rewardClaimed = false;
+        _isSettling = false;
+        _settlementCoroutine = null;
         _currentRevealedReward = 0;
         _scratchRevealOrder = 0;
+        _settlementDingIndex = 0;
         _rewardMultiplierAppliedScoreKeys.Clear();
         _animatedScoreKeys.Clear();
     }
@@ -75,9 +91,9 @@ public class ScratchCardController : MonoBehaviour
             TryExitFocus(Input.GetTouch(0).position);
         }
 
-        if (_isScratchLoopPlaying && Time.unscaledTime - _lastScratchInputTime > ScratchLoopStopDelay)
+        if (_isScratchSoundPlaying && Time.unscaledTime - _lastScratchInputTime > ScratchLoopStopDelay)
         {
-            StopScratchLoop();
+            StopScratchSound();
         }
     }
 
@@ -116,13 +132,18 @@ public class ScratchCardController : MonoBehaviour
         AudioManager.Instance?.PlayCue(AudioCueId.ScratchCardFocused);
     }
 
-    private void HandleScratchDragged(float amount)
+    private void HandleScratchDragged(float amount, float horizontalDelta)
     {
+        if (_isSettling || _settlementResult != null)
+        {
+            return;
+        }
+
         if (_model.State == ScratchCardModel.ScratchCardState.Focused ||
             _model.State == ScratchCardModel.ScratchCardState.Scratching)
         {
             _lastScratchInputTime = Time.unscaledTime;
-            StartScratchLoop();
+            StartDirectionalScratchSound(horizontalDelta);
             _model.SetScratchProgress(amount);
         }
     }
@@ -140,31 +161,31 @@ public class ScratchCardController : MonoBehaviour
             case ScratchCardModel.ScratchCardState.Scratching:
                 OnFocusStateChanged?.Invoke(this, true);
                 _view.SetFocused(true);
-                _view.SetCurrentRewardText(_currentRevealedReward, true);
+                UpdateSettlementButtonView();
+                RaiseScoreDisplayChanged(true);
                 break;
             case ScratchCardModel.ScratchCardState.Idle:
-                StopScratchLoop();
+                StopScratchSound();
                 OnFocusStateChanged?.Invoke(this, false);
                 _view.SetFocused(false);
-                _view.SetCurrentRewardText(_currentRevealedReward, false);
+                _view.HideClaimRewardButton();
+                RaiseScoreDisplayChanged(false);
                 break;
             case ScratchCardModel.ScratchCardState.Completed:
-                StopScratchLoop();
+                StopScratchSound();
                 OnFocusStateChanged?.Invoke(this, true);
                 _view.SetFocused(true);
-                _view.SetCurrentRewardText(_currentRevealedReward, true);
+                UpdateSettlementButtonView();
+                RaiseScoreDisplayChanged(true);
                 break;
         }
     }
 
     private void HandleScratchCompleted()
     {
-        _settlementResult = ScratchToolSettlementService.Evaluate(_model);
-        _view.ShowClaimRewardButton(_settlementResult.ScoreBeforeRewardMultiplier, _model.RewardMultiplier);
-
         Debug.Log(
             $"[ScratchCardController] Scratch card {_model.CardId} completed. " +
-            $"Type={_model.CardTypeName}, Base={_model.TotalBaseScore}, Final={_settlementResult.FinalScore}, Summary={_settlementResult.Summary}");
+            $"Type={_model.CardTypeName}, Base={_model.TotalBaseScore}");
     }
 
     private void HandleRewardMultiplierChanged(double rewardMultiplier)
@@ -181,16 +202,20 @@ public class ScratchCardController : MonoBehaviour
                 _settlementResult.ScoreBeforeRewardMultiplier);
         }
 
-        _view.SetClaimRewardMultiplier(rewardMultiplier);
+        RaiseScoreDisplayChanged(IsInFocusedState());
     }
 
     private void HandleScratchLayerCleared()
     {
-        AudioManager.Instance?.PlaySfx("Audio/Sfx/Pop");
     }
 
     private void HandleScratchCellRevealed(int cellIndex)
     {
+        if (_isSettling || _settlementResult != null)
+        {
+            return;
+        }
+
         if (_model == null || _model.Cells == null || cellIndex < 0 || cellIndex >= _model.Cells.Count)
         {
             return;
@@ -203,18 +228,9 @@ public class ScratchCardController : MonoBehaviour
         }
 
         cell.MarkScratched(++_scratchRevealOrder);
+        AudioManager.Instance?.PlaySfx("Audio/Sfx/Pop");
+        _view.PlayPatternRevealHighlight(cellIndex);
         ApplyCellRevealEffects(cell);
-
-        int previousReward = _currentRevealedReward;
-        ScratchSettlementResult previewResult = ScratchToolSettlementService.Evaluate(_model);
-        _currentRevealedReward = previewResult.ScoreBeforeRewardMultiplier;
-        ApplyScoredCellRewardMultiplierBonuses(previewResult);
-        _view.SetCurrentRewardText(_currentRevealedReward, IsInFocusedState());
-
-        if (_currentRevealedReward > previousReward)
-        {
-            PlayNewScoreAnimations(previewResult);
-        }
     }
 
     private void ApplyScoredCellRewardMultiplierBonuses(ScratchSettlementResult result)
@@ -245,19 +261,20 @@ public class ScratchCardController : MonoBehaviour
         }
     }
 
-    private void PlayNewScoreAnimations(ScratchSettlementResult result)
+    private IEnumerator PlayNewScoreAnimations(ScratchSettlementResult result)
     {
         if (result?.ScoredCellIndices == null || _model?.Cells == null)
         {
-            return;
+            yield break;
         }
 
+        var settledPatternIds = new HashSet<int>();
         for (int i = 0; i < result.ScoredCellIndices.Count; i++)
         {
             int scoredCellIndex = result.ScoredCellIndices[i];
             double scoreMultiplier = GetScoredCellMultiplier(result, i);
             string scoreKey = BuildScoreKey(scoredCellIndex, scoreMultiplier);
-            if (!_animatedScoreKeys.Add(scoreKey))
+            if (_animatedScoreKeys.Contains(scoreKey))
             {
                 continue;
             }
@@ -273,9 +290,75 @@ public class ScratchCardController : MonoBehaviour
                 continue;
             }
 
-            int cellScore = ScratchPatternScoreService.GetCellScore(_model, scoredCell);
-            _view.PlayPatternScoreReveal(scoredCellIndex, cellScore, scoredCell.IsBaseScoreEnhanced, scoreMultiplier);
+            if (!settledPatternIds.Add(scoredCell.PatternId))
+            {
+                continue;
+            }
+
+            bool playedPatternGroup = false;
+            for (int j = i; j < result.ScoredCellIndices.Count; j++)
+            {
+                int groupedCellIndex = result.ScoredCellIndices[j];
+                double groupedScoreMultiplier = GetScoredCellMultiplier(result, j);
+                if (groupedCellIndex < 0 || groupedCellIndex >= _model.Cells.Count)
+                {
+                    continue;
+                }
+
+                ScratchCellModel groupedCell = _model.Cells[groupedCellIndex];
+                if (groupedCell == null || groupedCell.PatternId != scoredCell.PatternId)
+                {
+                    continue;
+                }
+
+                string groupedScoreKey = BuildScoreKey(groupedCellIndex, groupedScoreMultiplier);
+                if (!_animatedScoreKeys.Add(groupedScoreKey))
+                {
+                    continue;
+                }
+
+                int cellScore = ScratchPatternScoreService.GetCellScore(_model, groupedCell);
+                RectTransform sourceRect = _view.PlayPatternScorePulse(groupedCellIndex);
+                OnPatternScoreRevealed?.Invoke(this, sourceRect, cellScore, groupedCell.IsBaseScoreEnhanced, groupedScoreMultiplier);
+                playedPatternGroup = true;
+            }
+
+            if (playedPatternGroup)
+            {
+                PlaySettlementDing();
+                yield return new WaitForSecondsRealtime(PatternSettlementStepDelay);
+            }
         }
+    }
+
+    private void PlaySettlementDing()
+    {
+        float pitch = Mathf.Min(
+            SettlementDingMaxPitch,
+            SettlementDingBasePitch + _settlementDingIndex * SettlementDingPitchStep);
+        _settlementDingIndex++;
+        AudioManager.Instance?.PlaySfx("Audio/Sfx/Ding", 0.9f, pitch);
+    }
+
+    private void StartDirectionalScratchSound(float horizontalDelta)
+    {
+        if (_isScratchSoundPlaying)
+        {
+            return;
+        }
+
+        if (Mathf.Abs(horizontalDelta) < ScratchDirectionSoundThreshold)
+        {
+            return;
+        }
+
+        AudioCueId nextCueId = horizontalDelta > 0f
+            ? AudioCueId.ScratchRight
+            : AudioCueId.ScratchLeft;
+
+        AudioManager.Instance?.PlayLoopCue(nextCueId);
+        _currentScratchSoundCueId = nextCueId;
+        _isScratchSoundPlaying = true;
     }
 
     private static double GetScoredCellMultiplier(ScratchSettlementResult result, int index)
@@ -306,6 +389,77 @@ public class ScratchCardController : MonoBehaviour
 
     private void HandleClaimRewardClicked()
     {
+        if (_rewardClaimed || _isSettling)
+        {
+            return;
+        }
+
+        if (_settlementResult == null)
+        {
+            _settlementCoroutine = StartCoroutine(SettleRevealedPatternsByToolOrder());
+            return;
+        }
+
+        ClaimReward();
+    }
+
+    private IEnumerator SettleRevealedPatternsByToolOrder()
+    {
+        _isSettling = true;
+        StopScratchSound();
+        _view.SetScratchInputEnabled(false);
+        _currentRevealedReward = 0;
+        _settlementDingIndex = 0;
+        _view.ShowSettlementInProgressButton(_currentRevealedReward, _model != null ? _model.RewardMultiplier : 1d);
+        RaiseScoreDisplayChanged(IsInFocusedState());
+
+        _settlementResult = new ScratchSettlementResult();
+        List<ScratchSettlementResult> toolResults = ScratchToolSettlementService.EvaluateByToolOrder(_model);
+        var summaries = new List<string>();
+
+        for (int i = 0; i < toolResults.Count; i++)
+        {
+            ScratchSettlementResult toolResult = toolResults[i];
+            if (toolResult == null)
+            {
+                continue;
+            }
+
+            MergeSettlementResult(_settlementResult, toolResult);
+            if (!string.IsNullOrWhiteSpace(toolResult.Summary))
+            {
+                summaries.Add(toolResult.Summary);
+            }
+
+            _currentRevealedReward = _settlementResult.ScoreBeforeRewardMultiplier;
+            ApplyScoredCellRewardMultiplierBonuses(toolResult);
+            _view.ShowSettlementInProgressButton(_currentRevealedReward, _model != null ? _model.RewardMultiplier : 1d);
+            yield return PlayNewScoreAnimations(toolResult);
+            RaiseScoreDisplayChanged(IsInFocusedState());
+
+            if (i < toolResults.Count - 1)
+            {
+                yield return new WaitForSecondsRealtime(ToolSettlementStepDelay);
+            }
+        }
+
+        _settlementResult.FinalScore = ScratchPatternScoreService.ApplyFinalScoreRules(
+            _model,
+            _settlementResult.ScoreBeforeRewardMultiplier);
+        _settlementResult.Summary = summaries.Count > 0 ? string.Join(" ", summaries) : "\u6ca1\u6709\u89e6\u53d1\u522e\u5177\u8ba1\u5206\u3002";
+
+        _isSettling = false;
+        _settlementCoroutine = null;
+        _view.ShowClaimRewardButton(_settlementResult.ScoreBeforeRewardMultiplier, _model.RewardMultiplier);
+        RaiseScoreDisplayChanged(IsInFocusedState());
+
+        Debug.Log(
+            $"[ScratchCardController] Scratch card {_model.CardId} settled. " +
+            $"Type={_model.CardTypeName}, Base={_model.TotalBaseScore}, Final={_settlementResult.FinalScore}, Summary={_settlementResult.Summary}");
+    }
+
+    private void ClaimReward()
+    {
         if (_rewardClaimed || _settlementResult == null)
         {
             return;
@@ -313,18 +467,81 @@ public class ScratchCardController : MonoBehaviour
 
         _rewardClaimed = true;
         _view.HideClaimRewardButton();
+        RaiseScoreDisplayChanged(false);
         AudioManager.Instance?.PlayCue(AudioCueId.GainMoney);
         OnRewardClaimed?.Invoke(this, _settlementResult);
     }
 
-    private void TryExitFocus(Vector2 screenPoint)
+    private void UpdateSettlementButtonView()
     {
-        if (_model != null && _model.State == ScratchCardModel.ScratchCardState.Completed && !_rewardClaimed)
+        if (_view == null || _rewardClaimed)
         {
             return;
         }
 
-        if (_view.ContainsScreenPoint(screenPoint))
+        if (_isSettling)
+        {
+            _view.ShowSettlementInProgressButton(_currentRevealedReward, _model != null ? _model.RewardMultiplier : 1d);
+            _view.SetScratchInputEnabled(false);
+            return;
+        }
+
+        if (_settlementResult != null)
+        {
+            _view.ShowClaimRewardButton(_settlementResult.ScoreBeforeRewardMultiplier, _model != null ? _model.RewardMultiplier : 1d);
+            _view.SetScratchInputEnabled(false);
+            return;
+        }
+
+        _view.ShowSettleButton(_model != null ? _model.RewardMultiplier : 1d);
+        _view.SetScratchInputEnabled(true);
+    }
+
+    private static void MergeSettlementResult(ScratchSettlementResult target, ScratchSettlementResult source)
+    {
+        if (target == null || source == null)
+        {
+            return;
+        }
+
+        target.ScoreBeforeRewardMultiplier += source.ScoreBeforeRewardMultiplier;
+        AddRange(target.WinningPatternIds, source.WinningPatternIds);
+        AddRange(target.ScoredCellIndices, source.ScoredCellIndices);
+        AddRange(target.ScoredCellScoreMultipliers, source.ScoredCellScoreMultipliers);
+    }
+
+    private static void AddRange<T>(List<T> target, List<T> source)
+    {
+        if (target == null || source == null)
+        {
+            return;
+        }
+
+        for (int i = 0; i < source.Count; i++)
+        {
+            target.Add(source[i]);
+        }
+    }
+
+    private void RaiseScoreDisplayChanged(bool visible)
+    {
+        OnScoreDisplayChanged?.Invoke(
+            this,
+            _currentRevealedReward,
+            _model != null ? _model.RewardMultiplier : 1d,
+            visible);
+    }
+
+    private void TryExitFocus(Vector2 screenPoint)
+    {
+        if (!_rewardClaimed && (_isSettling || _settlementResult != null ||
+            (_model != null && _model.State == ScratchCardModel.ScratchCardState.Completed)))
+        {
+            return;
+        }
+
+        if (_view.ContainsScreenPoint(screenPoint) ||
+            _view.ContainsClaimRewardButtonScreenPoint(screenPoint))
         {
             return;
         }
@@ -346,31 +563,27 @@ public class ScratchCardController : MonoBehaviour
 
     private void OnDestroy()
     {
-        StopScratchLoop();
+        if (_settlementCoroutine != null)
+        {
+            StopCoroutine(_settlementCoroutine);
+            _settlementCoroutine = null;
+        }
+
+        StopScratchSound();
         UnbindModel();
         UnbindView();
     }
 
-    private void StartScratchLoop()
+    private void StopScratchSound()
     {
-        if (_isScratchLoopPlaying)
+        if (!_isScratchSoundPlaying)
         {
             return;
         }
 
-        AudioManager.Instance?.PlayLoopCue(AudioCueId.Sratching);
-        _isScratchLoopPlaying = true;
-    }
-
-    private void StopScratchLoop()
-    {
-        if (!_isScratchLoopPlaying)
-        {
-            return;
-        }
-
-        AudioManager.Instance?.StopLoopCue(AudioCueId.Sratching);
-        _isScratchLoopPlaying = false;
+        AudioManager.Instance?.StopLoopCue(_currentScratchSoundCueId);
+        _currentScratchSoundCueId = AudioCueId.None;
+        _isScratchSoundPlaying = false;
     }
 
     private void UnbindModel()

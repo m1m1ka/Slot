@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: 041f0ab1a674b11468efee035bcbf012
+guid: 82fbb819fde0c5c4f8ba4399c334fa20
 TextureImporter:
   internalIDToNameTable: []
   externalObjects: {}
@@ -93,6 +93,19 @@ TextureImporter:
     ignorePlatformSupport: 0
     androidETC2FallbackOverride: 0
     forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 3
+    buildTarget: WebGL
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
   spriteSheet:
     serializedVersion: 2
     sprites:
@@ -100,10 +113,10 @@ TextureImporter:
       name: ScratchCards_1
       rect:
         serializedVersion: 2
-        x: 47
-        y: 570
-        width: 310
-        height: 420
+        x: 95
+        y: 484
+        width: 136
+        height: 165
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -111,8 +124,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 4a1ded47c705942449792a2b8ceed307
-      internalID: -1474777820
+      spriteID: 2178a3873aacff74f9238446e7564714
+      internalID: 1317629916
       vertices: []
       indices: 
       edges: []
@@ -121,10 +134,10 @@ TextureImporter:
       name: ScratchCards_2
       rect:
         serializedVersion: 2
-        x: 390
-        y: 570
-        width: 314
-        height: 420
+        x: 332
+        y: 499
+        width: 132
+        height: 146
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -132,8 +145,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: cc053c75d3fcc6b46b53dc48722151cc
-      internalID: -1523635784
+      spriteID: dd2f3ed6286c89b48ad32dc87a7dd556
+      internalID: 1081779916
       vertices: []
       indices: 
       edges: []
@@ -142,10 +155,10 @@ TextureImporter:
       name: ScratchCards_3
       rect:
         serializedVersion: 2
-        x: 739
-        y: 570
-        width: 312
-        height: 420
+        x: 563
+        y: 497
+        width: 169
+        height: 143
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -153,8 +166,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: fde6051d338b80f47add3637e4cc5d5a
-      internalID: -1175953451
+      spriteID: 303cc9953f918d24f9dd84b5c6f6f748
+      internalID: -1489608717
       vertices: []
       indices: 
       edges: []
@@ -163,10 +176,10 @@ TextureImporter:
       name: ScratchCards_4
       rect:
         serializedVersion: 2
-        x: 1088
-        y: 570
-        width: 311
-        height: 420
+        x: 813
+        y: 494
+        width: 149
+        height: 161
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -174,8 +187,50 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: f1d369159b698854c804829f2d82154a
-      internalID: -2123779708
+      spriteID: b949d56c5663b754680e2ba242923e55
+      internalID: -1001765952
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: ScratchCardsShopView_4
+      rect:
+        serializedVersion: 2
+        x: 1106
+        y: 567
+        width: 37
+        height: 37
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 960ac9f7e993cae45820addaaaf3c2de
+      internalID: 1144162792
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: ScratchCardsShopView_5
+      rect:
+        serializedVersion: 2
+        x: 1120
+        y: 601
+        width: 52
+        height: 48
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: f78fdee4a69de074c86edfdca589011a
+      internalID: 1275971567
       vertices: []
       indices: 
       edges: []
@@ -184,10 +239,10 @@ TextureImporter:
       name: ScratchCards_5
       rect:
         serializedVersion: 2
-        x: 47
-        y: 96
-        width: 310
-        height: 419
+        x: 1263
+        y: 494
+        width: 160
+        height: 144
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -195,8 +250,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 56c5cfa3cd1336a459c6d55849dd7bb6
-      internalID: -848090552
+      spriteID: 5e62335f44dcb054aa6d51b704eb49ef
+      internalID: 1007708495
       vertices: []
       indices: 
       edges: []
@@ -205,10 +260,10 @@ TextureImporter:
       name: ScratchCards_6
       rect:
         serializedVersion: 2
-        x: 390
-        y: 96
-        width: 314
-        height: 419
+        x: 1500
+        y: 494
+        width: 140
+        height: 156
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -216,8 +271,134 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: a1b153bb5bd01a34087a842065aba0fd
-      internalID: 645340841
+      spriteID: f540bb91d4553af4fa9afb65c9ef5278
+      internalID: 432718345
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: ScratchCardsShopView_8
+      rect:
+        serializedVersion: 2
+        x: 1044
+        y: 551
+        width: 44
+        height: 44
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 17c7ef72deb0c704283330bfe1107cab
+      internalID: -1965037068
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: ScratchCardsShopView_9
+      rect:
+        serializedVersion: 2
+        x: 1120
+        y: 500
+        width: 35
+        height: 54
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 6a020f2d0f4e0ef4b9d7f2913ca4fc7e
+      internalID: 1077266618
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: ScratchCardsShopView_10
+      rect:
+        serializedVersion: 2
+        x: 1058
+        y: 487
+        width: 49
+        height: 54
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: c504565b7fa84a84086a43b2fd8f3359
+      internalID: -1516631732
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: ScratchCardsShopView_11
+      rect:
+        serializedVersion: 2
+        x: 563
+        y: 266
+        width: 181
+        height: 124
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 90be43595bb5a124ebc95e1d90ed815a
+      internalID: -1281475089
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: ScratchCardsShopView_12
+      rect:
+        serializedVersion: 2
+        x: 621
+        y: 246
+        width: 67
+        height: 31
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 5e6ba0ef2b6f358438efb1682f69e907
+      internalID: -1687702250
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: ScratchCardsShopView_13
+      rect:
+        serializedVersion: 2
+        x: 638
+        y: 264
+        width: 34
+        height: 35
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: cc960706685e0fa42bae240cc8447a0b
+      internalID: 1117773996
       vertices: []
       indices: 
       edges: []
@@ -226,10 +407,10 @@ TextureImporter:
       name: ScratchCards_7
       rect:
         serializedVersion: 2
-        x: 734
-        y: 95
-        width: 312
-        height: 419
+        x: 833
+        y: 227
+        width: 151
+        height: 149
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -237,29 +418,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: f923b9341f76e4847b9a558b4a5c8d7e
-      internalID: -732957747
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: ScratchCards_8
-      rect:
-        serializedVersion: 2
-        x: 1088
-        y: 96
-        width: 311
-        height: 419
-      alignment: 0
-      pivot: {x: 0.5, y: 0.5}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      outline: []
-      physicsShape: []
-      tessellationDetail: 0
-      bones: []
-      spriteID: 68058009c731b2341b59b7a842e67e13
-      internalID: 503590107
+      spriteID: 62d3b599d515d1446ad7246b2c239f46
+      internalID: -822819009
       vertices: []
       indices: 
       edges: []
@@ -275,14 +435,21 @@ TextureImporter:
     weights: []
     secondaryTextures: []
     nameFileIdTable:
-      ScratchCards_1: -1474777820
-      ScratchCards_2: -1523635784
-      ScratchCards_3: -1175953451
-      ScratchCards_4: -2123779708
-      ScratchCards_5: -848090552
-      ScratchCards_6: 645340841
-      ScratchCards_7: -732957747
-      ScratchCards_8: 503590107
+      ScratchCardsShopView_10: -1516631732
+      ScratchCardsShopView_11: -1281475089
+      ScratchCardsShopView_12: -1687702250
+      ScratchCardsShopView_13: 1117773996
+      ScratchCardsShopView_4: 1144162792
+      ScratchCardsShopView_5: 1275971567
+      ScratchCardsShopView_8: -1965037068
+      ScratchCardsShopView_9: 1077266618
+      ScratchCards_1: 1317629916
+      ScratchCards_2: 1081779916
+      ScratchCards_3: -1489608717
+      ScratchCards_4: -1001765952
+      ScratchCards_5: 1007708495
+      ScratchCards_6: 432718345
+      ScratchCards_7: -822819009
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

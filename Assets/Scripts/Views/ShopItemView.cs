@@ -3,27 +3,41 @@ using UnityEngine.UI;
 using TMPro;
 using System;
 using Core;
+using DG.Tweening;
+using UnityEngine.EventSystems;
 
 /// <summary>
 /// 视图层：单个商店购买/升级按钮项。
 /// 仅负责展示名称、价格，并上报点击事件。不包含购买判断逻辑。
 /// </summary>
-public class ShopItemView : MonoBehaviour 
+public class ShopItemView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
 {
     [Header("UI 引用")]
     [SerializeField] private Image _iconImage;
     [SerializeField] private TextMeshProUGUI _nameText;
     [SerializeField] private TextMeshProUGUI _costText;
     [SerializeField] private Button _buyBtn;
+    [SerializeField] private GameObject _outline;
+    [SerializeField] private Vector2 _purchaseFeedbackOffset = new Vector2(8f, -8f);
+    [SerializeField] private float _purchaseFeedbackMoveDuration = 0.08f;
+    [SerializeField] private float _purchaseFeedbackReturnDuration = 0.16f;
 
     // 向外抛出购买点击意图，附带商品 ID
     public event Action<int> OnBuyClicked; 
     
     private int _mySlotId;
+    private RectTransform _purchaseFeedbackRect;
+    private Vector2 _purchaseFeedbackRestingPosition;
+    private Tween _purchaseFeedbackTween;
+
+    public int SlotId => _mySlotId;
 
     private void Awake()
     {
         EnsureIconImage();
+        EnsureOutline();
+        EnsurePurchaseFeedbackRect();
+        SetOutlineVisible(false);
         AssetProvider.ApplyDefaultTmpFont(_nameText);
         AssetProvider.ApplyDefaultTmpFont(_costText);
 
@@ -35,6 +49,28 @@ public class ShopItemView : MonoBehaviour
                 OnBuyClicked?.Invoke(_mySlotId);
             });
         }
+    }
+
+    public void OnPointerEnter(PointerEventData eventData)
+    {
+        SetOutlineVisible(true);
+    }
+
+    public void OnPointerExit(PointerEventData eventData)
+    {
+        SetOutlineVisible(false);
+    }
+
+    private void OnDisable()
+    {
+        ResetPurchaseFeedbackPosition();
+        SetOutlineVisible(false);
+    }
+
+    private void OnDestroy()
+    {
+        _purchaseFeedbackTween?.Kill();
+        _purchaseFeedbackTween = null;
     }
 
     /// <summary>
@@ -65,6 +101,35 @@ public class ShopItemView : MonoBehaviour
         {
             _buyBtn.interactable = canAfford;
         }
+    }
+
+    public void PlayPurchaseFeedback()
+    {
+        EnsurePurchaseFeedbackRect();
+        if (_purchaseFeedbackRect == null)
+        {
+            return;
+        }
+
+        if (_purchaseFeedbackTween != null && _purchaseFeedbackTween.IsActive())
+        {
+            _purchaseFeedbackTween.Kill();
+            _purchaseFeedbackRect.anchoredPosition = _purchaseFeedbackRestingPosition;
+        }
+        else
+        {
+            _purchaseFeedbackRestingPosition = _purchaseFeedbackRect.anchoredPosition;
+        }
+
+        _purchaseFeedbackTween = DOTween.Sequence()
+            .SetUpdate(true)
+            .Append(_purchaseFeedbackRect.DOAnchorPos(
+                _purchaseFeedbackRestingPosition + _purchaseFeedbackOffset,
+                _purchaseFeedbackMoveDuration).SetEase(Ease.OutQuad))
+            .Append(_purchaseFeedbackRect.DOAnchorPos(
+                _purchaseFeedbackRestingPosition,
+                _purchaseFeedbackReturnDuration).SetEase(Ease.OutBack))
+            .OnComplete(() => _purchaseFeedbackTween = null);
     }
 
     private void SetIcon(string atlasPath, string spriteName)
@@ -98,6 +163,61 @@ public class ShopItemView : MonoBehaviour
                 _iconImage = images[i];
                 return;
             }
+        }
+    }
+
+    private void EnsureOutline()
+    {
+        if (_outline != null)
+        {
+            return;
+        }
+
+        Transform[] transforms = GetComponentsInChildren<Transform>(true);
+        for (int i = 0; i < transforms.Length; i++)
+        {
+            if (transforms[i] != null && transforms[i].name == "Outline")
+            {
+                _outline = transforms[i].gameObject;
+                return;
+            }
+        }
+    }
+
+    private void SetOutlineVisible(bool visible)
+    {
+        EnsureOutline();
+        if (_outline != null)
+        {
+            _outline.SetActive(visible);
+        }
+    }
+
+    private void EnsurePurchaseFeedbackRect()
+    {
+        if (_purchaseFeedbackRect != null)
+        {
+            return;
+        }
+
+        _purchaseFeedbackRect = _buyBtn != null
+            ? _buyBtn.transform as RectTransform
+            : transform as RectTransform;
+
+        if (_purchaseFeedbackRect != null)
+        {
+            _purchaseFeedbackRestingPosition = _purchaseFeedbackRect.anchoredPosition;
+        }
+    }
+
+    private void ResetPurchaseFeedbackPosition()
+    {
+        _purchaseFeedbackTween?.Kill();
+        _purchaseFeedbackTween = null;
+
+        if (_purchaseFeedbackRect != null)
+        {
+            _purchaseFeedbackRect.anchoredPosition = _purchaseFeedbackRestingPosition;
         }
     }
 }

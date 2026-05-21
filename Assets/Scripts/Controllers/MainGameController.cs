@@ -30,6 +30,7 @@ public class MainGameController : MonoBehaviour
     private readonly Dictionary<ShopItemView, double> _shopItemPrices = new Dictionary<ShopItemView, double>();
     private readonly List<ScratchCardController> _activeScratchCards = new List<ScratchCardController>();
     private readonly List<ScratchToolView> _scratchToolViews = new List<ScratchToolView>();
+    private ScratchCardController _focusedScoreCard;
 
     private int _nextScratchCardId = 1;
 
@@ -153,7 +154,10 @@ public class MainGameController : MonoBehaviour
             return;
         }
 
-        RequestBuySlot(slotId, cardTypeConfig.Price);
+        if (RequestBuySlot(slotId, cardTypeConfig.Price))
+        {
+            PlayShopItemPurchaseFeedback(slotId);
+        }
     }
 
     /// <summary>
@@ -180,13 +184,13 @@ public class MainGameController : MonoBehaviour
     /// <summary>
     /// 当监听到玩家点击了“购买彩票”按钮时触发
     /// </summary>
-    public void RequestBuySlot(int slotId, double cost)
+    public bool RequestBuySlot(int slotId, double cost)
     {
         if (_levelModel == null || !_levelModel.CanPurchaseScratchCard)
         {
             Debug.LogWarning("[MainGameController] Cannot buy scratch card: purchase limit reached or level passed.");
             AudioManager.Instance?.PlayCue(AudioCueId.UiDenied);
-            return;
+            return false;
         }
 
         if (cost <= 0)
@@ -196,13 +200,13 @@ public class MainGameController : MonoBehaviour
                 Debug.LogWarning("[MainGameController] Cannot buy scratch card: purchase limit reached.");
                 AudioManager.Instance?.PlayCue(AudioCueId.UiDenied);
                 RefreshLevelDisplay();
-                return;
+                return false;
             }
 
             RefreshLevelDisplay();
             AudioManager.Instance?.PlayCue(AudioCueId.BuyScratchCard);
             SpawnScratchCard(slotId);
-            return;
+            return true;
         }
 
         // 核心判断均在 Controller 处理
@@ -214,19 +218,34 @@ public class MainGameController : MonoBehaviour
                 Debug.LogWarning("[MainGameController] Purchase cancelled: purchase limit reached after cost check.");
                 AudioManager.Instance?.PlayCue(AudioCueId.UiDenied);
                 RefreshLevelDisplay();
-                return;
+                return false;
             }
 
             Debug.Log($"成功花费 {cost} 购买刮刮卡 {slotId}");
             RefreshLevelDisplay();
             AudioManager.Instance?.PlayCue(AudioCueId.BuyScratchCard);
             SpawnScratchCard(slotId);
+            return true;
         }
         else
         {
             Debug.LogWarning("金币不足，无法购买！");
             AudioManager.Instance?.PlayCue(AudioCueId.UiDenied);
             // TODO: 通知 View 播放“余额不足”的飘字或震动动画
+            return false;
+        }
+    }
+
+    private void PlayShopItemPurchaseFeedback(int slotId)
+    {
+        for (int i = 0; i < _shopItems.Count; i++)
+        {
+            ShopItemView item = _shopItems[i];
+            if (item != null && item.SlotId == slotId)
+            {
+                item.PlayPurchaseFeedback();
+                return;
+            }
         }
     }
 
@@ -277,6 +296,8 @@ public class MainGameController : MonoBehaviour
             {
                 scratchCard.OnFocusStateChanged -= HandleScratchCardFocusStateChanged;
                 scratchCard.OnRewardClaimed -= HandleScratchCardRewardClaimed;
+                scratchCard.OnScoreDisplayChanged -= HandleScratchCardScoreDisplayChanged;
+                scratchCard.OnPatternScoreRevealed -= HandleScratchCardPatternScoreRevealed;
                 PoolManager.Instance.Despawn(scratchCard.gameObject);
             }
         }
@@ -339,6 +360,8 @@ public class MainGameController : MonoBehaviour
         scratchCardController.Initialize(model, spawnFrom, targetPosition);
         scratchCardController.OnFocusStateChanged += HandleScratchCardFocusStateChanged;
         scratchCardController.OnRewardClaimed += HandleScratchCardRewardClaimed;
+        scratchCardController.OnScoreDisplayChanged += HandleScratchCardScoreDisplayChanged;
+        scratchCardController.OnPatternScoreRevealed += HandleScratchCardPatternScoreRevealed;
         _activeScratchCards.Add(scratchCardController);
     }
 
@@ -353,6 +376,14 @@ public class MainGameController : MonoBehaviour
         {
             RectTransform focusedTransform = scratchCard != null ? scratchCard.transform as RectTransform : null;
             _mainGamePanel.ShowScratchCardFocusOverlay(focusedTransform, BuildFocusPanelModel(scratchCard));
+            if (scratchCard != null && scratchCard.Model != null)
+            {
+                HandleScratchCardScoreDisplayChanged(
+                    scratchCard,
+                    scratchCard.CurrentRevealedReward,
+                    scratchCard.Model.RewardMultiplier,
+                    true);
+            }
             return;
         }
 
@@ -376,6 +407,7 @@ public class MainGameController : MonoBehaviour
                 state == ScratchCardModel.ScratchCardState.Completed)
             {
                 _mainGamePanel.ShowScratchCardFocusOverlay(card.transform as RectTransform, BuildFocusPanelModel(card));
+                HandleScratchCardScoreDisplayChanged(card, card.CurrentRevealedReward, card.Model.RewardMultiplier, true);
                 hasOtherFocusedCard = true;
                 break;
             }
@@ -384,7 +416,48 @@ public class MainGameController : MonoBehaviour
         if (!hasOtherFocusedCard)
         {
             _mainGamePanel.HideScratchCardFocusOverlay();
+            _focusedScoreCard = null;
         }
+    }
+
+    private void HandleScratchCardScoreDisplayChanged(
+        ScratchCardController scratchCard,
+        int reward,
+        double rewardMultiplier,
+        bool visible)
+    {
+        if (_mainGamePanel == null)
+        {
+            return;
+        }
+
+        if (visible)
+        {
+            _focusedScoreCard = scratchCard;
+            _mainGamePanel.UpdateFocusedScore(reward, rewardMultiplier, true);
+            return;
+        }
+
+        if (_focusedScoreCard == scratchCard)
+        {
+            _focusedScoreCard = null;
+            _mainGamePanel.UpdateFocusedScore(reward, rewardMultiplier, false);
+        }
+    }
+
+    private void HandleScratchCardPatternScoreRevealed(
+        ScratchCardController scratchCard,
+        RectTransform sourceRect,
+        int score,
+        bool isEnhanced,
+        double scoreMultiplier)
+    {
+        if (_mainGamePanel == null || _focusedScoreCard != scratchCard)
+        {
+            return;
+        }
+
+        _mainGamePanel.PlayFocusedScoreReveal(sourceRect, score, isEnhanced, scoreMultiplier);
     }
 
     private void HandleScratchCardRewardClaimed(ScratchCardController scratchCard, ScratchSettlementResult settlementResult)
@@ -398,12 +471,19 @@ public class MainGameController : MonoBehaviour
         {
             scratchCard.OnFocusStateChanged -= HandleScratchCardFocusStateChanged;
             scratchCard.OnRewardClaimed -= HandleScratchCardRewardClaimed;
+            scratchCard.OnScoreDisplayChanged -= HandleScratchCardScoreDisplayChanged;
+            scratchCard.OnPatternScoreRevealed -= HandleScratchCardPatternScoreRevealed;
             _activeScratchCards.Remove(scratchCard);
         }
 
         if (_mainGamePanel != null)
         {
             _mainGamePanel.HideScratchCardFocusOverlay();
+        }
+
+        if (_focusedScoreCard == scratchCard)
+        {
+            _focusedScoreCard = null;
         }
 
         if (scratchCard != null && PoolManager.Instance != null)
