@@ -18,7 +18,7 @@
                                                                                3,
                                                                                4
                                                                            ],
-                                                             "value":  10
+                                                             "value":  "10"
                                                          }
                                                      ],
                                          "rarity":  "Common"
@@ -35,7 +35,7 @@
                                                                                3,
                                                                                4
                                                                            ],
-                                                             "value":  30
+                                                             "value":  "30"
                                                          }
                                                      ],
                                          "rarity":  "Common"
@@ -52,7 +52,7 @@
                                                                                3,
                                                                                4
                                                                            ],
-                                                             "value":  80
+                                                             "value":  "80"
                                                          }
                                                      ],
                                          "rarity":  "Rare"
@@ -69,7 +69,7 @@
                                                                                3,
                                                                                4
                                                                            ],
-                                                             "value":  150
+                                                             "value":  "150"
                                                          }
                                                      ],
                                          "rarity":  "Rare"
@@ -86,7 +86,7 @@
                                                                                3,
                                                                                4
                                                                            ],
-                                                             "value":  300
+                                                             "value":  "300"
                                                          }
                                                      ],
                                          "rarity":  "Epic"
@@ -108,7 +108,7 @@
                                                              "targetIds":  [
                                                                                4
                                                                            ],
-                                                             "value":  5
+                                                             "value":  "5"
                                                          }
                                                      ],
                                          "rarity":  "Common"
@@ -122,7 +122,7 @@
                                                              "targetIds":  [
                                                                                4
                                                                            ],
-                                                             "value":  10
+                                                             "value":  "10"
                                                          }
                                                      ],
                                          "rarity":  "Common"
@@ -136,7 +136,7 @@
                                                              "targetIds":  [
                                                                                4
                                                                            ],
-                                                             "value":  20
+                                                             "value":  "20"
                                                          }
                                                      ],
                                          "rarity":  "Rare"
@@ -150,7 +150,7 @@
                                                              "targetIds":  [
                                                                                4
                                                                            ],
-                                                             "value":  30
+                                                             "value":  "30"
                                                          }
                                                      ],
                                          "rarity":  "Rare"
@@ -164,7 +164,7 @@
                                                              "targetIds":  [
                                                                                4
                                                                            ],
-                                                             "value":  50
+                                                             "value":  "50"
                                                          }
                                                      ],
                                          "rarity":  "Epic"
@@ -189,7 +189,7 @@
                                                                                3,
                                                                                4
                                                                            ],
-                                                             "value":  0.1
+                                                             "value":  "0.1"
                                                          }
                                                      ],
                                          "rarity":  "Rare"
@@ -206,7 +206,7 @@
                                                                                3,
                                                                                4
                                                                            ],
-                                                             "value":  0.2
+                                                             "value":  "0.2"
                                                          }
                                                      ],
                                          "rarity":  "Rare"
@@ -223,7 +223,7 @@
                                                                                3,
                                                                                4
                                                                            ],
-                                                             "value":  0.3
+                                                             "value":  "0.3"
                                                          }
                                                      ],
                                          "rarity":  "Epic"
@@ -240,7 +240,7 @@
                                                                                3,
                                                                                4
                                                                            ],
-                                                             "value":  0.5
+                                                             "value":  "0.5"
                                                          }
                                                      ],
                                          "rarity":  "Epic"
@@ -257,10 +257,360 @@
                                                                                3,
                                                                                4
                                                                            ],
-                                                             "value":  1
+                                                             "value":  "1"
                                                          }
                                                      ],
                                          "rarity":  "Legendary"
+                                     }
+                                 ]
+                  },
+                  {
+                      "id":  5,
+                      "name":  "果农",
+                      "rarity":  "Rare",
+                      "description":  "每有一个水果图案计分，水果分数永久+5",
+                      "levels":  [
+                                     {
+                                         "level":  1,
+                                         "description":  "每有一个水果图案计分，水果分数永久+5",
+                                         "effects":  [
+                                                         {
+                                                             "effectType":  "IncreasePatternBaseScoreOnScore",
+                                                             "targetIds":  [
+                                                                               1,
+                                                                               2,
+                                                                               3,
+                                                                               4
+                                                                           ],
+                                                             "value":  "5"
+                                                         }
+                                                     ],
+                                         "rarity":  "Rare"
+                                     },
+                                     {
+                                         "level":  2,
+                                         "description":  "每有一个水果图案计分，水果分数永久+10",
+                                         "effects":  [
+                                                         {
+                                                             "effectType":  "IncreasePatternBaseScoreOnScore",
+                                                             "targetIds":  [
+                                                                               1,
+                                                                               2,
+                                                                               3,
+                                                                               4
+                                                                           ],
+                                                             "value":  "10"
+                                                         }
+                                                     ],
+                                         "rarity":  "Epic"
+                                     },
+                                     {
+                                         "level":  3,
+                                         "description":  "每有一个水果图案计分，水果分数永久+20",
+                                         "effects":  [
+                                                         {
+                                                             "effectType":  "IncreasePatternBaseScoreOnScore",
+                                                             "targetIds":  [
+                                                                               1,
+                                                                               2,
+                                                                               3,
+                                                                               4
+                                                                           ],
+                                                             "value":  "20"
+                                                         }
+                                                     ],
+                                         "rarity":  "Legendary"
+                                     }
+                                 ]
+                  },
+                  {
+                      "id":  6,
+                      "name":  "巨型水果",
+                      "rarity":  "Epic",
+                      "description":  "你刮出的水果图案5%变成巨型水果，计分时倍率×10",
+                      "levels":  [
+                                     {
+                                         "level":  1,
+                                         "description":  "你刮出的水果图案5%变成巨型水果，计分时倍率×10",
+                                         "effects":  [
+                                                         {
+                                                             "effectType":  "ConvertPatternToGiantOnGenerate",
+                                                             "targetIds":  [
+                                                                               1,
+                                                                               2,
+                                                                               3,
+                                                                               4
+                                                                           ],
+                                                             "value":  "5|10"
+                                                         }
+                                                     ],
+                                         "rarity":  "Epic"
+                                     },
+                                     {
+                                         "level":  2,
+                                         "description":  "你刮出的水果图案10%可能变成巨型水果，计分时倍率×15",
+                                         "effects":  [
+                                                         {
+                                                             "effectType":  "ConvertPatternToGiantOnGenerate",
+                                                             "targetIds":  [
+                                                                               1,
+                                                                               2,
+                                                                               3,
+                                                                               4
+                                                                           ],
+                                                             "value":  "10|15"
+                                                         }
+                                                     ],
+                                         "rarity":  "Legendary"
+                                     },
+                                     {
+                                         "level":  3,
+                                         "description":  "你刮出的水果图案15%可能变成巨型水果，计分时倍率×20",
+                                         "effects":  [
+                                                         {
+                                                             "effectType":  "ConvertPatternToGiantOnGenerate",
+                                                             "targetIds":  [
+                                                                               1,
+                                                                               2,
+                                                                               3,
+                                                                               4
+                                                                           ],
+                                                             "value":  "15|20"
+                                                         }
+                                                     ],
+                                         "rarity":  "Legendary"
+                                     }
+                                 ]
+                  },
+                  {
+                      "id":  4,
+                      "name":  "小丑牌",
+                      "rarity":  "Epic",
+                      "description":  "你的刮刮卡中可以出现小丑图案。\n好脸小丑：获得3000分数\n坏脸小丑：这张刮刮卡获得0金币",
+                      "levels":  [
+                                     {
+                                         "level":  1,
+                                         "description":  "你的刮刮卡中可以出现小丑图案。\n好脸小丑：获得3000分数\n坏脸小丑：这张刮刮卡获得0金币",
+                                         "effects":  [
+                                                         {
+                                                             "effectType":  "AddJokerPatternToPool",
+                                                             "targetIds":  [
+                                                                               14
+                                                                           ],
+                                                             "value":  "3%|30%|3000"
+                                                         }
+                                                     ],
+                                         "rarity":  "Epic"
+                                     },
+                                     {
+                                         "level":  2,
+                                         "description":  "你的刮刮卡中出现小丑图案提高。\n好脸小丑：+6000分数\n坏脸小丑：这张刮刮卡获得0金币",
+                                         "effects":  [
+                                                         {
+                                                             "effectType":  "AddJokerPatternToPool",
+                                                             "targetIds":  [
+                                                                               14
+                                                                           ],
+                                                             "value":  "5%|30%|6000"
+                                                         }
+                                                     ],
+                                         "rarity":  "Epic"
+                                     },
+                                     {
+                                         "level":  3,
+                                         "description":  "你的刮刮卡中出现小丑图案提高。\n好脸小丑：+12000分数\n坏脸小丑：这张刮刮卡获得0金币",
+                                         "effects":  [
+                                                         {
+                                                             "effectType":  "AddJokerPatternToPool",
+                                                             "targetIds":  [
+                                                                               14
+                                                                           ],
+                                                             "value":  "8%|30%|12000"
+                                                         }
+                                                     ],
+                                         "rarity":  "Epic"
+                                     },
+                                     {
+                                         "level":  4,
+                                         "description":  "你的刮刮卡中出现小丑图案提高。\n好脸小丑：+18000分数\n坏脸小丑：这张刮刮卡获得0金币",
+                                         "effects":  [
+                                                         {
+                                                             "effectType":  "AddJokerPatternToPool",
+                                                             "targetIds":  [
+                                                                               14
+                                                                           ],
+                                                             "value":  "10%|30%|18000"
+                                                         }
+                                                     ],
+                                         "rarity":  "Epic"
+                                     }
+                                 ]
+                  },
+                  {
+                      "id":  7,
+                      "name":  "风险倍率",
+                      "rarity":  "Legendary",
+                      "description":  "你的刮刮卡中可以出现倍率图案（×0，×1，×2，×3）。",
+                      "levels":  [
+                                     {
+                                         "level":  1,
+                                         "description":  "你的刮刮卡中可以出现倍率图案（×0，×1，×2，×3）。",
+                                         "effects":  [
+                                                         {
+                                                             "effectType":  "AddRiskMultiplierPatternToPool",
+                                                             "targetIds":  [
+                                                                               15
+                                                                           ],
+                                                             "value":  "5%|15%|50%|30%|5%"
+                                                         }
+                                                     ],
+                                         "rarity":  "Legendary"
+                                     }
+                                 ]
+                  },
+                  {
+                      "id":  8,
+                      "name":  "启动资金",
+                      "rarity":  "Common",
+                      "description":  "你的刮刮卡在结算时额外+100分数",
+                      "levels":  [
+                                     {
+                                         "level":  1,
+                                         "description":  "你的刮刮卡在结算时额外+100分数",
+                                         "effects":  [
+                                                         {
+                                                             "effectType":  "AddSettlementScoreBonus",
+                                                             "targetIds":  [
+                                                                           ],
+                                                             "value":  100
+                                                         }
+                                                     ],
+                                         "rarity":  "Common"
+                                     },
+                                     {
+                                         "level":  2,
+                                         "description":  "你的刮刮卡在结算时额外+300分数",
+                                         "effects":  [
+                                                         {
+                                                             "effectType":  "AddSettlementScoreBonus",
+                                                             "targetIds":  [
+                                                                           ],
+                                                             "value":  300
+                                                         }
+                                                     ],
+                                         "rarity":  "Common"
+                                     },
+                                     {
+                                         "level":  3,
+                                         "description":  "你的刮刮卡在结算时额外+800分数",
+                                         "effects":  [
+                                                         {
+                                                             "effectType":  "AddSettlementScoreBonus",
+                                                             "targetIds":  [
+                                                                           ],
+                                                             "value":  800
+                                                         }
+                                                     ],
+                                         "rarity":  "Rare"
+                                     },
+                                     {
+                                         "level":  4,
+                                         "description":  "你的刮刮卡在结算时额外+1500分数",
+                                         "effects":  [
+                                                         {
+                                                             "effectType":  "AddSettlementScoreBonus",
+                                                             "targetIds":  [
+                                                                           ],
+                                                             "value":  1500
+                                                         }
+                                                     ],
+                                         "rarity":  "Rare"
+                                     },
+                                     {
+                                         "level":  5,
+                                         "description":  "你的刮刮卡在结算时额外+3000分数",
+                                         "effects":  [
+                                                         {
+                                                             "effectType":  "AddSettlementScoreBonus",
+                                                             "targetIds":  [
+                                                                           ],
+                                                             "value":  3000
+                                                         }
+                                                     ],
+                                         "rarity":  "Epic"
+                                     }
+                                 ]
+                  },
+                  {
+                      "id":  9,
+                      "name":  "加速器",
+                      "rarity":  "Common",
+                      "description":  "你的刮刮卡在结算时额外+0.2倍率",
+                      "levels":  [
+                                     {
+                                         "level":  1,
+                                         "description":  "你的刮刮卡在结算时额外+0.2倍率",
+                                         "effects":  [
+                                                         {
+                                                             "effectType":  "AddSettlementMultiplierBonus",
+                                                             "targetIds":  [
+                                                                           ],
+                                                             "value":  0.2
+                                                         }
+                                                     ],
+                                         "rarity":  "Common"
+                                     },
+                                     {
+                                         "level":  2,
+                                         "description":  "你的刮刮卡在结算时额外+0.4倍率",
+                                         "effects":  [
+                                                         {
+                                                             "effectType":  "AddSettlementMultiplierBonus",
+                                                             "targetIds":  [
+                                                                           ],
+                                                             "value":  0.4
+                                                         }
+                                                     ],
+                                         "rarity":  "Common"
+                                     },
+                                     {
+                                         "level":  3,
+                                         "description":  "你的刮刮卡在结算时额外+0.6倍率",
+                                         "effects":  [
+                                                         {
+                                                             "effectType":  "AddSettlementMultiplierBonus",
+                                                             "targetIds":  [
+                                                                           ],
+                                                             "value":  0.6
+                                                         }
+                                                     ],
+                                         "rarity":  "Rare"
+                                     },
+                                     {
+                                         "level":  4,
+                                         "description":  "你的刮刮卡在结算时额外+0.8倍率",
+                                         "effects":  [
+                                                         {
+                                                             "effectType":  "AddSettlementMultiplierBonus",
+                                                             "targetIds":  [
+                                                                           ],
+                                                             "value":  0.8
+                                                         }
+                                                     ],
+                                         "rarity":  "Rare"
+                                     },
+                                     {
+                                         "level":  5,
+                                         "description":  "你的刮刮卡在结算时额外+1倍率",
+                                         "effects":  [
+                                                         {
+                                                             "effectType":  "AddSettlementMultiplierBonus",
+                                                             "targetIds":  [
+                                                                           ],
+                                                             "value":  1
+                                                         }
+                                                     ],
+                                         "rarity":  "Epic"
                                      }
                                  ]
                   }

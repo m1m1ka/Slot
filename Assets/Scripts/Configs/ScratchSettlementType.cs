@@ -9,6 +9,11 @@ namespace Configs
         MatchAnyThree = 1,
         RowSumBonus = 2,
         MatchAnyPair = 3,
-        FirstRevealedPattern = 4
+        FirstRevealedPattern = 4,
+        HighestScorePattern = 5,
+        LastRevealedPattern = 6,
+        HorizontalTripleMatch = 7,
+        HorizontalFiveMatch = 8,
+        VerticalTripleMatch = 9
     }
 }

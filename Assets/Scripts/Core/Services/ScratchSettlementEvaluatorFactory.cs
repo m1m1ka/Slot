@@ -15,6 +15,11 @@ namespace Core
                 ScratchSettlementType.MatchAnyPair => new MatchAnyPairSettlementEvaluator(),
                 ScratchSettlementType.MatchAnyThree => new MatchAnyThreeSettlementEvaluator(),
                 ScratchSettlementType.RowSumBonus => new RowSumBonusSettlementEvaluator(),
+                ScratchSettlementType.HighestScorePattern => new HighestScorePatternSettlementEvaluator(),
+                ScratchSettlementType.LastRevealedPattern => new LastRevealedPatternSettlementEvaluator(),
+                ScratchSettlementType.HorizontalTripleMatch => new HorizontalTripleMatchSettlementEvaluator(),
+                ScratchSettlementType.HorizontalFiveMatch => new HorizontalFiveMatchSettlementEvaluator(),
+                ScratchSettlementType.VerticalTripleMatch => new VerticalTripleMatchSettlementEvaluator(),
                 _ => new SumScoreSettlementEvaluator()
             };
         }

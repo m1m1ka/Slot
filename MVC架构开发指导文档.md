@@ -525,7 +525,7 @@ AppRoot
 5. Controller 只负责流程协调：通关后生成候选、接收选择、写入库存、调用效果服务
 6. 具体效果必须通过 `IRogueCardEffect` 新增独立处理器，不允许在 `MainGameController`、`ScratchCardController` 或结算器里堆 `if cardId == ...`
 7. 如果效果影响图案基础分，优先在后续的图案分数计算服务或生成/结算上下文中读取效果结果，不要直接改静态配置对象
-8. 如果效果影响刮刮卡倍率，优先接入 `ScratchRewardSettlementService` 或结算后处理管线，不要把倍率逻辑塞回单张卡 Controller
+8. 如果效果影响倍率，必须先区分“计分时倍率”和“总倍率”：计分时倍率只影响某一次图案计分，总倍率影响整张刮刮卡最终奖励；不要把两类倍率混用，也不要把倍率逻辑塞回单张卡 Controller
 9. 后续 UI 美术化时，可以替换为 `Resources/UI/` 下的肉鸽卡预制体，但仍必须保持 View 只表现、Controller 只协调、Model 只存状态
 
 ### 8.12 调试与埋点系统
@@ -913,9 +913,12 @@ Assets/Scripts/
    作用：
    - 承载最终结算结果
    - 包括：
+     - `ScoreBeforeRewardMultiplier`：所有刮具规则结算出的分数汇总，尚未应用总倍率
      - `FinalScore`
      - `Summary`
      - `WinningPatternIds`
+     - `ScoredCellIndices`
+     - `ScoredCellScoreMultipliers`：每个计分格子对应的计分时倍率，只描述该次图案计分，不代表整张刮刮卡总倍率
 
 约束：
 
@@ -1014,6 +1017,38 @@ Assets/Scripts/
 6. 同一结算规则内部必须记录已消耗的计分对象，不能让同一格子重复参与同一规则。例如“配对刮具”中有 3 个相同图案时只能组成 1 对；有 4 个相同图案时可以组成 2 对，但第一对的两个格子不能再次参与第二对。
 7. 每新增一种刮具，应优先新增一个 `IScratchSettlementEvaluator` 实现，再在 `ScratchSettlementEvaluatorFactory` 注册，不应修改 `ScratchCardController` 主流程。
 
+#### 13.5.1 倍率术语必须明确区分
+
+当前游戏内存在两类不同倍率，文档、配表、UI 文案和代码命名必须明确区分：
+
+1. **计分时倍率**（Score Multiplier）
+   - 只作用于某一次“图案计分事件”。
+   - 它不改变整张刮刮卡的最终总倍率，也不影响其他图案的计分。
+   - 典型例子：配对刮具中“一对相同图案计分，成对图案分数 x2”。这里的 `x2` 只属于该配对规则产生的这一次计分。
+   - 数据落点应在 `ScratchSettlementResult.ScoredCellScoreMultipliers` 或具体 `IScratchSettlementEvaluator` 的局部计算中表达。
+
+2. **总倍率**（Reward Multiplier）
+   - 作用于整张刮刮卡最终入账奖励。
+   - 所有已经被刮具结算进 `ScoreBeforeRewardMultiplier` 的图案分数，都会统一受到总倍率影响。
+   - 典型例子：倍率图案被刮开后，使当前刮刮卡总倍率 `+0.5`；最终奖励由 `ScratchPatternScoreService.ApplyFinalScoreRules(...)` 统一应用。
+   - 数据落点应在 `ScratchCardModel.RewardMultiplier` 或全局/本卡运行时 modifier 中表达，不应写进单个图案的计分时倍率。
+
+结算顺序应保持为：
+
+```text
+单个图案基础分
+-> 当前刮具规则产生的计分时倍率
+-> 汇总为 ScoreBeforeRewardMultiplier
+-> 当前刮刮卡总倍率 RewardMultiplier
+-> FinalScore
+```
+
+禁止事项：
+
+1. 不要把配对刮具的 `x2` 写成总倍率。
+2. 不要把倍率图案提供的总倍率写成某个格子的计分时倍率。
+3. UI 文案中只写“倍率”时必须补充上下文；优先使用“计分倍率”或“总倍率”。
+
 ### 13.6 后续扩展时的推荐改造方向
 
 如果刮刮卡玩法继续变复杂，建议按下面顺序演进：
@@ -1025,7 +1060,7 @@ Assets/Scripts/
 
 ### 13.7 动态图案与特殊图案效果
 
-后续部分肉鸽卡会在刮刮卡生成时动态加入额外图案，例如倍率图案、好脸图案、坏脸图案。该能力必须遵守下面的分层规则：
+后续部分肉鸽卡会在刮刮卡生成时动态加入额外图案，例如总倍率图案、好脸图案、坏脸图案。该能力必须遵守下面的分层规则：
 
 1. 肉鸽卡只通过 `IRogueCardEffect` 写入 `RogueCardRunModifierModel`，不直接修改静态 `ScratchPatternConfig` 或 `ScratchPatternPoolConfig`
 2. 动态加入图案使用 `RogueCardEffectType.AddScratchPatternToPool`
@@ -1040,8 +1075,8 @@ Assets/Scripts/
 当前支持的特殊图案效果：
 
 1. `None`：普通图案，按基础分计分
-2. `AddRewardMultiplierOnRevealed`：当该图案被刮开时，为当前刮刮卡追加倍率，追加值读取 `EffectValue`
-3. `ScoreHighestPatternBaseScoreMultiplier`：当该图案计分时，获得本张刮刮卡最高基础分图案的分数乘以 `EffectValue`，好脸图案默认可配为 `2`
+2. `AddRewardMultiplierOnRevealed`：当该图案被刮开时，为当前刮刮卡追加**总倍率**，追加值读取 `EffectValue`
+3. `ScoreHighestPatternBaseScoreMultiplier`：当该图案计分时，获得本张刮刮卡最高基础分图案的分数乘以 `EffectValue`；这里属于单次图案计分的特殊计算，不是总倍率。好脸图案默认可配为 `2`
 4. `ForceFinalRewardZero`：只要该图案出现在本张可刮区域，最终入账金币强制为 `0`
 
 示例配置：

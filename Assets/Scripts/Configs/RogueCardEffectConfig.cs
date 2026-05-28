@@ -8,5 +8,6 @@ namespace Configs
         public List<int> TargetIds { get; set; } = new List<int>();
         public List<int> CardTypeIds { get; set; } = new List<int>();
         public double Value { get; set; }
+        public string ValueExpression { get; set; }
     }
 }

@@ -21,12 +21,18 @@ public class ScratchCardModel
     public int SourceSlotId { get; }
     public int CardTypeId { get; }
     public string CardTypeName { get; }
+    public string WinDescription { get; }
     public int GridWidth { get; }
     public int GridHeight { get; }
     public int AreaTemplateId { get; }
     public IReadOnlyList<ScratchCellModel> Cells { get; }
     public IReadOnlyList<ScratchToolConfig> ScratchTools { get; }
+    public IReadOnlyList<ScratchCardWinRuleConfig> WinRules { get; }
     public int TotalBaseScore { get; }
+    public int SettlementScoreBonus { get; }
+    public IReadOnlyList<int> SettlementScoreBonusSourceCardIds { get; }
+    public double SettlementMultiplierBonus { get; }
+    public IReadOnlyList<int> SettlementMultiplierBonusSourceCardIds { get; }
     private double _rewardMultiplier = 1d;
 
     public double RewardMultiplier => _rewardMultiplier;
@@ -45,18 +51,34 @@ public class ScratchCardModel
         ScratchAreaTemplateConfig areaTemplateConfig,
         IReadOnlyList<ScratchCellModel> cells,
         IReadOnlyList<ScratchToolConfig> scratchTools,
-        double rewardMultiplier = 1d)
+        double rewardMultiplier = 1d,
+        int settlementScoreBonus = 0,
+        IReadOnlyList<int> settlementScoreBonusSourceCardIds = null,
+        double settlementMultiplierBonus = 0d,
+        IReadOnlyList<int> settlementMultiplierBonusSourceCardIds = null)
     {
         CardId = cardId;
         SourceSlotId = sourceSlotId;
         CardTypeId = cardTypeConfig != null ? cardTypeConfig.Id : 0;
         CardTypeName = cardTypeConfig != null ? cardTypeConfig.Name : "未知刮刮卡";
+        WinDescription = cardTypeConfig != null ? cardTypeConfig.WinDescription : string.Empty;
         GridWidth = areaTemplateConfig != null ? areaTemplateConfig.Width : 0;
         GridHeight = areaTemplateConfig != null ? areaTemplateConfig.Height : 0;
         AreaTemplateId = areaTemplateConfig != null ? areaTemplateConfig.Id : 0;
         Cells = cells ?? Array.Empty<ScratchCellModel>();
         ScratchTools = scratchTools ?? Array.Empty<ScratchToolConfig>();
+        WinRules = cardTypeConfig != null && cardTypeConfig.WinRules != null
+            ? (IReadOnlyList<ScratchCardWinRuleConfig>)new List<ScratchCardWinRuleConfig>(cardTypeConfig.WinRules)
+            : Array.Empty<ScratchCardWinRuleConfig>();
         TotalBaseScore = CalculateTotalBaseScore(Cells);
+        SettlementScoreBonus = settlementScoreBonus;
+        SettlementScoreBonusSourceCardIds = settlementScoreBonusSourceCardIds != null
+            ? (IReadOnlyList<int>)new List<int>(settlementScoreBonusSourceCardIds)
+            : Array.Empty<int>();
+        SettlementMultiplierBonus = settlementMultiplierBonus > 0d ? settlementMultiplierBonus : 0d;
+        SettlementMultiplierBonusSourceCardIds = settlementMultiplierBonusSourceCardIds != null
+            ? (IReadOnlyList<int>)new List<int>(settlementMultiplierBonusSourceCardIds)
+            : Array.Empty<int>();
         _rewardMultiplier = NormalizeRewardMultiplier(rewardMultiplier);
         ScratchProgress = 0f;
         State = ScratchCardState.Falling;
@@ -82,6 +104,16 @@ public class ScratchCardModel
         }
 
         SetRewardMultiplier(_rewardMultiplier + bonus);
+    }
+
+    public void MultiplyRewardMultiplier(double multiplier)
+    {
+        if (multiplier < 0d)
+        {
+            multiplier = 0d;
+        }
+
+        SetRewardMultiplier(_rewardMultiplier * multiplier);
     }
 
     public void SetState(ScratchCardState newState)
@@ -156,6 +188,6 @@ public class ScratchCardModel
 
     private static double NormalizeRewardMultiplier(double rewardMultiplier)
     {
-        return rewardMultiplier > 0d ? rewardMultiplier : 1d;
+        return rewardMultiplier >= 0d ? rewardMultiplier : 1d;
     }
 }

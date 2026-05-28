@@ -305,7 +305,8 @@ namespace Core
                     EffectType = effectType,
                     TargetIds = effectData.targetIds ?? new List<int>(),
                     CardTypeIds = effectData.cardTypeIds ?? new List<int>(),
-                    Value = effectData.value
+                    Value = ParseEffectValue(effectData.value),
+                    ValueExpression = effectData.value
                 });
             }
 
@@ -327,6 +328,17 @@ namespace Core
             }
 
             return Enum.TryParse(rawValue, true, out effectType);
+        }
+
+        private static double ParseEffectValue(string rawValue)
+        {
+            if (string.IsNullOrWhiteSpace(rawValue))
+            {
+                return 0d;
+            }
+
+            string[] parts = rawValue.Split('|', '/', ',', '，', ';', '；');
+            return double.TryParse(parts[0], out double value) ? value : 0d;
         }
 
         private static bool TryParseRarity(string rawValue, out RogueCardRarity rarity)
@@ -399,7 +411,7 @@ namespace Core
             public string effectType;
             public List<int> targetIds;
             public List<int> cardTypeIds;
-            public float value;
+            public string value;
         }
     }
 }

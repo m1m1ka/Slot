@@ -5,6 +5,9 @@ namespace Configs
         None = 0,
         AddRewardMultiplierOnRevealed = 1,
         ScoreHighestPatternBaseScoreMultiplier = 2,
-        ForceFinalRewardZero = 3
+        ForceFinalRewardZero = 3,
+        FixedScore = 4,
+        MultiplyRewardMultiplierOnSettlement = 5,
+        MultiplyRewardMultiplierOnReveal = MultiplyRewardMultiplierOnSettlement
     }
 }

@@ -18,7 +18,13 @@ namespace Core
             for (int i = 0; i < model.Cells.Count; i++)
             {
                 ScratchCellModel cell = model.Cells[i];
-                if (cell == null || !cell.IsScratchable || !cell.IsScratched || cell.Row < 0 || cell.Row >= scratchedRows.Length)
+                if (cell == null ||
+                    !cell.IsScratchable ||
+                    !cell.IsScratched ||
+                    ScratchPatternScoreService.ScoresDirectly(model, cell) ||
+                    ScratchPatternScoreService.ExcludeFromScratchToolScoring(model, cell) ||
+                    cell.Row < 0 ||
+                    cell.Row >= scratchedRows.Length)
                 {
                     continue;
                 }

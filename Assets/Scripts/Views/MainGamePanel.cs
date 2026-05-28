@@ -13,8 +13,6 @@ using UnityEngine.UI;
 /// </summary>
 public class MainGamePanel : UIPanel
 {
-    private const string FloatingTextPrefabPath = "UI/FloatingText";
-
     [Header("UI References")]
     [SerializeField] private TextMeshProUGUI _coinText;
     [SerializeField] private TextMeshProUGUI _levelText;
@@ -39,27 +37,17 @@ public class MainGamePanel : UIPanel
     [SerializeField] private float _focusOverlayFadeDuration = 0.18f;
     [SerializeField] private float _levelGoalSliderTweenDuration = 0.2f;
 
-    [Header("Focused Score")]
-    [SerializeField] private RectTransform _scorePanelRoot;
-    [SerializeField] private TextMeshProUGUI _scoreText;
-    [SerializeField] private TextMeshProUGUI _scoreMultiplierText;
-    [SerializeField] private float _scorePulseScale = 1.12f;
-    [SerializeField] private float _scorePulseDuration = 0.16f;
-    [SerializeField] private float _scoreChangePulseScale = 1.28f;
-    [SerializeField] private float _scoreChangePulseDuration = 0.36f;
-    [SerializeField] private float _scoreFloatDistance = 52f;
-    [SerializeField] private float _scoreFloatDuration = 0.75f;
-    [SerializeField] private Vector2 _scoreChangeFloatStartOffset = Vector2.zero;
-    [SerializeField] private float _scoreChangeFloatIntroDuration = 0.18f;
-    [SerializeField] private float _scoreChangeFloatHoldDuration = 0.28f;
-    [SerializeField] private float _scoreChangeFloatMoveDuration = 0.28f;
-    [SerializeField] private int _scoreFloatFontSize = 28;
-    [SerializeField] private Color _scoreFloatTextColor = new Color(0.96f, 0.96f, 0.92f, 1f);
-    [SerializeField] private Color _enhancedScoreFloatTextColor = new Color(0.35f, 0.65f, 1f, 1f);
-
     [Header("Rogue Cards")]
     [SerializeField] private RectTransform _rogueOwnedCardsRoot;
     [SerializeField] private RectTransform _rogueChoiceOverlayRoot;
+
+    [Header("Win Panel")]
+    [SerializeField] private RectTransform _winPanelRoot;
+    [SerializeField] private Button _rogueCardRewardButton;
+    [SerializeField] private Button _scratchToolRewardButton;
+    [SerializeField] private Button _continueButton;
+    [SerializeField] private float _scratchToolRewardChoiceScale = 3.5f;
+    [SerializeField] private float _scratchToolRewardChoiceSpacing = 300f;
 
     // 瀵瑰鏆撮湶鍒楄〃鐨勭埗鑺傜偣渚?Controller 鎸傝浇瀛愮墿浣撳紩鐢?
     public Transform SlotListRoot => _slotListRoot;
@@ -79,24 +67,26 @@ public class MainGamePanel : UIPanel
     private Image _focusOverlayImage;
     private Tween _focusOverlayTween;
     private Tween _levelGoalSliderTween;
-    private Tween _scoreTextPulseTween;
-    private Tween _scoreMultiplierPulseTween;
-    private bool _hasFocusedScoreSnapshot;
-    private int _lastFocusedScore;
-    private double _lastFocusedRewardMultiplier;
     [SerializeField] private ScratchCardFocusPanelView _configuredFocusPanelView;
     private ScratchCardFocusPanelView _focusPanelView;
     private GameObject _rogueChoiceOverlayObject;
     private Transform _rogueChoiceContentRoot;
     private readonly List<GameObject> _rogueChoiceObjects = new List<GameObject>();
+    private GameObject _scratchToolChoiceOverlayObject;
+    private Transform _scratchToolChoiceContentRoot;
+    private readonly List<GameObject> _scratchToolChoiceObjects = new List<GameObject>();
     private readonly List<GameObject> _ownedRogueCardObjects = new List<GameObject>();
 
     public event Action<int> OnRogueRewardCardSelected;
+    public event Action OnRogueRewardRequested;
+    public event Action<int> OnScratchToolRewardSelected;
+    public event Action OnScratchToolRewardRequested;
+    public event Action OnWinContinueRequested;
 
     private void Awake()
     {
-        EnsureScorePanel();
-        SetScorePanelVisible(false);
+        EnsureWinPanel();
+        HideWinPanel();
     }
 
     // 濡傛灉闈㈡澘涓婃湁閫氱敤鐨勭偣鍑绘寜閽紝鍙互閫氳繃浜嬩欢鍚慍ontroller鎶涘嚭
@@ -141,7 +131,7 @@ public class MainGamePanel : UIPanel
         if (_purchaseLimitText != null)
         {
             AssetProvider.ApplyDefaultTmpFont(_purchaseLimitText);
-            _purchaseLimitText.text = $"{levelModel.RemainingScratchCardPurchases:N0} / {levelModel.ScratchCardPurchaseLimit:N0}";
+            _purchaseLimitText.text = "无限";
         }
 
         if (_levelStateText != null)
@@ -190,6 +180,7 @@ public class MainGamePanel : UIPanel
         }
 
         _rogueChoiceOverlayObject.SetActive(true);
+        _rogueChoiceOverlayObject.transform.SetAsLastSibling();
         int count = choices != null ? choices.Count : 0;
         for (int i = 0; i < count; i++)
         {
@@ -211,6 +202,82 @@ public class MainGamePanel : UIPanel
         {
             _rogueChoiceOverlayObject.SetActive(false);
         }
+    }
+
+    public void ShowScratchToolChoices(IReadOnlyList<ScratchToolConfig> choices)
+    {
+        EnsureScratchToolChoiceOverlay();
+        ClearScratchToolChoiceObjects();
+
+        if (_scratchToolChoiceOverlayObject == null || _scratchToolChoiceContentRoot == null)
+        {
+            return;
+        }
+
+        _scratchToolChoiceOverlayObject.SetActive(true);
+        _scratchToolChoiceOverlayObject.transform.SetAsLastSibling();
+        int count = choices != null ? choices.Count : 0;
+        for (int i = 0; i < count; i++)
+        {
+            ScratchToolConfig toolConfig = choices[i];
+            if (toolConfig == null)
+            {
+                continue;
+            }
+
+            GameObject toolObject = CreateScratchToolChoice(toolConfig, _scratchToolChoiceContentRoot);
+            _scratchToolChoiceObjects.Add(toolObject);
+        }
+    }
+
+    public void HideScratchToolChoices()
+    {
+        if (_scratchToolChoiceOverlayObject != null)
+        {
+            _scratchToolChoiceOverlayObject.SetActive(false);
+        }
+    }
+
+    public void ShowWinPanel(bool canRequestRogueReward, bool canContinue, bool canRequestScratchToolReward = false)
+    {
+        EnsureWinPanel();
+        if (_winPanelRoot == null)
+        {
+            return;
+        }
+
+        _winPanelRoot.gameObject.SetActive(true);
+        _winPanelRoot.SetAsLastSibling();
+        SetWinPanelButtonState(_rogueCardRewardButton, canRequestRogueReward, canRequestRogueReward);
+        SetWinPanelButtonState(_scratchToolRewardButton, canRequestScratchToolReward, canRequestScratchToolReward);
+        SetWinPanelButtonState(_continueButton, canContinue, canContinue);
+    }
+
+    public void HideWinPanel()
+    {
+        EnsureWinPanel();
+        if (_winPanelRoot != null)
+        {
+            _winPanelRoot.gameObject.SetActive(false);
+        }
+    }
+
+    public void SetWinPanelRewardButtonVisible(bool visible, bool interactable = true)
+    {
+        EnsureWinPanel();
+        SetWinPanelButtonState(_rogueCardRewardButton, visible, interactable);
+    }
+
+    public void SetWinPanelScratchToolRewardButtonVisible(bool visible, bool interactable = true)
+    {
+        EnsureWinPanel();
+        SetWinPanelButtonState(_scratchToolRewardButton, visible, interactable);
+    }
+
+    public void SetWinPanelContinueButtonVisible(bool visible, bool interactable = true)
+    {
+        EnsureWinPanel();
+        SetWinPanelButtonState(_continueButton, visible, interactable);
     }
 
     public void RefreshOwnedRogueCards(IReadOnlyList<RogueCardInventoryEntryModel> ownedCards)
@@ -281,226 +348,23 @@ public class MainGamePanel : UIPanel
             {
                 _focusOverlayCanvasGroup.gameObject.SetActive(false);
                 _focusOverlayTween = null;
-            });
+        });
 
         HideScratchCardFocusPanel();
-        SetScorePanelVisible(false);
     }
 
-    public void UpdateFocusedScore(int reward, double rewardMultiplier, bool visible)
+    public void PlayOwnedRogueCardEffect(int cardId)
     {
-        EnsureScorePanel();
-        if (!visible)
+        for (int i = 0; i < _ownedRogueCardObjects.Count; i++)
         {
-            SetScorePanelVisible(false);
-            _hasFocusedScoreSnapshot = false;
-            return;
+            GameObject cardObject = _ownedRogueCardObjects[i];
+            RogueCardHoverView cardView = cardObject != null ? cardObject.GetComponent<RogueCardHoverView>() : null;
+            if (cardView != null && cardView.CardId == cardId)
+            {
+                cardView.PlayEffectTriggeredAnimation();
+                return;
+            }
         }
-
-        SetScorePanelVisible(true);
-
-        if (_hasFocusedScoreSnapshot)
-        {
-            PlayFocusedScoreChangeFloats(reward, rewardMultiplier);
-        }
-
-        if (_scoreText != null)
-        {
-            AssetProvider.ApplyDefaultTmpFont(_scoreText);
-            _scoreText.text = reward.ToString();
-        }
-
-        if (_scoreMultiplierText != null)
-        {
-            AssetProvider.ApplyDefaultTmpFont(_scoreMultiplierText);
-            _scoreMultiplierText.text = FormatRewardMultiplier(rewardMultiplier);
-        }
-
-        _lastFocusedScore = reward;
-        _lastFocusedRewardMultiplier = rewardMultiplier;
-        _hasFocusedScoreSnapshot = true;
-    }
-
-    public void PlayFocusedScoreReveal(RectTransform sourceRect, int score, bool isEnhanced, double scoreMultiplier)
-    {
-        EnsureScorePanel();
-        RectTransform parentRect = _scorePanelRoot != null
-            ? _scorePanelRoot
-            : transform as RectTransform;
-        if (parentRect == null)
-        {
-            return;
-        }
-
-        PlayScorePanelPulse();
-
-        Vector3 startPosition = sourceRect != null ? sourceRect.position : parentRect.position;
-        int displayScore = ScratchSettlementResult.ApplyMultiplier(score, scoreMultiplier);
-        PlayFloatingText(parentRect, startPosition, displayScore.ToString(), isEnhanced ? _enhancedScoreFloatTextColor : _scoreFloatTextColor);
-    }
-
-    private void PlayFocusedScoreChangeFloats(int reward, double rewardMultiplier)
-    {
-        int scoreDelta = reward - _lastFocusedScore;
-        if (scoreDelta != 0 && _scoreText != null)
-        {
-            _scoreTextPulseTween = PlayScoreTextPulse(
-                _scoreText.rectTransform,
-                _scoreTextPulseTween,
-                _scoreChangePulseScale,
-                _scoreChangePulseDuration);
-            PlayScoreChangeFloatingText(
-                _scoreText.rectTransform,
-                FormatSignedInt(scoreDelta),
-                _scoreFloatTextColor);
-        }
-
-        double multiplierDelta = rewardMultiplier - _lastFocusedRewardMultiplier;
-        if (Math.Abs(multiplierDelta) > 0.0001d && _scoreMultiplierText != null)
-        {
-            _scoreMultiplierPulseTween = PlayScoreTextPulse(
-                _scoreMultiplierText.rectTransform,
-                _scoreMultiplierPulseTween,
-                _scoreChangePulseScale,
-                _scoreChangePulseDuration);
-            PlayScoreChangeFloatingText(
-                _scoreMultiplierText.rectTransform,
-                FormatSignedDouble(multiplierDelta),
-                _scoreFloatTextColor);
-        }
-    }
-
-    private void PlayScoreChangeFloatingText(RectTransform sourceRect, string value, Color color)
-    {
-        if (sourceRect == null)
-        {
-            PlayFloatingText(
-                _scorePanelRoot,
-                _scorePanelRoot != null ? _scorePanelRoot.position : transform.position,
-                value,
-                color,
-                _scoreChangeFloatHoldDuration,
-                _scoreChangeFloatMoveDuration);
-            return;
-        }
-
-        PlayFloatingText(
-            _scorePanelRoot,
-            sourceRect.position,
-            value,
-            color,
-            _scoreChangeFloatHoldDuration,
-            _scoreChangeFloatMoveDuration,
-            GetScoreChangeFloatOffsetPosition(sourceRect),
-            _scoreChangeFloatIntroDuration);
-    }
-
-    private Vector3 GetScoreChangeFloatOffsetPosition(RectTransform sourceRect)
-    {
-        if (sourceRect == null)
-        {
-            return _scorePanelRoot != null ? _scorePanelRoot.position : transform.position;
-        }
-
-        return sourceRect.TransformPoint(_scoreChangeFloatStartOffset);
-    }
-
-    private void PlayFloatingText(
-        RectTransform parentRect,
-        Vector3 startPosition,
-        string value,
-        Color color,
-        float holdDuration = 0f,
-        float moveDuration = -1f,
-        Vector3? introEndPosition = null,
-        float introDuration = 0f)
-    {
-        if (parentRect == null)
-        {
-            return;
-        }
-
-        GameObject textObject = AssetProvider.InstantiatePrefab(FloatingTextPrefabPath, parentRect);
-        if (textObject == null)
-        {
-            return;
-        }
-
-        textObject.transform.SetAsLastSibling();
-
-        RectTransform textRect = textObject.transform as RectTransform;
-        if (textRect == null)
-        {
-            Destroy(textObject);
-            return;
-        }
-
-        textRect.anchorMin = new Vector2(0.5f, 0.5f);
-        textRect.anchorMax = new Vector2(0.5f, 0.5f);
-        textRect.pivot = new Vector2(0.5f, 0.5f);
-        textRect.position = startPosition;
-
-        CanvasGroup canvasGroup = textObject.GetComponent<CanvasGroup>();
-        if (canvasGroup == null)
-        {
-            canvasGroup = textObject.AddComponent<CanvasGroup>();
-        }
-
-        canvasGroup.alpha = 1f;
-
-        TextMeshProUGUI text = textObject.GetComponent<TextMeshProUGUI>();
-        if (text == null)
-        {
-            text = textObject.GetComponentInChildren<TextMeshProUGUI>(true);
-        }
-
-        if (text == null)
-        {
-            Destroy(textObject);
-            return;
-        }
-
-        AssetProvider.ApplyDefaultTmpFont(text);
-        text.text = value;
-        text.fontStyle = FontStyles.Bold;
-        text.alignment = TextAlignmentOptions.Center;
-        text.color = color;
-        text.raycastTarget = false;
-
-        Vector3 originalScale = textRect.localScale;
-        float resolvedIntroDuration = Mathf.Max(0f, introDuration);
-        float resolvedHoldDuration = Mathf.Max(0f, holdDuration);
-        float resolvedMoveDuration = moveDuration > 0f ? moveDuration : _scoreFloatDuration;
-        Vector2 floatStartAnchoredPosition = textRect.anchoredPosition;
-        if (introEndPosition.HasValue)
-        {
-            Vector3 localIntroEndPosition = parentRect.InverseTransformPoint(introEndPosition.Value);
-            floatStartAnchoredPosition = new Vector2(localIntroEndPosition.x, localIntroEndPosition.y);
-        }
-
-        Sequence floatSequence = DOTween.Sequence().SetUpdate(true);
-        if (introEndPosition.HasValue && resolvedIntroDuration > 0f)
-        {
-            textRect.localScale = Vector3.zero;
-            floatSequence
-                .Append(textRect.DOMove(introEndPosition.Value, resolvedIntroDuration).SetEase(Ease.OutCubic))
-                .Join(textRect.DOScale(originalScale, resolvedIntroDuration).SetEase(Ease.OutBack));
-        }
-        else if (introEndPosition.HasValue)
-        {
-            textRect.position = introEndPosition.Value;
-        }
-
-        if (resolvedHoldDuration > 0f)
-        {
-            floatSequence.AppendInterval(resolvedHoldDuration);
-        }
-
-        Vector2 endPosition = floatStartAnchoredPosition + Vector2.up * _scoreFloatDistance;
-        floatSequence
-            .Append(textRect.DOAnchorPos(endPosition, resolvedMoveDuration).SetEase(Ease.InCubic))
-            .Join(canvasGroup.DOFade(0f, resolvedMoveDuration).SetEase(Ease.InCubic))
-            .OnComplete(() => Destroy(textObject));
     }
 
     public void ShowScratchCardFocusPanel(ScratchCardFocusPanelModel model)
@@ -739,6 +603,298 @@ public class MainGamePanel : UIPanel
         layout.childForceExpandHeight = false;
     }
 
+    private void EnsureScratchToolChoiceOverlay()
+    {
+        if (_scratchToolChoiceOverlayObject != null)
+        {
+            return;
+        }
+
+        RectTransform parent = _rogueChoiceOverlayRoot != null ? _rogueChoiceOverlayRoot : transform as RectTransform;
+        if (parent == null)
+        {
+            return;
+        }
+
+        _scratchToolChoiceOverlayObject = new GameObject("ScratchToolChoiceOverlay", typeof(RectTransform), typeof(CanvasGroup), typeof(Image));
+        _scratchToolChoiceOverlayObject.transform.SetParent(parent, false);
+
+        RectTransform overlayRect = _scratchToolChoiceOverlayObject.GetComponent<RectTransform>();
+        overlayRect.anchorMin = Vector2.zero;
+        overlayRect.anchorMax = Vector2.one;
+        overlayRect.offsetMin = Vector2.zero;
+        overlayRect.offsetMax = Vector2.zero;
+        overlayRect.SetAsLastSibling();
+
+        Image overlayImage = _scratchToolChoiceOverlayObject.GetComponent<Image>();
+        overlayImage.color = new Color(0f, 0f, 0f, 0.68f);
+        overlayImage.raycastTarget = true;
+
+        GameObject contentObject = new GameObject("Choices", typeof(RectTransform), typeof(HorizontalLayoutGroup), typeof(ContentSizeFitter));
+        contentObject.transform.SetParent(_scratchToolChoiceOverlayObject.transform, false);
+
+        RectTransform contentRect = contentObject.GetComponent<RectTransform>();
+        contentRect.anchorMin = new Vector2(0.5f, 0.5f);
+        contentRect.anchorMax = new Vector2(0.5f, 0.5f);
+        contentRect.pivot = new Vector2(0.5f, 0.5f);
+        contentRect.anchoredPosition = Vector2.zero;
+
+        HorizontalLayoutGroup layout = contentObject.GetComponent<HorizontalLayoutGroup>();
+        layout.spacing = _scratchToolRewardChoiceSpacing;
+        layout.childAlignment = TextAnchor.MiddleCenter;
+        layout.childControlWidth = false;
+        layout.childControlHeight = false;
+        layout.childForceExpandWidth = false;
+        layout.childForceExpandHeight = false;
+
+        ContentSizeFitter fitter = contentObject.GetComponent<ContentSizeFitter>();
+        fitter.horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
+        fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+        _scratchToolChoiceContentRoot = contentObject.transform;
+        _scratchToolChoiceOverlayObject.SetActive(false);
+    }
+
+    private void EnsureWinPanel()
+    {
+        if (_winPanelRoot == null)
+        {
+            Transform foundPanel = FindChildRecursive(transform, "WinPanel");
+            if (foundPanel != null)
+            {
+                _winPanelRoot = foundPanel as RectTransform;
+            }
+        }
+
+        if (_winPanelRoot == null)
+        {
+            return;
+        }
+
+        if (_rogueCardRewardButton == null)
+        {
+            Transform foundRewardButton = FindChildRecursive(_winPanelRoot, "RogueCardRewardBtn");
+            _rogueCardRewardButton = foundRewardButton != null ? foundRewardButton.GetComponent<Button>() : null;
+        }
+
+        if (_scratchToolRewardButton == null)
+        {
+            Transform foundScratchToolRewardButton = FindChildRecursive(_winPanelRoot, "ScratchToolRewardBtn");
+            _scratchToolRewardButton = foundScratchToolRewardButton != null ? foundScratchToolRewardButton.GetComponent<Button>() : null;
+        }
+
+        if (_continueButton == null)
+        {
+            Transform foundContinueButton = FindChildRecursive(_winPanelRoot, "ContinueBtn");
+            _continueButton = foundContinueButton != null ? foundContinueButton.GetComponent<Button>() : null;
+        }
+
+        if (_rogueCardRewardButton == null)
+        {
+            _rogueCardRewardButton = CreateWinPanelButton("RogueCardRewardBtn", "选择奖励", new Vector2(0f, 120f), new Vector2(347f, 108f));
+        }
+
+        if (_scratchToolRewardButton == null)
+        {
+            _scratchToolRewardButton = CreateWinPanelButton("ScratchToolRewardBtn", "选择刮具", new Vector2(0f, -60f), new Vector2(347f, 108f));
+        }
+
+        if (_continueButton == null)
+        {
+            _continueButton = CreateWinPanelButton("ContinueBtn", "下一关", new Vector2(0f, -373f), new Vector2(346f, 153f));
+        }
+
+        _rogueCardRewardButton.onClick.RemoveListener(HandleRogueCardRewardButtonClicked);
+        _rogueCardRewardButton.onClick.AddListener(HandleRogueCardRewardButtonClicked);
+        _scratchToolRewardButton.onClick.RemoveListener(HandleScratchToolRewardButtonClicked);
+        _scratchToolRewardButton.onClick.AddListener(HandleScratchToolRewardButtonClicked);
+
+        _continueButton.onClick.RemoveListener(HandleWinContinueButtonClicked);
+        _continueButton.onClick.AddListener(HandleWinContinueButtonClicked);
+    }
+
+    private Button CreateWinPanelButton(string objectName, string labelText, Vector2 anchoredPosition, Vector2 sizeDelta)
+    {
+        if (_winPanelRoot == null)
+        {
+            return null;
+        }
+
+        GameObject buttonObject = new GameObject(objectName, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(Button));
+        buttonObject.transform.SetParent(_winPanelRoot, false);
+
+        RectTransform buttonRect = buttonObject.GetComponent<RectTransform>();
+        buttonRect.anchorMin = new Vector2(0.5f, 0.5f);
+        buttonRect.anchorMax = new Vector2(0.5f, 0.5f);
+        buttonRect.pivot = new Vector2(0.5f, 0.5f);
+        buttonRect.anchoredPosition = anchoredPosition;
+        buttonRect.sizeDelta = sizeDelta;
+
+        Image buttonImage = buttonObject.GetComponent<Image>();
+        buttonImage.color = new Color(0.18f, 0.18f, 0.18f, 0.85f);
+
+        GameObject textObject = new GameObject("Text (TMP)", typeof(RectTransform), typeof(CanvasRenderer), typeof(TextMeshProUGUI));
+        textObject.transform.SetParent(buttonObject.transform, false);
+
+        RectTransform textRect = textObject.GetComponent<RectTransform>();
+        textRect.anchorMin = Vector2.zero;
+        textRect.anchorMax = Vector2.one;
+        textRect.offsetMin = Vector2.zero;
+        textRect.offsetMax = Vector2.zero;
+
+        TextMeshProUGUI label = textObject.GetComponent<TextMeshProUGUI>();
+        AssetProvider.ApplyDefaultTmpFont(label);
+        label.text = labelText;
+        label.alignment = TextAlignmentOptions.Center;
+        label.fontSize = 50f;
+        label.color = Color.white;
+
+        Button button = buttonObject.GetComponent<Button>();
+        button.targetGraphic = buttonImage;
+        return button;
+    }
+
+    private static void SetWinPanelButtonState(Button button, bool visible, bool interactable)
+    {
+        if (button == null)
+        {
+            return;
+        }
+
+        button.gameObject.SetActive(visible);
+        button.interactable = interactable;
+    }
+
+    private void HandleRogueCardRewardButtonClicked()
+    {
+        OnRogueRewardRequested?.Invoke();
+    }
+
+    private void HandleScratchToolRewardButtonClicked()
+    {
+        OnScratchToolRewardRequested?.Invoke();
+    }
+
+    private void HandleWinContinueButtonClicked()
+    {
+        OnWinContinueRequested?.Invoke();
+    }
+
+    private GameObject CreateScratchToolChoice(ScratchToolConfig toolConfig, Transform parent)
+    {
+        if (toolConfig == null)
+        {
+            return null;
+        }
+
+        GameObject choiceRoot = CreateScratchToolChoiceRoot(parent, toolConfig.Id);
+        GameObject toolPrefab = AssetProvider.LoadPrefab("UI/ScratchToolView");
+        GameObject toolObject = toolPrefab != null
+            ? Instantiate(toolPrefab, choiceRoot.transform, false)
+            : CreateScratchToolChoiceFallback(choiceRoot.transform);
+        toolObject.name = $"ScratchToolContent_{toolConfig.Id}";
+        toolObject.transform.localScale = Vector3.one;
+
+        ScratchToolView toolView = toolObject.GetComponent<ScratchToolView>();
+        if (toolView != null)
+        {
+            toolView.UseRewardDescription();
+            toolView.Bind(toolConfig);
+        }
+        else
+        {
+            SetScratchToolChoiceFallbackText(toolObject.transform, toolConfig);
+        }
+
+        Button button = toolObject.GetComponent<Button>();
+        if (button == null)
+        {
+            button = toolObject.AddComponent<Button>();
+        }
+
+        int selectedToolId = toolConfig.Id;
+        button.onClick.AddListener(() => OnScratchToolRewardSelected?.Invoke(selectedToolId));
+        return choiceRoot;
+    }
+
+    private GameObject CreateScratchToolChoiceRoot(Transform parent, int toolId)
+    {
+        GameObject rootObject = new GameObject($"ScratchTool_{toolId}", typeof(RectTransform), typeof(Button));
+        rootObject.transform.SetParent(parent, false);
+
+        RectTransform rootRect = rootObject.GetComponent<RectTransform>();
+        rootRect.anchorMin = new Vector2(0.5f, 0.5f);
+        rootRect.anchorMax = new Vector2(0.5f, 0.5f);
+        rootRect.pivot = new Vector2(0.5f, 0.5f);
+        rootRect.sizeDelta = Vector2.zero;
+
+        float scale = Mathf.Max(0.01f, _scratchToolRewardChoiceScale);
+        rootObject.transform.localScale = Vector3.one * scale;
+        return rootObject;
+    }
+
+    private GameObject CreateScratchToolChoiceFallback(Transform parent)
+    {
+        GameObject toolObject = new GameObject("ScratchToolChoice", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+        toolObject.transform.SetParent(parent, false);
+
+        RectTransform rect = toolObject.GetComponent<RectTransform>();
+        rect.sizeDelta = new Vector2(260f, 320f);
+
+        Image image = toolObject.GetComponent<Image>();
+        image.color = new Color(0.16f, 0.16f, 0.18f, 0.95f);
+
+        GameObject nameObject = new GameObject("Name", typeof(RectTransform), typeof(CanvasRenderer), typeof(TextMeshProUGUI));
+        nameObject.transform.SetParent(toolObject.transform, false);
+        RectTransform nameRect = nameObject.GetComponent<RectTransform>();
+        nameRect.anchorMin = new Vector2(0f, 0.62f);
+        nameRect.anchorMax = new Vector2(1f, 0.92f);
+        nameRect.offsetMin = new Vector2(16f, 0f);
+        nameRect.offsetMax = new Vector2(-16f, 0f);
+
+        GameObject descObject = new GameObject("Description", typeof(RectTransform), typeof(CanvasRenderer), typeof(TextMeshProUGUI));
+        descObject.transform.SetParent(toolObject.transform, false);
+        RectTransform descRect = descObject.GetComponent<RectTransform>();
+        descRect.anchorMin = new Vector2(0f, 0.12f);
+        descRect.anchorMax = new Vector2(1f, 0.62f);
+        descRect.offsetMin = new Vector2(18f, 0f);
+        descRect.offsetMax = new Vector2(-18f, 0f);
+
+        return toolObject;
+    }
+
+    private void SetScratchToolChoiceFallbackText(Transform root, ScratchToolConfig toolConfig)
+    {
+        TextMeshProUGUI[] texts = root != null ? root.GetComponentsInChildren<TextMeshProUGUI>(true) : null;
+        if (texts == null)
+        {
+            return;
+        }
+
+        for (int i = 0; i < texts.Length; i++)
+        {
+            TextMeshProUGUI text = texts[i];
+            if (text == null)
+            {
+                continue;
+            }
+
+            AssetProvider.ApplyDefaultTmpFont(text);
+            text.alignment = TextAlignmentOptions.Center;
+            text.color = Color.white;
+            if (text.name == "Name")
+            {
+                text.fontSize = 34f;
+                text.text = toolConfig.Name;
+            }
+            else
+            {
+                text.fontSize = 22f;
+                text.text = toolConfig.Description;
+            }
+        }
+    }
+
     private GameObject CreateRogueChoiceCard(RogueCardConfig cardConfig, Transform parent, int currentLevel)
     {
         int maxLevel = cardConfig != null ? cardConfig.GetMaxLevel() : 1;
@@ -764,9 +920,15 @@ public class MainGamePanel : UIPanel
     private GameObject CreateOwnedRogueCard(RogueCardInventoryEntryModel ownedCard, Transform parent)
     {
         GameObject cardObject = CreateRogueCardVisual(ownedCard.Config, parent, $"Lv.{ownedCard.Level}", ownedCard.Level);
-        if (cardObject != null && cardObject.GetComponent<RogueCardHoverView>() == null)
+        RogueCardHoverView hoverView = cardObject != null ? cardObject.GetComponent<RogueCardHoverView>() : null;
+        if (cardObject != null && hoverView == null)
         {
-            cardObject.AddComponent<RogueCardHoverView>();
+            hoverView = cardObject.AddComponent<RogueCardHoverView>();
+        }
+
+        if (hoverView != null)
+        {
+            hoverView.BindCardId(ownedCard.CardId);
         }
 
         return cardObject;
@@ -872,6 +1034,19 @@ public class MainGamePanel : UIPanel
         _rogueChoiceObjects.Clear();
     }
 
+    private void ClearScratchToolChoiceObjects()
+    {
+        for (int i = 0; i < _scratchToolChoiceObjects.Count; i++)
+        {
+            if (_scratchToolChoiceObjects[i] != null)
+            {
+                Destroy(_scratchToolChoiceObjects[i]);
+            }
+        }
+
+        _scratchToolChoiceObjects.Clear();
+    }
+
     private void ClearOwnedRogueCardObjects()
     {
         for (int i = 0; i < _ownedRogueCardObjects.Count; i++)
@@ -887,150 +1062,23 @@ public class MainGamePanel : UIPanel
 
     private void OnDestroy()
     {
+        if (_rogueCardRewardButton != null)
+        {
+            _rogueCardRewardButton.onClick.RemoveListener(HandleRogueCardRewardButtonClicked);
+        }
+
+        if (_continueButton != null)
+        {
+            _continueButton.onClick.RemoveListener(HandleWinContinueButtonClicked);
+        }
+
+        if (_scratchToolRewardButton != null)
+        {
+            _scratchToolRewardButton.onClick.RemoveListener(HandleScratchToolRewardButtonClicked);
+        }
+
         _focusOverlayTween?.Kill();
         _levelGoalSliderTween?.Kill();
-        _scoreTextPulseTween?.Kill();
-        _scoreMultiplierPulseTween?.Kill();
-    }
-
-    private void EnsureScorePanel()
-    {
-        if (_scorePanelRoot == null)
-        {
-            Transform foundPanel = FindChildRecursive(transform, "ScorePanel");
-            if (foundPanel != null)
-            {
-                _scorePanelRoot = foundPanel as RectTransform;
-            }
-        }
-
-        if (_scorePanelRoot == null)
-        {
-            return;
-        }
-
-        if (_scoreText == null)
-        {
-            Transform foundScoreText = FindChildRecursive(_scorePanelRoot, "ScoreText");
-            if (foundScoreText != null)
-            {
-                _scoreText = foundScoreText.GetComponent<TextMeshProUGUI>();
-            }
-        }
-
-        if (_scoreMultiplierText == null)
-        {
-            _scoreMultiplierText = FindScorePanelTextByName("MultiplierText")
-                ?? FindScorePanelTextByName("RewardMultiplierText")
-                ?? FindScorePanelTextByName("Multiply")
-                ?? FindScorePanelTextByName("CoinValue")
-                ?? FindScorePanelValueText();
-        }
-    }
-
-    private TextMeshProUGUI FindScorePanelTextByName(string childName)
-    {
-        if (_scorePanelRoot == null)
-        {
-            return null;
-        }
-
-        Transform child = FindChildRecursive(_scorePanelRoot, childName);
-        return child != null ? child.GetComponent<TextMeshProUGUI>() : null;
-    }
-
-    private TextMeshProUGUI FindScorePanelValueText()
-    {
-        if (_scorePanelRoot == null)
-        {
-            return null;
-        }
-
-        TextMeshProUGUI[] texts = _scorePanelRoot.GetComponentsInChildren<TextMeshProUGUI>(true);
-        for (int i = 0; i < texts.Length; i++)
-        {
-            TextMeshProUGUI text = texts[i];
-            if (text == null || text == _scoreText)
-            {
-                continue;
-            }
-
-            string value = text.text;
-            if (string.Equals(value, "分数", StringComparison.Ordinal) ||
-                string.Equals(value, "倍率", StringComparison.Ordinal))
-            {
-                continue;
-            }
-
-            return text;
-        }
-
-        return null;
-    }
-
-    private void SetScorePanelVisible(bool visible)
-    {
-        EnsureScorePanel();
-        if (_scorePanelRoot != null)
-        {
-            _scorePanelRoot.gameObject.SetActive(visible);
-            if (visible)
-            {
-                _scorePanelRoot.SetAsLastSibling();
-            }
-        }
-    }
-
-    private void PlayScorePanelPulse()
-    {
-        if (!gameObject.activeInHierarchy)
-        {
-            return;
-        }
-
-        _scoreTextPulseTween = PlayScoreTextPulse(
-            _scoreText != null ? _scoreText.rectTransform : null,
-            _scoreTextPulseTween,
-            _scorePulseScale,
-            _scorePulseDuration);
-        _scoreMultiplierPulseTween = PlayScoreTextPulse(
-            _scoreMultiplierText != null ? _scoreMultiplierText.rectTransform : null,
-            _scoreMultiplierPulseTween,
-            _scorePulseScale,
-            _scorePulseDuration);
-    }
-
-    private Tween PlayScoreTextPulse(RectTransform target, Tween currentTween, float pulseScale, float pulseDuration)
-    {
-        if (target == null)
-        {
-            return currentTween;
-        }
-
-        currentTween?.Kill();
-        target.localScale = Vector3.one;
-        float resolvedPulseScale = Mathf.Max(1f, pulseScale);
-        float halfDuration = Mathf.Max(0.01f, pulseDuration * 0.5f);
-        return DOTween.Sequence()
-            .SetUpdate(true)
-            .Append(target.DOScale(Vector3.one * resolvedPulseScale, halfDuration).SetEase(Ease.OutCubic))
-            .Append(target.DOScale(Vector3.one, halfDuration).SetEase(Ease.OutCubic));
-    }
-
-    private static string FormatRewardMultiplier(double rewardMultiplier)
-    {
-        double normalizedMultiplier = rewardMultiplier > 0d ? rewardMultiplier : 1d;
-        return $"{normalizedMultiplier:0.##}";
-    }
-
-    private static string FormatSignedInt(int value)
-    {
-        return value > 0 ? $"+{value}" : value.ToString();
-    }
-
-    private static string FormatSignedDouble(double value)
-    {
-        return value > 0d ? $"+{value:0.##}" : $"{value:0.##}";
     }
 
     private void EnsureFocusPanel()

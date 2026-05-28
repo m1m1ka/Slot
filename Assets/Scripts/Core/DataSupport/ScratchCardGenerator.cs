@@ -4,10 +4,6 @@ using UnityEngine;
 
 namespace Core
 {
-    /// <summary>
-    /// 彩票内容生成器。
-    /// 当前根据卡种配置、图案池、可刮模板生成单张彩票实例数据。
-    /// </summary>
     public static class ScratchCardGenerator
     {
         public static List<ScratchCellModel> GenerateCells(
@@ -22,14 +18,14 @@ namespace Core
                 return results;
             }
 
-            ScratchPatternPoolConfig patternPool = ScratchCardDefaultsProvider.GetPatternPool(cardTypeConfig.PatternPoolId);
-            List<ScratchPatternWeightEntry> patternWeights = BuildEffectivePatternWeights(patternPool, cardTypeConfig.Id, runModifiers);
+            List<ScratchPatternWeightEntry> patternWeights = BuildEffectivePatternWeights(cardTypeConfig, runModifiers);
             if (patternWeights.Count == 0)
             {
                 return results;
             }
 
             int cellCount = areaTemplateConfig.Width * areaTemplateConfig.Height;
+            bool hasGeneratedRiskMultiplierPattern = false;
             for (int i = 0; i < cellCount; i++)
             {
                 bool isScratchable = areaTemplateConfig.ScratchableCellIndices.Contains(i);
@@ -40,13 +36,68 @@ namespace Core
 
                 int baseScore = patternConfig != null ? patternConfig.BaseScore : 0;
                 bool isBaseScoreEnhanced = false;
+                bool isGiantFruit = false;
+                double scoreMultiplierOnScore = 1d;
                 double rewardMultiplierBonusOnScore = 0d;
+                var rogueCardEffectSourceIds = new HashSet<int>();
                 if (patternConfig != null && runModifiers != null)
                 {
+                    int originalPatternId = patternConfig.Id;
+                    if (runModifiers.TryRollJokerPattern(
+                        originalPatternId,
+                        out int resolvedJokerPatternId,
+                        out IReadOnlyCollection<int> jokerSourceCardIds))
+                    {
+                        AddRange(rogueCardEffectSourceIds, jokerSourceCardIds);
+                        patternConfig = ScratchPatternDefaultProvider.GetById(resolvedJokerPatternId) ?? patternConfig;
+                    }
+
+                    if (runModifiers.TryRollRiskMultiplierPattern(
+                        originalPatternId,
+                        out int resolvedRiskMultiplierPatternId,
+                        out IReadOnlyCollection<int> riskMultiplierSourceCardIds))
+                    {
+                        if (hasGeneratedRiskMultiplierPattern)
+                        {
+                            patternConfig = PickRandomPatternWithoutPattern(patternWeights, originalPatternId) ?? patternConfig;
+                            originalPatternId = patternConfig.Id;
+                        }
+                        else
+                        {
+                            hasGeneratedRiskMultiplierPattern = true;
+                            AddRange(rogueCardEffectSourceIds, riskMultiplierSourceCardIds);
+                            patternConfig = ScratchPatternDefaultProvider.GetById(resolvedRiskMultiplierPatternId) ?? patternConfig;
+                        }
+                    }
+
+                    baseScore = patternConfig.BaseScore;
                     int baseScoreBonus = runModifiers.GetPatternBaseScoreBonus(patternConfig.Id);
+                    int jokerGoodFaceScore = runModifiers.GetJokerGoodFaceScoreOverride(patternConfig.Id);
+                    if (jokerGoodFaceScore > 0)
+                    {
+                        baseScore = jokerGoodFaceScore;
+                    }
+
                     baseScore += baseScoreBonus;
                     isBaseScoreEnhanced = baseScoreBonus != 0;
                     rewardMultiplierBonusOnScore = runModifiers.GetPatternScratchCardMultiplierBonus(patternConfig.Id);
+                    AddRange(rogueCardEffectSourceIds, runModifiers.GetAddedScratchPatternSourceCardIds(originalPatternId));
+                    AddRange(rogueCardEffectSourceIds, runModifiers.GetPatternBaseScoreSourceCardIds(patternConfig.Id));
+                    AddRange(rogueCardEffectSourceIds, runModifiers.GetPatternWeightSourceCardIds(patternConfig.Id));
+                    AddRange(rogueCardEffectSourceIds, runModifiers.GetAddedScratchPatternSourceCardIds(patternConfig.Id));
+                    AddRange(rogueCardEffectSourceIds, runModifiers.GetPatternScratchCardMultiplierSourceCardIds(patternConfig.Id));
+                    AddRange(rogueCardEffectSourceIds, runModifiers.GetPatternBaseScoreGrowthSourceCardIds(patternConfig.Id));
+                    AddRange(rogueCardEffectSourceIds, runModifiers.GetScratchCardMultiplierSourceCardIds());
+
+                    if (runModifiers.TryRollGiantPattern(
+                        patternConfig.Id,
+                        out double giantScoreMultiplier,
+                        out IReadOnlyCollection<int> giantSourceCardIds))
+                    {
+                        isGiantFruit = true;
+                        scoreMultiplierOnScore = giantScoreMultiplier;
+                        AddRange(rogueCardEffectSourceIds, giantSourceCardIds);
+                    }
                 }
 
                 results.Add(new ScratchCellModel(
@@ -54,11 +105,14 @@ namespace Core
                     row,
                     column,
                     patternConfig != null ? patternConfig.Id : 0,
-                    patternConfig != null ? patternConfig.Name : "空",
+                    patternConfig != null ? patternConfig.Name : "Empty",
                     baseScore,
                     isScratchable,
                     isBaseScoreEnhanced,
+                    isGiantFruit,
+                    scoreMultiplierOnScore,
                     rewardMultiplierBonusOnScore,
+                    new List<int>(rogueCardEffectSourceIds),
                     patternConfig != null ? patternConfig.EffectType : ScratchPatternEffectType.None,
                     patternConfig != null ? patternConfig.EffectValue : 0d));
             }
@@ -67,8 +121,42 @@ namespace Core
         }
 
         public static List<ScratchPatternWeightEntry> BuildEffectivePatternWeights(
+            ScratchCardTypeConfig cardTypeConfig,
+            RogueCardRunModifierModel runModifiers)
+        {
+            ScratchPatternPoolConfig patternPool = cardTypeConfig != null
+                ? ScratchCardDefaultsProvider.GetPatternPool(cardTypeConfig.PatternPoolId)
+                : null;
+            if (patternPool == null)
+            {
+                patternPool = ScratchCardDefaultsProvider.GetGlobalPatternPool();
+            }
+
+            return BuildEffectivePatternWeights(patternPool, cardTypeConfig, runModifiers);
+        }
+
+        public static List<ScratchPatternWeightEntry> BuildEffectivePatternWeights(
+            ScratchPatternPoolConfig globalPatternPool,
+            ScratchCardTypeConfig cardTypeConfig,
+            RogueCardRunModifierModel runModifiers)
+        {
+            int cardTypeId = cardTypeConfig != null ? cardTypeConfig.Id : 0;
+            HashSet<int> allowedPatternIds = BuildAllowedPatternIdSet(cardTypeConfig);
+            return BuildEffectivePatternWeights(globalPatternPool, cardTypeId, allowedPatternIds, runModifiers);
+        }
+
+        public static List<ScratchPatternWeightEntry> BuildEffectivePatternWeights(
             ScratchPatternPoolConfig patternPool,
             int cardTypeId,
+            RogueCardRunModifierModel runModifiers)
+        {
+            return BuildEffectivePatternWeights(patternPool, cardTypeId, null, runModifiers);
+        }
+
+        private static List<ScratchPatternWeightEntry> BuildEffectivePatternWeights(
+            ScratchPatternPoolConfig patternPool,
+            int cardTypeId,
+            HashSet<int> allowedPatternIds,
             RogueCardRunModifierModel runModifiers)
         {
             var baseWeightsByPattern = new Dictionary<int, float>();
@@ -84,7 +172,10 @@ namespace Core
                         continue;
                     }
 
-                    AddWeight(baseWeightsByPattern, entry.PatternId, entry.Weight);
+                    if (IsPatternAllowed(entry.PatternId, allowedPatternIds))
+                    {
+                        AddWeight(baseWeightsByPattern, entry.PatternId, entry.Weight);
+                    }
                 }
             }
 
@@ -99,7 +190,10 @@ namespace Core
                         continue;
                     }
 
-                    AddWeight(baseWeightsByPattern, entry.PatternId, entry.Weight);
+                    float addedWeight = entry.IsProbability
+                        ? ConvertProbabilityToWeight(baseWeightsByPattern, entry.Weight)
+                        : entry.Weight;
+                    AddWeight(baseWeightsByPattern, entry.PatternId, addedWeight);
                     dynamicPatternIds.Add(entry.PatternId);
                 }
             }
@@ -156,7 +250,45 @@ namespace Core
                 }
 
                 accumulatedWeight += Mathf.Max(0f, entry.Weight);
+                if (randomValue < accumulatedWeight)
+                {
+                    return ScratchPatternDefaultProvider.GetById(entry.PatternId);
+                }
+            }
 
+            return null;
+        }
+
+        private static ScratchPatternConfig PickRandomPatternWithoutPattern(
+            IReadOnlyList<ScratchPatternWeightEntry> patternWeights,
+            int excludedPatternId)
+        {
+            float totalWeight = 0f;
+            for (int i = 0; i < patternWeights.Count; i++)
+            {
+                ScratchPatternWeightEntry entry = patternWeights[i];
+                if (entry != null && entry.PatternId != excludedPatternId)
+                {
+                    totalWeight += Mathf.Max(0f, entry.Weight);
+                }
+            }
+
+            if (totalWeight <= 0f)
+            {
+                return null;
+            }
+
+            float randomValue = Random.Range(0f, totalWeight);
+            float accumulatedWeight = 0f;
+            for (int i = 0; i < patternWeights.Count; i++)
+            {
+                ScratchPatternWeightEntry entry = patternWeights[i];
+                if (entry == null || entry.PatternId == excludedPatternId)
+                {
+                    continue;
+                }
+
+                accumulatedWeight += Mathf.Max(0f, entry.Weight);
                 if (randomValue < accumulatedWeight)
                 {
                     return ScratchPatternDefaultProvider.GetById(entry.PatternId);
@@ -179,6 +311,71 @@ namespace Core
             }
 
             weightsByPattern[patternId] += weight;
+        }
+
+        private static float ConvertProbabilityToWeight(Dictionary<int, float> weightsByPattern, float probability)
+        {
+            probability = Mathf.Clamp01(probability);
+            if (probability <= 0f)
+            {
+                return 0f;
+            }
+
+            if (probability >= 1f)
+            {
+                return 1000000f;
+            }
+
+            float baseTotalWeight = 0f;
+            foreach (float weight in weightsByPattern.Values)
+            {
+                baseTotalWeight += Mathf.Max(0f, weight);
+            }
+
+            return baseTotalWeight > 0f
+                ? baseTotalWeight * probability / (1f - probability)
+                : probability;
+        }
+
+        private static HashSet<int> BuildAllowedPatternIdSet(ScratchCardTypeConfig cardTypeConfig)
+        {
+            if (cardTypeConfig?.AllowedPatternIds == null || cardTypeConfig.AllowedPatternIds.Count == 0)
+            {
+                return null;
+            }
+
+            var allowedPatternIds = new HashSet<int>();
+            for (int i = 0; i < cardTypeConfig.AllowedPatternIds.Count; i++)
+            {
+                int patternId = cardTypeConfig.AllowedPatternIds[i];
+                if (patternId > 0)
+                {
+                    allowedPatternIds.Add(patternId);
+                }
+            }
+
+            return allowedPatternIds.Count > 0 ? allowedPatternIds : null;
+        }
+
+        private static bool IsPatternAllowed(int patternId, HashSet<int> allowedPatternIds)
+        {
+            return allowedPatternIds == null || allowedPatternIds.Contains(patternId);
+        }
+
+        private static void AddRange(HashSet<int> target, IEnumerable<int> source)
+        {
+            if (target == null || source == null)
+            {
+                return;
+            }
+
+            foreach (int value in source)
+            {
+                if (value > 0)
+                {
+                    target.Add(value);
+                }
+            }
         }
     }
 }

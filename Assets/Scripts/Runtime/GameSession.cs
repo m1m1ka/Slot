@@ -13,7 +13,7 @@ public class GameSession
 
     public void StartNewRun()
     {
-        RunModifiers.Clear();
+        RunModifiers.ClearAll();
         IsRunActive = true;
     }
 
@@ -45,6 +45,6 @@ public class GameSession
     {
         IsRunActive = false;
         CurrentLevel = null;
-        RunModifiers.Clear();
+        RunModifiers.ClearAll();
     }
 }

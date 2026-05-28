@@ -29,14 +29,16 @@ namespace Core
                     continue;
                 }
 
-                pairScore += (ScratchPatternScoreService.GetCellScore(model, pairedCell) +
-                              ScratchPatternScoreService.GetCellScore(model, cell)) * PairScoreMultiplier;
+                double pairedCellMultiplier = PairScoreMultiplier * ScratchPatternScoreService.GetScoreMultiplierOnScore(pairedCell);
+                double cellMultiplier = PairScoreMultiplier * ScratchPatternScoreService.GetScoreMultiplierOnScore(cell);
+                pairScore += ScratchPatternScoreService.GetCellScoreWithScoreMultiplier(model, pairedCell, PairScoreMultiplier);
+                pairScore += ScratchPatternScoreService.GetCellScoreWithScoreMultiplier(model, cell, PairScoreMultiplier);
 
                 winningPatternIds.Add(cell.PatternId);
                 scoredCellIndices.Add(pairedCell.CellIndex);
                 scoredCellIndices.Add(cell.CellIndex);
-                scoredCellScoreMultipliers.Add(PairScoreMultiplier);
-                scoredCellScoreMultipliers.Add(PairScoreMultiplier);
+                scoredCellScoreMultipliers.Add(pairedCellMultiplier);
+                scoredCellScoreMultipliers.Add(cellMultiplier);
 
                 unpairedCellsByPattern.Remove(cell.PatternId);
             }
@@ -58,7 +60,11 @@ namespace Core
             for (int i = 0; i < model.Cells.Count; i++)
             {
                 ScratchCellModel cell = model.Cells[i];
-                if (cell != null && cell.IsScratchable && cell.IsScratched)
+                if (cell != null &&
+                    cell.IsScratchable &&
+                    cell.IsScratched &&
+                    !ScratchPatternScoreService.ScoresDirectly(model, cell) &&
+                    !ScratchPatternScoreService.ExcludeFromScratchToolScoring(model, cell))
                 {
                     scratchedCells.Add(cell);
                 }

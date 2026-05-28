@@ -6,12 +6,14 @@ public class DynamicScratchPatternPoolEntryModel
 
     public int PatternId { get; }
     public float Weight { get; }
+    public bool IsProbability { get; }
     public IReadOnlyList<int> CardTypeIds => _cardTypeIds;
 
-    public DynamicScratchPatternPoolEntryModel(int patternId, float weight, IReadOnlyList<int> cardTypeIds = null)
+    public DynamicScratchPatternPoolEntryModel(int patternId, float weight, IReadOnlyList<int> cardTypeIds = null, bool isProbability = false)
     {
         PatternId = patternId;
         Weight = weight > 0f ? weight : 0f;
+        IsProbability = isProbability;
         _cardTypeIds = cardTypeIds != null ? new List<int>(cardTypeIds) : new List<int>();
     }
 

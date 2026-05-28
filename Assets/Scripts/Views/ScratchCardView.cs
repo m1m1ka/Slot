@@ -14,6 +14,7 @@ using UnityEngine.UI;
 public class ScratchCardView : MonoBehaviour, IPointerClickHandler, IPointerEnterHandler, IPointerExitHandler, IDragHandler, IBeginDragHandler
 {
     private const string FloatingTextPrefabPath = "UI/FloatingText";
+    private const string PatternRevealHighlightAmountProperty = "_HighlightAmount";
 
     [Header("Card Root")]
     [SerializeField] private RectTransform _cardTransform;
@@ -23,6 +24,7 @@ public class ScratchCardView : MonoBehaviour, IPointerClickHandler, IPointerEnte
     [SerializeField] private GameObject _normalRoot;
     [SerializeField] private GameObject _focusRoot;
     [SerializeField] private GameObject _normalHoverOutline;
+    [SerializeField] private TextMeshProUGUI _focusDescriptionText;
 
     [Header("Scratch Visual")]
     [SerializeField] private Image[] _patternImages;
@@ -63,6 +65,8 @@ public class ScratchCardView : MonoBehaviour, IPointerClickHandler, IPointerEnte
     [SerializeField] private Color _enhancedScoreFloatTextColor = new Color(0.35f, 0.65f, 1f, 1f);
     [SerializeField] private string _patternRevealHighlightShaderPath = "Shaders/UIWhiteHighlight";
     [SerializeField] private float _patternRevealHighlightDuration = 0.45f;
+    [SerializeField] private string _giantFruitMaterialPath = "Materials/RainbowOutline";
+    [SerializeField] private float _giantFruitScale = 1.5f;
     [SerializeField] private float _claimRewardButtonBreathScale = 1.08f;
     [SerializeField] private float _claimRewardButtonBreathDuration = 0.62f;
 
@@ -88,6 +92,7 @@ public class ScratchCardView : MonoBehaviour, IPointerClickHandler, IPointerEnte
     private Canvas _parentCanvas;
     private Vector2 _lastHoverScreenPosition = new Vector2(float.MinValue, float.MinValue);
     private IReadOnlyList<ScratchCellModel> _boundCells;
+    private string _cardDescription;
     private bool _isPointerHovering;
     private float _currentHoverRotationDirection = 1f;
     private Texture2D _questionMaskTexture;
@@ -97,10 +102,15 @@ public class ScratchCardView : MonoBehaviour, IPointerClickHandler, IPointerEnte
     private readonly HashSet<int> _revealedCellIndices = new HashSet<int>();
     private readonly Dictionary<RawImage, Texture> _scratchCoverSourceTextures = new Dictionary<RawImage, Texture>();
     private readonly Dictionary<Image, Color> _patternImageDefaultColors = new Dictionary<Image, Color>();
+    private readonly Dictionary<Image, Vector3> _patternImageDefaultScales = new Dictionary<Image, Vector3>();
     private readonly Dictionary<Image, Material> _patternImageDefaultMaterials = new Dictionary<Image, Material>();
     private readonly Dictionary<Image, Material> _patternRevealHighlightMaterials = new Dictionary<Image, Material>();
+    private readonly Dictionary<Image, Material> _giantFruitMaterials = new Dictionary<Image, Material>();
     private readonly Dictionary<Image, Tween> _patternRevealHighlightTweens = new Dictionary<Image, Tween>();
+    private readonly HashSet<Image> _giantFruitPatternImages = new HashSet<Image>();
     private Shader _patternRevealHighlightShader;
+    private Material _giantFruitMaterial;
+    private bool _scratchSurfaceNeedsLayoutRefresh;
 
     private class ScratchSurfaceRuntime
     {
@@ -133,6 +143,7 @@ public class ScratchCardView : MonoBehaviour, IPointerClickHandler, IPointerEnte
         _defaultScale = _cardTransform != null ? _cardTransform.localScale : Vector3.one;
         _defaultRotation = _cardTransform != null ? _cardTransform.localRotation : Quaternion.identity;
         ResolveViewStateRoots();
+        EnsureFocusDescriptionText();
         UpdateNormalHoverOutline();
         DisableTextRaycastTargets();
         EnsureClaimRewardButton();
@@ -142,22 +153,27 @@ public class ScratchCardView : MonoBehaviour, IPointerClickHandler, IPointerEnte
     private void OnValidate()
     {
         ResolveViewStateRoots();
+        EnsureFocusDescriptionText();
     }
 #endif
 
-    public void BindCardData(IReadOnlyList<ScratchCellModel> cells)
+    public void BindCardData(IReadOnlyList<ScratchCellModel> cells, string description = null)
     {
         _boundCells = cells;
+        _cardDescription = description;
         BindPatternImages(cells);
+        UpdateFocusDescription();
+        _scratchSurfaceNeedsLayoutRefresh = true;
     }
 
     public void SetupInitialVisual()
     {
+        SetFocused(false, instant: true);
+        RefreshScratchLayoutNow();
         InitializeScratchSurface();
         SetScratchProgress(0f);
         SetClaimRewardMultiplier(1d);
         SetCurrentRewardText(0, false);
-        SetFocused(false, instant: true);
         SetScratchInputEnabled(true);
         HideClaimRewardButton();
     }
@@ -198,6 +214,13 @@ public class ScratchCardView : MonoBehaviour, IPointerClickHandler, IPointerEnte
         _isFocused = focused;
         _scratchInputEnabled = focused;
         SetViewStateVisible(focused);
+        if (focused && _scratchSurfaceNeedsLayoutRefresh)
+        {
+            RefreshScratchLayoutNow();
+            InitializeScratchSurface();
+            _scratchSurfaceNeedsLayoutRefresh = false;
+        }
+
         UpdateNormalHoverOutline();
         UpdateNormalHoverRotation(instant);
 
@@ -296,6 +319,59 @@ public class ScratchCardView : MonoBehaviour, IPointerClickHandler, IPointerEnte
         }
     }
 
+    private void EnsureFocusDescriptionText()
+    {
+        if (_focusDescriptionText != null)
+        {
+            return;
+        }
+
+        ResolveViewStateRoots();
+        Transform searchRoot = _focusRoot != null ? _focusRoot.transform : transform;
+        Transform descriptionTransform = FindChildRecursive(searchRoot, "Description");
+        if (descriptionTransform != null)
+        {
+            _focusDescriptionText = descriptionTransform.GetComponent<TextMeshProUGUI>();
+        }
+    }
+
+    private void UpdateFocusDescription()
+    {
+        EnsureFocusDescriptionText();
+        if (_focusDescriptionText == null)
+        {
+            return;
+        }
+
+        AssetProvider.ApplyDefaultTmpFont(_focusDescriptionText);
+        _focusDescriptionText.text = string.IsNullOrWhiteSpace(_cardDescription) ? string.Empty : _cardDescription;
+    }
+
+    private static Transform FindChildRecursive(Transform root, string childName)
+    {
+        if (root == null || string.IsNullOrWhiteSpace(childName))
+        {
+            return null;
+        }
+
+        for (int i = 0; i < root.childCount; i++)
+        {
+            Transform child = root.GetChild(i);
+            if (child != null && child.name == childName)
+            {
+                return child;
+            }
+
+            Transform found = FindChildRecursive(child, childName);
+            if (found != null)
+            {
+                return found;
+            }
+        }
+
+        return null;
+    }
+
     private void SetViewStateVisible(bool focused)
     {
         if (_normalRoot != null)
@@ -358,11 +434,11 @@ public class ScratchCardView : MonoBehaviour, IPointerClickHandler, IPointerEnte
 
         if (_claimRewardText != null)
         {
-            _claimRewardText.text = FormatRewardAmount(displayScore, rewardMultiplier);
+            _claimRewardText.text = FormatRewardAmount(displayScore);
             _claimRewardText.gameObject.SetActive(true);
         }
 
-        SetClaimRewardMultiplier(rewardMultiplier, false);
+        SetClaimRewardMultiplier(rewardMultiplier, true);
         _claimRewardButton.gameObject.SetActive(true);
         _claimRewardButton.interactable = true;
         PlayClaimRewardButtonBreath();
@@ -382,7 +458,7 @@ public class ScratchCardView : MonoBehaviour, IPointerClickHandler, IPointerEnte
             _claimRewardText.gameObject.SetActive(true);
         }
 
-        SetClaimRewardMultiplier(rewardMultiplier, false);
+        SetClaimRewardMultiplier(rewardMultiplier, true);
         _claimRewardButton.gameObject.SetActive(true);
         _claimRewardButton.interactable = true;
         StopClaimRewardButtonBreath();
@@ -398,11 +474,11 @@ public class ScratchCardView : MonoBehaviour, IPointerClickHandler, IPointerEnte
 
         if (_claimRewardText != null)
         {
-            _claimRewardText.text = FormatRewardAmount(displayScore, rewardMultiplier);
+            _claimRewardText.text = FormatRewardAmount(displayScore);
             _claimRewardText.gameObject.SetActive(true);
         }
 
-        SetClaimRewardMultiplier(rewardMultiplier, false);
+        SetClaimRewardMultiplier(rewardMultiplier, true);
         _claimRewardButton.gameObject.SetActive(true);
         _claimRewardButton.interactable = false;
         StopClaimRewardButtonBreath();
@@ -418,6 +494,7 @@ public class ScratchCardView : MonoBehaviour, IPointerClickHandler, IPointerEnte
 
         _claimRewardButton.interactable = false;
         _claimRewardButton.gameObject.SetActive(false);
+        SetClaimRewardMultiplier(1d, false);
     }
 
     public void SetCurrentRewardText(int reward, bool visible)
@@ -429,7 +506,7 @@ public class ScratchCardView : MonoBehaviour, IPointerClickHandler, IPointerEnte
     {
         if (_claimRewardText != null)
         {
-            _claimRewardText.text = FormatRewardAmount(reward, rewardMultiplier.GetValueOrDefault(1d));
+            _claimRewardText.text = FormatRewardAmount(reward);
             _claimRewardText.gameObject.SetActive(visible);
         }
 
@@ -439,13 +516,13 @@ public class ScratchCardView : MonoBehaviour, IPointerClickHandler, IPointerEnte
         }
         else if (_claimRewardMultiplierText != null)
         {
-            _claimRewardMultiplierText.gameObject.SetActive(visible);
+            _claimRewardMultiplierText.gameObject.SetActive(false);
         }
     }
 
     public void SetClaimRewardMultiplier(double rewardMultiplier)
     {
-        SetClaimRewardMultiplier(rewardMultiplier, _claimRewardMultiplierText != null && _claimRewardMultiplierText.gameObject.activeSelf);
+        SetClaimRewardMultiplier(rewardMultiplier, true);
     }
 
     public void SetClaimRewardMultiplier(double rewardMultiplier, bool visible)
@@ -457,7 +534,7 @@ public class ScratchCardView : MonoBehaviour, IPointerClickHandler, IPointerEnte
         }
 
         _claimRewardMultiplierText.text = FormatRewardMultiplier(rewardMultiplier);
-        _claimRewardMultiplierText.gameObject.SetActive(visible);
+        _claimRewardMultiplierText.gameObject.SetActive(visible && ShouldShowRewardMultiplier(rewardMultiplier));
     }
 
     public void SetScratchInputEnabled(bool enabled)
@@ -513,7 +590,9 @@ public class ScratchCardView : MonoBehaviour, IPointerClickHandler, IPointerEnte
             return;
         }
 
-        Material highlightMaterial = EnsurePatternRevealHighlightMaterial(targetImage);
+        Material highlightMaterial = _giantFruitPatternImages.Contains(targetImage)
+            ? EnsureGiantFruitMaterial(targetImage)
+            : EnsurePatternRevealHighlightMaterial(targetImage);
         if (highlightMaterial == null)
         {
             return;
@@ -526,9 +605,9 @@ public class ScratchCardView : MonoBehaviour, IPointerClickHandler, IPointerEnte
         }
 
         targetImage.material = highlightMaterial;
-        highlightMaterial.SetFloat("_HighlightAmount", 1f);
+        SetPatternRevealHighlightAmount(highlightMaterial, 1f);
         _patternRevealHighlightTweens[targetImage] = highlightMaterial
-            .DOFloat(0f, "_HighlightAmount", Mathf.Max(0.01f, _patternRevealHighlightDuration))
+            .DOFloat(0f, PatternRevealHighlightAmountProperty, Mathf.Max(0.01f, _patternRevealHighlightDuration))
             .SetEase(Ease.OutCubic)
             .SetUpdate(true)
             .OnComplete(() =>
@@ -536,6 +615,32 @@ public class ScratchCardView : MonoBehaviour, IPointerClickHandler, IPointerEnte
                 _patternRevealHighlightTweens.Remove(targetImage);
                 RestorePatternRevealMaterial(targetImage);
             });
+    }
+
+    public void SetGiantFruitPatternVisual(int cellIndex, bool isGiant)
+    {
+        if (!TryGetPatternImage(cellIndex, out Image targetImage))
+        {
+            return;
+        }
+
+        if (isGiant)
+        {
+            ApplyGiantFruitPatternVisual(targetImage);
+            return;
+        }
+
+        ClearGiantFruitPatternVisual(targetImage);
+    }
+
+    public void ApplyGiantFruitPatternVisual(int cellIndex)
+    {
+        SetGiantFruitPatternVisual(cellIndex, true);
+    }
+
+    public void ClearGiantFruitPatternVisual(int cellIndex)
+    {
+        SetGiantFruitPatternVisual(cellIndex, false);
     }
 
     public void PlayPatternScoreReveal(int cellIndex, int score, bool isEnhanced, double scoreMultiplier = 1d)
@@ -546,7 +651,24 @@ public class ScratchCardView : MonoBehaviour, IPointerClickHandler, IPointerEnte
             return;
         }
 
-        PlayFloatingScoreText(targetRect, score, isEnhanced, scoreMultiplier);
+        int displayScore = ScratchSettlementResult.ApplyMultiplier(score, scoreMultiplier);
+        PlayFloatingText(targetRect, displayScore.ToString(), isEnhanced ? _enhancedScoreFloatTextColor : _scoreFloatTextColor);
+    }
+
+    public void PlayPatternEffectTextReveal(int cellIndex, string text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return;
+        }
+
+        RectTransform targetRect = PlayPatternScorePulse(cellIndex);
+        if (targetRect == null)
+        {
+            return;
+        }
+
+        PlayFloatingText(targetRect, text, _scoreFloatTextColor);
     }
 
     public bool ContainsScreenPoint(Vector2 screenPoint)
@@ -730,6 +852,28 @@ public class ScratchCardView : MonoBehaviour, IPointerClickHandler, IPointerEnte
 
             _scratchSurfaces.Add(surface);
         }
+    }
+
+    private void RefreshScratchLayoutNow()
+    {
+        Canvas.ForceUpdateCanvases();
+
+        RectTransform rootRect = _cardTransform != null ? _cardTransform : transform as RectTransform;
+        if (rootRect != null)
+        {
+            LayoutRebuilder.ForceRebuildLayoutImmediate(rootRect);
+        }
+
+        if (_focusRoot != null)
+        {
+            RectTransform focusRect = _focusRoot.transform as RectTransform;
+            if (focusRect != null)
+            {
+                LayoutRebuilder.ForceRebuildLayoutImmediate(focusRect);
+            }
+        }
+
+        Canvas.ForceUpdateCanvases();
     }
 
     private Texture2D CreateScratchTextureCopy(Texture sourceTexture, int width, int height)
@@ -1419,6 +1563,8 @@ public class ScratchCardView : MonoBehaviour, IPointerClickHandler, IPointerEnte
                 continue;
             }
 
+            ResetPatternImageVisual(targetImage);
+
             bool hasCell = cells != null && i < cells.Count && cells[i] != null;
             targetImage.gameObject.SetActive(hasCell);
             if (!hasCell)
@@ -1433,7 +1579,11 @@ public class ScratchCardView : MonoBehaviour, IPointerClickHandler, IPointerEnte
             targetImage.sprite = sprite;
             targetImage.enabled = sprite != null;
             targetImage.color = GetPatternImageDefaultColor(targetImage);
-            RestorePatternRevealMaterial(targetImage);
+            RestorePatternMaterial(targetImage);
+            if (cells[i].IsGiantFruit)
+            {
+                ApplyGiantFruitPatternVisual(targetImage);
+            }
         }
 
         if (_scratchCoverImages == null)
@@ -1470,7 +1620,7 @@ public class ScratchCardView : MonoBehaviour, IPointerClickHandler, IPointerEnte
         }
     }
 
-    private void PlayFloatingScoreText(RectTransform sourceRect, int score, bool isEnhanced, double scoreMultiplier)
+    private void PlayFloatingText(RectTransform sourceRect, string value, Color color)
     {
         if (sourceRect == null || _cardTransform == null)
         {
@@ -1518,10 +1668,10 @@ public class ScratchCardView : MonoBehaviour, IPointerClickHandler, IPointerEnte
         }
 
         AssetProvider.ApplyDefaultTmpFont(text);
-        text.text = ScratchSettlementResult.ApplyMultiplier(score, scoreMultiplier).ToString();
+        text.text = value;
         text.fontStyle = FontStyles.Bold;
         text.alignment = TextAlignmentOptions.Center;
-        text.color = isEnhanced ? _enhancedScoreFloatTextColor : _scoreFloatTextColor;
+        text.color = color;
         text.raycastTarget = false;
 
         Vector2 endPosition = textRect.anchoredPosition + Vector2.up * _scoreFloatDistance;
@@ -1629,6 +1779,157 @@ public class ScratchCardView : MonoBehaviour, IPointerClickHandler, IPointerEnte
         return defaultColor;
     }
 
+    private Vector3 GetPatternImageDefaultScale(Image image)
+    {
+        if (image == null)
+        {
+            return Vector3.one;
+        }
+
+        if (_patternImageDefaultScales.TryGetValue(image, out Vector3 defaultScale))
+        {
+            return defaultScale;
+        }
+
+        RectTransform rectTransform = image.rectTransform;
+        defaultScale = rectTransform != null ? rectTransform.localScale : Vector3.one;
+        _patternImageDefaultScales[image] = defaultScale;
+        return defaultScale;
+    }
+
+    private bool TryGetPatternImage(int cellIndex, out Image image)
+    {
+        image = null;
+        if (_patternImages == null || cellIndex < 0 || cellIndex >= _patternImages.Length)
+        {
+            return false;
+        }
+
+        image = _patternImages[cellIndex];
+        return image != null && image.gameObject.activeInHierarchy;
+    }
+
+    private void ApplyGiantFruitPatternVisual(Image image)
+    {
+        if (image == null)
+        {
+            return;
+        }
+
+        Material giantFruitMaterial = EnsureGiantFruitMaterial(image);
+        if (giantFruitMaterial == null)
+        {
+            return;
+        }
+
+        KillPatternRevealTween(image);
+        GetPatternImageDefaultMaterial(image);
+        Vector3 defaultScale = GetPatternImageDefaultScale(image);
+        RectTransform rectTransform = image.rectTransform;
+        if (rectTransform != null)
+        {
+            rectTransform.localScale = defaultScale * Mathf.Max(0f, _giantFruitScale);
+        }
+
+        _giantFruitPatternImages.Add(image);
+        image.material = giantFruitMaterial;
+    }
+
+    private void ClearGiantFruitPatternVisual(Image image)
+    {
+        if (image == null)
+        {
+            return;
+        }
+
+        KillPatternRevealTween(image);
+        _giantFruitPatternImages.Remove(image);
+
+        RectTransform rectTransform = image.rectTransform;
+        if (rectTransform != null)
+        {
+            rectTransform.localScale = GetPatternImageDefaultScale(image);
+        }
+
+        RestorePatternMaterial(image);
+        DestroyGiantFruitMaterial(image);
+    }
+
+    private void ResetPatternImageVisual(Image image)
+    {
+        if (image == null)
+        {
+            return;
+        }
+
+        KillPatternRevealTween(image);
+        _giantFruitPatternImages.Remove(image);
+
+        RectTransform rectTransform = image.rectTransform;
+        if (rectTransform != null)
+        {
+            rectTransform.localScale = GetPatternImageDefaultScale(image);
+        }
+
+        RestorePatternMaterial(image);
+        DestroyGiantFruitMaterial(image);
+    }
+
+    private Material EnsureGiantFruitMaterial()
+    {
+        if (_giantFruitMaterial != null)
+        {
+            return _giantFruitMaterial;
+        }
+
+        _giantFruitMaterial = AssetProvider.Load<Material>(_giantFruitMaterialPath);
+        return _giantFruitMaterial;
+    }
+
+    private Material EnsureGiantFruitMaterial(Image image)
+    {
+        if (image == null)
+        {
+            return null;
+        }
+
+        if (_giantFruitMaterials.TryGetValue(image, out Material material) && material != null)
+        {
+            return material;
+        }
+
+        Material template = EnsureGiantFruitMaterial();
+        if (template == null)
+        {
+            return null;
+        }
+
+        material = new Material(template)
+        {
+            name = "GiantFruitRainbowOutline_Runtime"
+        };
+        SetPatternRevealHighlightAmount(material, 0f);
+        _giantFruitMaterials[image] = material;
+        return material;
+    }
+
+    private Material GetPatternImageDefaultMaterial(Image image)
+    {
+        if (image == null)
+        {
+            return null;
+        }
+
+        if (_patternImageDefaultMaterials.TryGetValue(image, out Material defaultMaterial))
+        {
+            return defaultMaterial;
+        }
+
+        defaultMaterial = image.material;
+        _patternImageDefaultMaterials[image] = defaultMaterial;
+        return defaultMaterial;
+    }
+
     private Material EnsurePatternRevealHighlightMaterial(Image image)
     {
         if (image == null)
@@ -1647,16 +1948,13 @@ public class ScratchCardView : MonoBehaviour, IPointerClickHandler, IPointerEnte
             return null;
         }
 
-        if (!_patternImageDefaultMaterials.ContainsKey(image))
-        {
-            _patternImageDefaultMaterials[image] = image.material;
-        }
+        GetPatternImageDefaultMaterial(image);
 
         material = new Material(shader)
         {
             name = "PatternRevealHighlight_Runtime"
         };
-        material.SetFloat("_HighlightAmount", 0f);
+        SetPatternRevealHighlightAmount(material, 0f);
         _patternRevealHighlightMaterials[image] = material;
         return material;
     }
@@ -1679,14 +1977,75 @@ public class ScratchCardView : MonoBehaviour, IPointerClickHandler, IPointerEnte
 
     private void RestorePatternRevealMaterial(Image image)
     {
+        RestorePatternMaterial(image);
+    }
+
+    private void SetPatternRevealHighlightAmount(Material material, float amount)
+    {
+        if (material != null && material.HasProperty(PatternRevealHighlightAmountProperty))
+        {
+            material.SetFloat(PatternRevealHighlightAmountProperty, amount);
+        }
+    }
+
+    private void RestorePatternMaterial(Image image)
+    {
         if (image == null)
         {
             return;
         }
 
+        if (_giantFruitPatternImages.Contains(image))
+        {
+            Material giantFruitMaterial = EnsureGiantFruitMaterial(image);
+            if (giantFruitMaterial != null)
+            {
+                image.material = giantFruitMaterial;
+                return;
+            }
+        }
+
         if (_patternImageDefaultMaterials.TryGetValue(image, out Material defaultMaterial))
         {
             image.material = defaultMaterial;
+        }
+    }
+
+    private void DestroyGiantFruitMaterial(Image image)
+    {
+        if (image == null || !_giantFruitMaterials.TryGetValue(image, out Material material))
+        {
+            return;
+        }
+
+        _giantFruitMaterials.Remove(image);
+        if (material != null)
+        {
+            Destroy(material);
+        }
+    }
+
+    private void KillPatternRevealTween(Image image)
+    {
+        if (image == null)
+        {
+            return;
+        }
+
+        if (_patternRevealHighlightTweens.TryGetValue(image, out Tween activeTween))
+        {
+            activeTween?.Kill();
+            _patternRevealHighlightTweens.Remove(image);
+        }
+
+        if (_giantFruitMaterials.TryGetValue(image, out Material giantFruitMaterial))
+        {
+            SetPatternRevealHighlightAmount(giantFruitMaterial, 0f);
+        }
+
+        if (_patternRevealHighlightMaterials.TryGetValue(image, out Material revealMaterial))
+        {
+            SetPatternRevealHighlightAmount(revealMaterial, 0f);
         }
     }
 
@@ -1701,7 +2060,19 @@ public class ScratchCardView : MonoBehaviour, IPointerClickHandler, IPointerEnte
         }
 
         _patternRevealHighlightMaterials.Clear();
+
+        foreach (KeyValuePair<Image, Material> giantFruitMaterial in _giantFruitMaterials)
+        {
+            if (giantFruitMaterial.Value != null)
+            {
+                Destroy(giantFruitMaterial.Value);
+            }
+        }
+
+        _giantFruitMaterials.Clear();
         _patternImageDefaultMaterials.Clear();
+        _patternImageDefaultScales.Clear();
+        _giantFruitPatternImages.Clear();
     }
 
     private void EnsureClaimRewardButton()
@@ -1743,30 +2114,22 @@ public class ScratchCardView : MonoBehaviour, IPointerClickHandler, IPointerEnte
 
     private void EnsureClaimRewardMultiplierText()
     {
-        if (_claimRewardMultiplierText == null && _claimRewardText != null)
+        if (_claimRewardMultiplierText == null || _claimRewardMultiplierText.name != "Multiply")
         {
-            GameObject multiplierObject = new GameObject("RewardMultiplierText", typeof(RectTransform), typeof(CanvasRenderer), typeof(TextMeshProUGUI));
-            multiplierObject.transform.SetParent(_claimRewardText.transform.parent, false);
-            multiplierObject.transform.SetSiblingIndex(_claimRewardText.transform.GetSiblingIndex() + 1);
+            Transform searchRoot = _focusRoot != null ? _focusRoot.transform : transform;
+            Transform multiplyTransform = FindChildRecursive(searchRoot, "Multiply");
+            if (multiplyTransform == null && searchRoot != transform)
+            {
+                multiplyTransform = FindChildRecursive(transform, "Multiply");
+            }
 
-            RectTransform sourceRect = _claimRewardText.rectTransform;
-            RectTransform multiplierRect = multiplierObject.GetComponent<RectTransform>();
-            multiplierRect.anchorMin = sourceRect.anchorMin;
-            multiplierRect.anchorMax = sourceRect.anchorMax;
-            multiplierRect.pivot = sourceRect.pivot;
-            multiplierRect.sizeDelta = new Vector2(92f, sourceRect.sizeDelta.y);
-            multiplierRect.anchoredPosition = sourceRect.anchoredPosition + new Vector2(sourceRect.sizeDelta.x * 0.5f + 42f, 0f);
-            multiplierRect.localScale = sourceRect.localScale;
-            multiplierRect.localRotation = sourceRect.localRotation;
-
-            TextMeshProUGUI sourceText = _claimRewardText;
-            _claimRewardMultiplierText = multiplierObject.GetComponent<TextMeshProUGUI>();
-            _claimRewardMultiplierText.font = sourceText.font;
-            _claimRewardMultiplierText.fontSize = sourceText.fontSize;
-            _claimRewardMultiplierText.fontStyle = sourceText.fontStyle;
-            _claimRewardMultiplierText.alignment = TextAlignmentOptions.Center;
-            _claimRewardMultiplierText.color = sourceText.color;
-            _claimRewardMultiplierText.raycastTarget = false;
+            TextMeshProUGUI multiplyText = multiplyTransform != null
+                ? multiplyTransform.GetComponent<TextMeshProUGUI>()
+                : null;
+            if (multiplyText != null)
+            {
+                _claimRewardMultiplierText = multiplyText;
+            }
         }
 
         AssetProvider.ApplyDefaultTmpFont(_claimRewardMultiplierText);
@@ -1778,13 +2141,19 @@ public class ScratchCardView : MonoBehaviour, IPointerClickHandler, IPointerEnte
 
     private static string FormatRewardMultiplier(double rewardMultiplier)
     {
-        double normalizedMultiplier = rewardMultiplier > 0d ? rewardMultiplier : 1d;
-        return $"{normalizedMultiplier:0.##}";
+        double normalizedMultiplier = rewardMultiplier >= 0d ? rewardMultiplier : 1d;
+        return $"×{normalizedMultiplier:0.##}";
     }
 
-    private static string FormatRewardAmount(int score, double rewardMultiplier)
+    private static bool ShouldShowRewardMultiplier(double rewardMultiplier)
     {
-        return $"＄{ScratchSettlementResult.ApplyMultiplier(score, rewardMultiplier):N0}";
+        double normalizedMultiplier = rewardMultiplier >= 0d ? rewardMultiplier : 1d;
+        return System.Math.Abs(normalizedMultiplier - 1d) > 0.0001d;
+    }
+
+    private static string FormatRewardAmount(int score)
+    {
+        return $"{score:N0}";
     }
 
     private void HandleClaimRewardButtonClicked()

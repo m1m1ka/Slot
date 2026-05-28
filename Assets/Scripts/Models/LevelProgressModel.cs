@@ -10,11 +10,9 @@ public class LevelProgressModel
     public int ScratchCardPurchasesUsed { get; private set; }
     public bool IsPassed { get; private set; }
 
-    public int RemainingScratchCardPurchases =>
-        Math.Max(0, ScratchCardPurchaseLimit - ScratchCardPurchasesUsed);
+    public int RemainingScratchCardPurchases => int.MaxValue;
 
-    public bool CanPurchaseScratchCard =>
-        !IsPassed && ScratchCardPurchasesUsed < ScratchCardPurchaseLimit;
+    public bool CanPurchaseScratchCard => !IsPassed;
 
     public event Action<int, int> OnScratchCardPurchasesChanged;
     public event Action<bool> OnPassStateChanged;

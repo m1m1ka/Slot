@@ -2,56 +2,79 @@ using System.Collections.Generic;
 
 namespace Core
 {
-    /// <summary>
-    /// 任意图案达到三个或以上时获得额外奖励。
-    /// 当前先做一个简单示例实现。
-    /// </summary>
     public class MatchAnyThreeSettlementEvaluator : IScratchSettlementEvaluator
     {
+        private const double MatchScoreMultiplier = 1d;
+
         public ScratchSettlementResult Evaluate(ScratchCardModel model)
         {
-            if (model == null)
+            if (model == null || model.Cells == null)
             {
                 return new ScratchSettlementResult();
             }
 
-            var counts = new Dictionary<int, int>();
-            int bonus = 0;
+            Dictionary<int, List<ScratchCellModel>> cellsByPattern = BuildCellsByPattern(model);
             var winningPatternIds = new List<int>();
+            var scoredCellIndices = new List<int>();
+            var scoredCellScoreMultipliers = new List<double>();
+            int score = 0;
 
-            for (int i = 0; i < model.Cells.Count; i++)
+            foreach (KeyValuePair<int, List<ScratchCellModel>> pair in cellsByPattern)
             {
-                ScratchCellModel cell = model.Cells[i];
-                if (cell == null || !cell.IsScratchable || !cell.IsScratched)
+                List<ScratchCellModel> patternCells = pair.Value;
+                if (patternCells == null || patternCells.Count < 3)
                 {
                     continue;
                 }
 
-                if (!counts.ContainsKey(cell.PatternId))
+                winningPatternIds.Add(pair.Key);
+                patternCells.Sort((left, right) => left.ScratchOrder.CompareTo(right.ScratchOrder));
+                for (int i = 0; i < patternCells.Count; i++)
                 {
-                    counts[cell.PatternId] = 0;
-                }
-
-                counts[cell.PatternId]++;
-            }
-
-            foreach (KeyValuePair<int, int> pair in counts)
-            {
-                if (pair.Value >= 3)
-                {
-                    winningPatternIds.Add(pair.Key);
-                    bonus += 100 * pair.Value;
+                    ScratchCellModel cell = patternCells[i];
+                    double scoreMultiplier = MatchScoreMultiplier * ScratchPatternScoreService.GetScoreMultiplierOnScore(cell);
+                    score += ScratchPatternScoreService.GetCellScoreWithScoreMultiplier(model, cell, MatchScoreMultiplier);
+                    scoredCellIndices.Add(cell.CellIndex);
+                    scoredCellScoreMultipliers.Add(scoreMultiplier);
                 }
             }
 
-            int score = ScratchPatternScoreService.SumScratchableScores(model) + bonus;
             return new ScratchSettlementResult
             {
                 ScoreBeforeRewardMultiplier = score,
                 FinalScore = ScratchPatternScoreService.ApplyFinalScoreRules(model, score),
-                Summary = bonus > 0 ? "出现三个或更多相同图案。" : "没有三连图案加成。",
-                WinningPatternIds = winningPatternIds
+                Summary = score > 0 ? "出现三个或更多相同图案，命中图案计分。" : "没有三个或更多相同图案，不获得分数。",
+                WinningPatternIds = winningPatternIds,
+                ScoredCellIndices = scoredCellIndices,
+                ScoredCellScoreMultipliers = scoredCellScoreMultipliers
             };
+        }
+
+        private static Dictionary<int, List<ScratchCellModel>> BuildCellsByPattern(ScratchCardModel model)
+        {
+            var cellsByPattern = new Dictionary<int, List<ScratchCellModel>>();
+            for (int i = 0; i < model.Cells.Count; i++)
+            {
+                ScratchCellModel cell = model.Cells[i];
+                if (cell == null ||
+                    !cell.IsScratchable ||
+                    !cell.IsScratched ||
+                    ScratchPatternScoreService.ScoresDirectly(model, cell) ||
+                    ScratchPatternScoreService.ExcludeFromScratchToolScoring(model, cell))
+                {
+                    continue;
+                }
+
+                if (!cellsByPattern.TryGetValue(cell.PatternId, out List<ScratchCellModel> patternCells))
+                {
+                    patternCells = new List<ScratchCellModel>();
+                    cellsByPattern[cell.PatternId] = patternCells;
+                }
+
+                patternCells.Add(cell);
+            }
+
+            return cellsByPattern;
         }
     }
 }

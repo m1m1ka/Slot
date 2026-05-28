@@ -15,7 +15,8 @@ namespace Core
                 };
             }
 
-            int score = ScratchPatternScoreService.GetCellScore(model, firstCell);
+            double scoreMultiplier = ScratchPatternScoreService.GetScoreMultiplierOnScore(firstCell);
+            int score = ScratchPatternScoreService.GetCellScoreWithScoreMultiplier(model, firstCell);
             return new ScratchSettlementResult
             {
                 ScoreBeforeRewardMultiplier = score,
@@ -23,7 +24,7 @@ namespace Core
                 Summary = "第一个刮开的图案计分。",
                 WinningPatternIds = new List<int> { firstCell.PatternId },
                 ScoredCellIndices = new List<int> { firstCell.CellIndex },
-                ScoredCellScoreMultipliers = new List<double> { 1d }
+                ScoredCellScoreMultipliers = new List<double> { scoreMultiplier }
             };
         }
 
@@ -39,7 +40,12 @@ namespace Core
             for (int i = 0; i < model.Cells.Count; i++)
             {
                 ScratchCellModel cell = model.Cells[i];
-                if (cell == null || !cell.IsScratchable || !cell.IsScratched || cell.ScratchOrder < 0)
+                if (cell == null ||
+                    !cell.IsScratchable ||
+                    !cell.IsScratched ||
+                    cell.ScratchOrder < 0 ||
+                    ScratchPatternScoreService.ScoresDirectly(model, cell) ||
+                    ScratchPatternScoreService.ExcludeFromScratchToolScoring(model, cell))
                 {
                     continue;
                 }

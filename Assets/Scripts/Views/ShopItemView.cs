@@ -79,7 +79,7 @@ public class ShopItemView : MonoBehaviour, IPointerEnterHandler, IPointerExitHan
     /// <param name="slotId">唯一标识ID</param>
     /// <param name="slotName">老虎机名称</param>
     /// <param name="cost">购买需要的价格</param>
-    public void SetData(int slotId, string slotName, double cost, string iconAtlasPath = null, string iconSpriteName = null)
+    public void SetData(int slotId, string slotName, double cost, string iconPath = null)
     {
         _mySlotId = slotId;
         
@@ -89,7 +89,7 @@ public class ShopItemView : MonoBehaviour, IPointerEnterHandler, IPointerExitHan
         if (_costText != null) 
             _costText.text = $"{cost:N0}";
 
-        SetIcon(iconAtlasPath, iconSpriteName);
+        SetIcon(iconPath);
     }
 
     /// <summary>
@@ -132,7 +132,7 @@ public class ShopItemView : MonoBehaviour, IPointerEnterHandler, IPointerExitHan
             .OnComplete(() => _purchaseFeedbackTween = null);
     }
 
-    private void SetIcon(string atlasPath, string spriteName)
+    private void SetIcon(string iconPath)
     {
         EnsureIconImage();
         if (_iconImage == null)
@@ -140,8 +140,8 @@ public class ShopItemView : MonoBehaviour, IPointerEnterHandler, IPointerExitHan
             return;
         }
 
-        Sprite icon = !string.IsNullOrWhiteSpace(atlasPath) && !string.IsNullOrWhiteSpace(spriteName)
-            ? AssetProvider.LoadSpriteFromAtlas(atlasPath, spriteName)
+        Sprite icon = !string.IsNullOrWhiteSpace(iconPath)
+            ? AssetProvider.Load<Sprite>(iconPath)
             : null;
         _iconImage.sprite = icon;
         _iconImage.preserveAspect = true;

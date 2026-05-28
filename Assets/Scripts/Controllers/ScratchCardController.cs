@@ -13,14 +13,16 @@ public class ScratchCardController : MonoBehaviour
 {
     public event System.Action<ScratchCardController, bool> OnFocusStateChanged;
     public event System.Action<ScratchCardController, ScratchSettlementResult> OnRewardClaimed;
-    public event System.Action<ScratchCardController, int, double, bool> OnScoreDisplayChanged;
-    public event System.Action<ScratchCardController, RectTransform, int, bool, double> OnPatternScoreRevealed;
+    public event System.Action<ScratchCardController, int> OnScratchToolScoreSettled;
+    public event System.Action<ScratchCardController, int> OnRogueCardEffectTriggered;
+    public event System.Action<ScratchCardController, int> OnPatternScored;
 
     private ScratchCardView _view;
     private ScratchCardModel _model;
     private ScratchSettlementResult _settlementResult;
     private bool _rewardClaimed;
     private bool _isSettling;
+    private bool _settlementBonusesApplied;
     private Coroutine _settlementCoroutine;
     private float _lastScratchInputTime = float.MinValue;
     private bool _isScratchSoundPlaying;
@@ -32,8 +34,9 @@ public class ScratchCardController : MonoBehaviour
     private readonly HashSet<string> _animatedScoreKeys = new HashSet<string>();
 
     private const float ScratchLoopStopDelay = 0.2f;
-    private const float ToolSettlementStepDelay = 0.35f;
-    private const float PatternSettlementStepDelay = 0.18f;
+    private const float ToolSettlementStepDelay = 0.3f;
+    private const float PatternSettlementStepDelay = 0.15f;
+    private const float RogueCardSettlementStartDelay = 0.12f;
     private const float ScratchDirectionSoundThreshold = 0.5f;
     private const float SettlementDingBasePitch = 1f;
     private const float SettlementDingPitchStep = 0.12f;
@@ -60,12 +63,13 @@ public class ScratchCardController : MonoBehaviour
         BindModel();
         BindView();
 
-        _view.BindCardData(_model.Cells);
+        _view.BindCardData(_model.Cells, _model.WinDescription);
         _view.SetupInitialVisual();
         _view.PlaySpawnAnimation(spawnFrom, spawnTo);
         _settlementResult = null;
         _rewardClaimed = false;
         _isSettling = false;
+        _settlementBonusesApplied = false;
         _settlementCoroutine = null;
         _currentRevealedReward = 0;
         _scratchRevealOrder = 0;
@@ -162,21 +166,18 @@ public class ScratchCardController : MonoBehaviour
                 OnFocusStateChanged?.Invoke(this, true);
                 _view.SetFocused(true);
                 UpdateSettlementButtonView();
-                RaiseScoreDisplayChanged(true);
                 break;
             case ScratchCardModel.ScratchCardState.Idle:
                 StopScratchSound();
                 OnFocusStateChanged?.Invoke(this, false);
                 _view.SetFocused(false);
                 _view.HideClaimRewardButton();
-                RaiseScoreDisplayChanged(false);
                 break;
             case ScratchCardModel.ScratchCardState.Completed:
                 StopScratchSound();
                 OnFocusStateChanged?.Invoke(this, true);
                 _view.SetFocused(true);
                 UpdateSettlementButtonView();
-                RaiseScoreDisplayChanged(true);
                 break;
         }
     }
@@ -202,7 +203,7 @@ public class ScratchCardController : MonoBehaviour
                 _settlementResult.ScoreBeforeRewardMultiplier);
         }
 
-        RaiseScoreDisplayChanged(IsInFocusedState());
+        UpdateSettlementButtonView();
     }
 
     private void HandleScratchLayerCleared()
@@ -273,7 +274,7 @@ public class ScratchCardController : MonoBehaviour
         {
             int scoredCellIndex = result.ScoredCellIndices[i];
             double scoreMultiplier = GetScoredCellMultiplier(result, i);
-            string scoreKey = BuildScoreKey(scoredCellIndex, scoreMultiplier);
+            string scoreKey = BuildAnimationScoreKey(result, scoredCellIndex, scoreMultiplier);
             if (_animatedScoreKeys.Contains(scoreKey))
             {
                 continue;
@@ -296,6 +297,7 @@ public class ScratchCardController : MonoBehaviour
             }
 
             bool playedPatternGroup = false;
+            var triggeredRogueCardIds = new HashSet<int>();
             for (int j = i; j < result.ScoredCellIndices.Count; j++)
             {
                 int groupedCellIndex = result.ScoredCellIndices[j];
@@ -311,20 +313,31 @@ public class ScratchCardController : MonoBehaviour
                     continue;
                 }
 
-                string groupedScoreKey = BuildScoreKey(groupedCellIndex, groupedScoreMultiplier);
+                string groupedScoreKey = BuildAnimationScoreKey(result, groupedCellIndex, groupedScoreMultiplier);
                 if (!_animatedScoreKeys.Add(groupedScoreKey))
                 {
                     continue;
                 }
 
-                int cellScore = ScratchPatternScoreService.GetCellScore(_model, groupedCell);
-                RectTransform sourceRect = _view.PlayPatternScorePulse(groupedCellIndex);
-                OnPatternScoreRevealed?.Invoke(this, sourceRect, cellScore, groupedCell.IsBaseScoreEnhanced, groupedScoreMultiplier);
+                OnPatternScored?.Invoke(this, groupedCell.PatternId);
+                string floatText = GetScoredCellFloatText(result, j);
+                if (!string.IsNullOrWhiteSpace(floatText))
+                {
+                    _view.PlayPatternEffectTextReveal(groupedCellIndex, floatText);
+                }
+                else
+                {
+                    int cellScore = ScratchPatternScoreService.GetCellScore(_model, groupedCell);
+                    _view.PlayPatternScoreReveal(groupedCellIndex, cellScore, groupedCell.IsBaseScoreEnhanced, groupedScoreMultiplier);
+                }
+
+                AddRogueCardEffectSourceIds(triggeredRogueCardIds, groupedCell);
                 playedPatternGroup = true;
             }
 
             if (playedPatternGroup)
             {
+                RaiseRogueCardEffectTriggered(triggeredRogueCardIds);
                 PlaySettlementDing();
                 yield return new WaitForSecondsRealtime(PatternSettlementStepDelay);
             }
@@ -376,6 +389,22 @@ public class ScratchCardController : MonoBehaviour
         return $"{cellIndex}:{scoreMultiplier:0.####}";
     }
 
+    private static string BuildAnimationScoreKey(ScratchSettlementResult result, int cellIndex, double scoreMultiplier)
+    {
+        int sourceToolId = result != null ? result.SourceScratchToolId : -1;
+        return $"{sourceToolId}:{cellIndex}:{scoreMultiplier:0.####}";
+    }
+
+    private static string GetScoredCellFloatText(ScratchSettlementResult result, int index)
+    {
+        if (result?.ScoredCellFloatTexts != null && index >= 0 && index < result.ScoredCellFloatTexts.Count)
+        {
+            return result.ScoredCellFloatTexts[index];
+        }
+
+        return null;
+    }
+
     private void ApplyCellRevealEffects(ScratchCellModel cell)
     {
         double bonus = ScratchPatternScoreService.GetRewardMultiplierBonusOnReveal(cell);
@@ -410,12 +439,37 @@ public class ScratchCardController : MonoBehaviour
         _view.SetScratchInputEnabled(false);
         _currentRevealedReward = 0;
         _settlementDingIndex = 0;
-        _view.ShowSettlementInProgressButton(_currentRevealedReward, _model != null ? _model.RewardMultiplier : 1d);
-        RaiseScoreDisplayChanged(IsInFocusedState());
+        _view.ShowSettlementInProgressButton(_currentRevealedReward, GetDisplayRewardMultiplier());
 
         _settlementResult = new ScratchSettlementResult();
+        List<ScratchSettlementResult> intrinsicWinResults = ScratchCardIntrinsicWinSettlementService.EvaluateByRuleOrder(_model);
         List<ScratchSettlementResult> toolResults = ScratchToolSettlementService.EvaluateByToolOrder(_model);
         var summaries = new List<string>();
+
+        for (int i = 0; i < intrinsicWinResults.Count; i++)
+        {
+            ScratchSettlementResult intrinsicResult = intrinsicWinResults[i];
+            if (intrinsicResult == null)
+            {
+                continue;
+            }
+
+            MergeSettlementResult(_settlementResult, intrinsicResult);
+            if (!string.IsNullOrWhiteSpace(intrinsicResult.Summary))
+            {
+                summaries.Add(intrinsicResult.Summary);
+            }
+
+            _currentRevealedReward = _settlementResult.ScoreBeforeRewardMultiplier;
+            ApplyScoredCellRewardMultiplierBonuses(intrinsicResult);
+            _view.ShowSettlementInProgressButton(_currentRevealedReward, GetDisplayRewardMultiplier());
+            yield return PlayNewScoreAnimations(intrinsicResult);
+
+            if (i < intrinsicWinResults.Count - 1 || toolResults.Count > 0)
+            {
+                yield return new WaitForSecondsRealtime(ToolSettlementStepDelay);
+            }
+        }
 
         for (int i = 0; i < toolResults.Count; i++)
         {
@@ -433,9 +487,9 @@ public class ScratchCardController : MonoBehaviour
 
             _currentRevealedReward = _settlementResult.ScoreBeforeRewardMultiplier;
             ApplyScoredCellRewardMultiplierBonuses(toolResult);
-            _view.ShowSettlementInProgressButton(_currentRevealedReward, _model != null ? _model.RewardMultiplier : 1d);
+            _view.ShowSettlementInProgressButton(_currentRevealedReward, GetDisplayRewardMultiplier());
+            RaiseScratchToolScoreSettled(toolResult);
             yield return PlayNewScoreAnimations(toolResult);
-            RaiseScoreDisplayChanged(IsInFocusedState());
 
             if (i < toolResults.Count - 1)
             {
@@ -443,15 +497,15 @@ public class ScratchCardController : MonoBehaviour
             }
         }
 
+        yield return ApplySettlementRogueCardBonuses();
+
         _settlementResult.FinalScore = ScratchPatternScoreService.ApplyFinalScoreRules(
             _model,
             _settlementResult.ScoreBeforeRewardMultiplier);
         _settlementResult.Summary = summaries.Count > 0 ? string.Join(" ", summaries) : "\u6ca1\u6709\u89e6\u53d1\u522e\u5177\u8ba1\u5206\u3002";
-
         _isSettling = false;
         _settlementCoroutine = null;
-        _view.ShowClaimRewardButton(_settlementResult.ScoreBeforeRewardMultiplier, _model.RewardMultiplier);
-        RaiseScoreDisplayChanged(IsInFocusedState());
+        _view.ShowClaimRewardButton(GetDisplayRewardBeforeMultiplier(), GetDisplayRewardMultiplier());
 
         Debug.Log(
             $"[ScratchCardController] Scratch card {_model.CardId} settled. " +
@@ -467,7 +521,6 @@ public class ScratchCardController : MonoBehaviour
 
         _rewardClaimed = true;
         _view.HideClaimRewardButton();
-        RaiseScoreDisplayChanged(false);
         AudioManager.Instance?.PlayCue(AudioCueId.GainMoney);
         OnRewardClaimed?.Invoke(this, _settlementResult);
     }
@@ -481,19 +534,19 @@ public class ScratchCardController : MonoBehaviour
 
         if (_isSettling)
         {
-            _view.ShowSettlementInProgressButton(_currentRevealedReward, _model != null ? _model.RewardMultiplier : 1d);
+            _view.ShowSettlementInProgressButton(_currentRevealedReward, GetDisplayRewardMultiplier());
             _view.SetScratchInputEnabled(false);
             return;
         }
 
         if (_settlementResult != null)
         {
-            _view.ShowClaimRewardButton(_settlementResult.ScoreBeforeRewardMultiplier, _model != null ? _model.RewardMultiplier : 1d);
+            _view.ShowClaimRewardButton(GetDisplayRewardBeforeMultiplier(), GetDisplayRewardMultiplier());
             _view.SetScratchInputEnabled(false);
             return;
         }
 
-        _view.ShowSettleButton(_model != null ? _model.RewardMultiplier : 1d);
+        _view.ShowSettleButton(GetDisplayRewardMultiplier());
         _view.SetScratchInputEnabled(true);
     }
 
@@ -508,6 +561,53 @@ public class ScratchCardController : MonoBehaviour
         AddRange(target.WinningPatternIds, source.WinningPatternIds);
         AddRange(target.ScoredCellIndices, source.ScoredCellIndices);
         AddRange(target.ScoredCellScoreMultipliers, source.ScoredCellScoreMultipliers);
+        AddRange(target.ScoredCellFloatTexts, source.ScoredCellFloatTexts);
+    }
+
+    private void RaiseScratchToolScoreSettled(ScratchSettlementResult toolResult)
+    {
+        if (toolResult == null || toolResult.SourceScratchToolId < 0)
+        {
+            return;
+        }
+
+        bool hasPatternScore = toolResult.ScoredCellIndices != null && toolResult.ScoredCellIndices.Count > 0;
+        if (!hasPatternScore && toolResult.ScoreBeforeRewardMultiplier <= 0)
+        {
+            return;
+        }
+
+        OnScratchToolScoreSettled?.Invoke(this, toolResult.SourceScratchToolId);
+    }
+
+    private void AddRogueCardEffectSourceIds(HashSet<int> target, ScratchCellModel cell)
+    {
+        if (target == null || cell?.RogueCardEffectSourceIds == null)
+        {
+            return;
+        }
+
+        for (int i = 0; i < cell.RogueCardEffectSourceIds.Count; i++)
+        {
+            int rogueCardId = cell.RogueCardEffectSourceIds[i];
+            if (rogueCardId > 0)
+            {
+                target.Add(rogueCardId);
+            }
+        }
+    }
+
+    private void RaiseRogueCardEffectTriggered(HashSet<int> rogueCardIds)
+    {
+        if (rogueCardIds == null || rogueCardIds.Count == 0)
+        {
+            return;
+        }
+
+        foreach (int rogueCardId in rogueCardIds)
+        {
+            OnRogueCardEffectTriggered?.Invoke(this, rogueCardId);
+        }
     }
 
     private static void AddRange<T>(List<T> target, List<T> source)
@@ -523,13 +623,79 @@ public class ScratchCardController : MonoBehaviour
         }
     }
 
-    private void RaiseScoreDisplayChanged(bool visible)
+    private int GetDisplayRewardBeforeMultiplier()
     {
-        OnScoreDisplayChanged?.Invoke(
-            this,
-            _currentRevealedReward,
-            _model != null ? _model.RewardMultiplier : 1d,
-            visible);
+        if (_settlementResult != null && (!_isSettling || _settlementBonusesApplied))
+        {
+            return ScratchPatternScoreService.GetScoreBeforeFinalMultiplier(
+                _model,
+                _settlementResult.ScoreBeforeRewardMultiplier);
+        }
+
+        return _currentRevealedReward;
+    }
+
+    private double GetDisplayRewardMultiplier()
+    {
+        if (_model == null)
+        {
+            return 1d;
+        }
+
+        return _settlementResult != null && (!_isSettling || _settlementBonusesApplied)
+            ? ScratchPatternScoreService.GetFinalRewardMultiplier(_model)
+            : _model.RewardMultiplier;
+    }
+
+    private IEnumerator ApplySettlementRogueCardBonuses()
+    {
+        if (!HasSettlementRogueCardBonuses())
+        {
+            yield break;
+        }
+
+        yield return new WaitForSecondsRealtime(RogueCardSettlementStartDelay);
+        _settlementBonusesApplied = true;
+        RaiseSettlementBonusEffects();
+        _view.ShowSettlementInProgressButton(GetDisplayRewardBeforeMultiplier(), GetDisplayRewardMultiplier());
+        PlaySettlementDing();
+        yield return new WaitForSecondsRealtime(ToolSettlementStepDelay);
+    }
+
+    private bool HasSettlementRogueCardBonuses()
+    {
+        return _model != null &&
+            (_model.SettlementScoreBonus != 0 || _model.SettlementMultiplierBonus > 0d);
+    }
+
+    private void RaiseSettlementBonusEffects()
+    {
+        if (_model == null)
+        {
+            return;
+        }
+
+        var triggeredCardIds = new HashSet<int>();
+        AddRogueCardEffectSourceIds(triggeredCardIds, _model.SettlementScoreBonusSourceCardIds, _model.SettlementScoreBonus != 0);
+        AddRogueCardEffectSourceIds(triggeredCardIds, _model.SettlementMultiplierBonusSourceCardIds, _model.SettlementMultiplierBonus > 0d);
+        RaiseRogueCardEffectTriggered(triggeredCardIds);
+    }
+
+    private static void AddRogueCardEffectSourceIds(HashSet<int> target, IReadOnlyList<int> sourceCardIds, bool shouldAdd)
+    {
+        if (!shouldAdd || target == null || sourceCardIds == null)
+        {
+            return;
+        }
+
+        for (int i = 0; i < sourceCardIds.Count; i++)
+        {
+            int sourceCardId = sourceCardIds[i];
+            if (sourceCardId > 0)
+            {
+                target.Add(sourceCardId);
+            }
+        }
     }
 
     private void TryExitFocus(Vector2 screenPoint)

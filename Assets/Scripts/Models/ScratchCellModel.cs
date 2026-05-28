@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using Configs;
 
 /// <summary>
@@ -12,7 +14,10 @@ public class ScratchCellModel
     public string PatternName { get; }
     public int BaseScore { get; }
     public bool IsBaseScoreEnhanced { get; }
+    public bool IsGiantFruit { get; }
+    public double ScoreMultiplierOnScore { get; }
     public double RewardMultiplierBonusOnScore { get; }
+    public IReadOnlyList<int> RogueCardEffectSourceIds { get; }
     public ScratchPatternEffectType PatternEffectType { get; }
     public double PatternEffectValue { get; }
     public bool IsScratchable { get; }
@@ -28,7 +33,10 @@ public class ScratchCellModel
         int baseScore,
         bool isScratchable,
         bool isBaseScoreEnhanced = false,
+        bool isGiantFruit = false,
+        double scoreMultiplierOnScore = 1d,
         double rewardMultiplierBonusOnScore = 0d,
+        IReadOnlyList<int> rogueCardEffectSourceIds = null,
         ScratchPatternEffectType patternEffectType = ScratchPatternEffectType.None,
         double patternEffectValue = 0d)
     {
@@ -40,7 +48,12 @@ public class ScratchCellModel
         BaseScore = baseScore;
         IsScratchable = isScratchable;
         IsBaseScoreEnhanced = isBaseScoreEnhanced;
+        IsGiantFruit = isGiantFruit;
+        ScoreMultiplierOnScore = scoreMultiplierOnScore > 0d ? scoreMultiplierOnScore : 1d;
         RewardMultiplierBonusOnScore = rewardMultiplierBonusOnScore > 0d ? rewardMultiplierBonusOnScore : 0d;
+        RogueCardEffectSourceIds = rogueCardEffectSourceIds != null
+            ? (IReadOnlyList<int>)new List<int>(rogueCardEffectSourceIds)
+            : Array.Empty<int>();
         PatternEffectType = patternEffectType;
         PatternEffectValue = patternEffectValue;
     }
