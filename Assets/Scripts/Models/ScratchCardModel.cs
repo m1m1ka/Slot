@@ -27,12 +27,17 @@ public class ScratchCardModel
     public int AreaTemplateId { get; }
     public IReadOnlyList<ScratchCellModel> Cells { get; }
     public IReadOnlyList<ScratchToolConfig> ScratchTools { get; }
+    public IReadOnlyList<ScratchCardExtraEffectConfig> ExtraEffects { get; }
     public IReadOnlyList<ScratchCardWinRuleConfig> WinRules { get; }
     public int TotalBaseScore { get; }
     public int SettlementScoreBonus { get; }
     public IReadOnlyList<int> SettlementScoreBonusSourceCardIds { get; }
     public double SettlementMultiplierBonus { get; }
     public IReadOnlyList<int> SettlementMultiplierBonusSourceCardIds { get; }
+    public IReadOnlyList<PatternRevealConversionRuleModel> PatternRevealConversionRules { get; }
+    public IReadOnlyList<AdjacentPatternMetalConversionRuleModel> AdjacentPatternMetalConversionRules { get; }
+    public IReadOnlyList<PatternSettlementScoreBonusRuleModel> PatternSettlementScoreBonusRules { get; }
+    public IReadOnlyList<PatternSettlementMultiplierBonusRuleModel> PatternSettlementMultiplierBonusRules { get; }
     private double _rewardMultiplier = 1d;
 
     public double RewardMultiplier => _rewardMultiplier;
@@ -55,7 +60,11 @@ public class ScratchCardModel
         int settlementScoreBonus = 0,
         IReadOnlyList<int> settlementScoreBonusSourceCardIds = null,
         double settlementMultiplierBonus = 0d,
-        IReadOnlyList<int> settlementMultiplierBonusSourceCardIds = null)
+        IReadOnlyList<int> settlementMultiplierBonusSourceCardIds = null,
+        IReadOnlyList<PatternRevealConversionRuleModel> patternRevealConversionRules = null,
+        IReadOnlyList<AdjacentPatternMetalConversionRuleModel> adjacentPatternMetalConversionRules = null,
+        IReadOnlyList<PatternSettlementScoreBonusRuleModel> patternSettlementScoreBonusRules = null,
+        IReadOnlyList<PatternSettlementMultiplierBonusRuleModel> patternSettlementMultiplierBonusRules = null)
     {
         CardId = cardId;
         SourceSlotId = sourceSlotId;
@@ -67,6 +76,9 @@ public class ScratchCardModel
         AreaTemplateId = areaTemplateConfig != null ? areaTemplateConfig.Id : 0;
         Cells = cells ?? Array.Empty<ScratchCellModel>();
         ScratchTools = scratchTools ?? Array.Empty<ScratchToolConfig>();
+        ExtraEffects = cardTypeConfig != null && cardTypeConfig.ExtraEffects != null
+            ? (IReadOnlyList<ScratchCardExtraEffectConfig>)new List<ScratchCardExtraEffectConfig>(cardTypeConfig.ExtraEffects)
+            : Array.Empty<ScratchCardExtraEffectConfig>();
         WinRules = cardTypeConfig != null && cardTypeConfig.WinRules != null
             ? (IReadOnlyList<ScratchCardWinRuleConfig>)new List<ScratchCardWinRuleConfig>(cardTypeConfig.WinRules)
             : Array.Empty<ScratchCardWinRuleConfig>();
@@ -79,6 +91,18 @@ public class ScratchCardModel
         SettlementMultiplierBonusSourceCardIds = settlementMultiplierBonusSourceCardIds != null
             ? (IReadOnlyList<int>)new List<int>(settlementMultiplierBonusSourceCardIds)
             : Array.Empty<int>();
+        PatternRevealConversionRules = patternRevealConversionRules != null
+            ? (IReadOnlyList<PatternRevealConversionRuleModel>)new List<PatternRevealConversionRuleModel>(patternRevealConversionRules)
+            : Array.Empty<PatternRevealConversionRuleModel>();
+        AdjacentPatternMetalConversionRules = adjacentPatternMetalConversionRules != null
+            ? (IReadOnlyList<AdjacentPatternMetalConversionRuleModel>)new List<AdjacentPatternMetalConversionRuleModel>(adjacentPatternMetalConversionRules)
+            : Array.Empty<AdjacentPatternMetalConversionRuleModel>();
+        PatternSettlementScoreBonusRules = patternSettlementScoreBonusRules != null
+            ? (IReadOnlyList<PatternSettlementScoreBonusRuleModel>)new List<PatternSettlementScoreBonusRuleModel>(patternSettlementScoreBonusRules)
+            : Array.Empty<PatternSettlementScoreBonusRuleModel>();
+        PatternSettlementMultiplierBonusRules = patternSettlementMultiplierBonusRules != null
+            ? (IReadOnlyList<PatternSettlementMultiplierBonusRuleModel>)new List<PatternSettlementMultiplierBonusRuleModel>(patternSettlementMultiplierBonusRules)
+            : Array.Empty<PatternSettlementMultiplierBonusRuleModel>();
         _rewardMultiplier = NormalizeRewardMultiplier(rewardMultiplier);
         ScratchProgress = 0f;
         State = ScratchCardState.Falling;

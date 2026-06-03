@@ -11,6 +11,7 @@ namespace Configs
         public int BaseScore { get; set; }
         public string AtlasPath { get; set; }
         public string SpriteName { get; set; }
+        public string SpritePath { get; set; }
         public ScratchPatternEffectType EffectType { get; set; }
         public double EffectValue { get; set; }
     }

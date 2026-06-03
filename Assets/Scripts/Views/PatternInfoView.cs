@@ -30,10 +30,12 @@ public class PatternInfoView : MonoBehaviour
             return;
         }
 
-        Sprite sprite = AssetProvider.LoadSpriteFromAtlas(pattern.AtlasPath, pattern.SpriteName);
+        Sprite sprite = !string.IsNullOrWhiteSpace(pattern.SpritePath)
+            ? AssetProvider.Load<Sprite>(pattern.SpritePath)
+            : AssetProvider.LoadSpriteFromAtlas(pattern.AtlasPath, pattern.SpriteName);
         SetIcon(sprite);
 
-        SetText(_scoreText, $"+{pattern.BaseScore}");
+        SetText(_scoreText, NumberFormatter.FormatSignedCompact(pattern.BaseScore));
         SetText(_probabilityText, FormatProbability(pattern.Probability));
 
         if (_scoreText != null)

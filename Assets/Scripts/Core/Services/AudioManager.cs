@@ -204,6 +204,28 @@ namespace Core
             _currentLoopCueId = AudioCueId.None;
         }
 
+        public float GetCueDuration(AudioCueId cueId)
+        {
+            if (cueId == AudioCueId.None)
+            {
+                return 0f;
+            }
+
+            if (!_cueLookup.TryGetValue(cueId, out AudioCueDefinition cue) || cue == null)
+            {
+                return 0f;
+            }
+
+            AudioClip clip = LoadCueClip(cue);
+            if (clip == null)
+            {
+                return 0f;
+            }
+
+            float pitch = Mathf.Abs(cue.Pitch);
+            return pitch > 0.001f ? clip.length / pitch : clip.length;
+        }
+
         public void PlayMusic(AudioClip clip, float fadeDuration = 0.5f, bool loop = true)
         {
             if (clip == null)
@@ -448,6 +470,9 @@ namespace Core
             RegisterCue(new AudioCueDefinition { Id = AudioCueId.ScratchRight, ResourcesPath = "Audio/Sfx/Scratch_Right", VolumeScale = 0.8f, Cooldown = 0.05f });
             RegisterCue(new AudioCueDefinition { Id = AudioCueId.ScratchLeft, ResourcesPath = "Audio/Sfx/Scratch_Left", VolumeScale = 0.8f, Cooldown = 0.05f });
             RegisterCue(new AudioCueDefinition { Id = AudioCueId.Ding, ResourcesPath = "Audio/Sfx/Ding", VolumeScale = 0.9f, Cooldown = 0.04f });
+            RegisterCue(new AudioCueDefinition { Id = AudioCueId.LevelPassCharging, ResourcesPath = "Audio/Sfx/charging", VolumeScale = 0.9f, Cooldown = 0.05f });
+            RegisterCue(new AudioCueDefinition { Id = AudioCueId.LevelPassWin, ResourcesPath = "Audio/Sfx/win", VolumeScale = 1f, Cooldown = 0.05f });
+            RegisterCue(new AudioCueDefinition { Id = AudioCueId.CoinPouring, ResourcesPath = "Audio/Sfx/CoinPouring", VolumeScale = 1f, Cooldown = 0.15f });
             RegisterCue(new AudioCueDefinition { Id = AudioCueId.MainMusic, Kind = AudioCueKind.Music, ResourcesPath = "Audio/Music/Main", VolumeScale = 1f, FadeDuration = 0.6f, Loop = true });
         }
 

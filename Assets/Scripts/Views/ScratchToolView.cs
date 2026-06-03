@@ -22,15 +22,32 @@ public class ScratchToolView : MonoBehaviour, IPointerEnterHandler, IPointerExit
     [SerializeField] private float _settlementPulseScale = 1.18f;
     [SerializeField] private float _settlementPulseDuration = 0.26f;
 
+    [Header("Hover Feedback")]
+    [SerializeField] private float _hoverOffsetY = 28f;
+    [SerializeField] private float _hoverScale = 1.08f;
+    [SerializeField] private float _hoverDuration = 0.16f;
+
     private Tween _settlementPulseTween;
+    private Tween _hoverTween;
+    private RectTransform _rectTransform;
+    private Vector2 _initialAnchoredPosition;
     private Vector3 _initialScale = Vector3.one;
+    private bool _hasInitialAnchoredPosition;
+    private bool _isHovered;
     private bool _useRewardDescription;
 
     public int ToolId { get; private set; } = -1;
 
     private void Awake()
     {
+        _rectTransform = transform as RectTransform;
         _initialScale = transform.localScale;
+        if (_rectTransform != null)
+        {
+            _initialAnchoredPosition = _rectTransform.anchoredPosition;
+            _hasInitialAnchoredPosition = true;
+        }
+
         EnsureReferences();
         EnsureHoverRaycastTarget();
         HideDescription();
@@ -76,25 +93,30 @@ public class ScratchToolView : MonoBehaviour, IPointerEnterHandler, IPointerExit
         }
 
         _settlementPulseTween?.Kill();
-        transform.localScale = _initialScale;
+        Vector3 baseScale = _isHovered
+            ? _initialScale * Mathf.Max(1f, _hoverScale)
+            : _initialScale;
+        transform.localScale = baseScale;
 
         float resolvedPulseScale = Mathf.Max(1f, _settlementPulseScale);
         float halfDuration = Mathf.Max(0.01f, _settlementPulseDuration * 0.5f);
         _settlementPulseTween = DOTween.Sequence()
             .SetUpdate(true)
-            .Append(transform.DOScale(_initialScale * resolvedPulseScale, halfDuration).SetEase(Ease.OutCubic))
-            .Append(transform.DOScale(_initialScale, halfDuration).SetEase(Ease.OutCubic))
+            .Append(transform.DOScale(baseScale * resolvedPulseScale, halfDuration).SetEase(Ease.OutCubic))
+            .Append(transform.DOScale(baseScale, halfDuration).SetEase(Ease.OutCubic))
             .OnComplete(() => _settlementPulseTween = null);
     }
 
     public void OnPointerEnter(PointerEventData eventData)
     {
         ShowDescription();
+        PlayHover(true);
     }
 
     public void OnPointerExit(PointerEventData eventData)
     {
         HideDescription();
+        PlayHover(false);
     }
 
     public void ShowDescription()
@@ -246,10 +268,75 @@ public class ScratchToolView : MonoBehaviour, IPointerEnterHandler, IPointerExit
         }
     }
 
+    private void PlayHover(bool hovering)
+    {
+        if (hovering && !_isHovered)
+        {
+            CaptureCurrentTransformAsRestingState();
+        }
+
+        _isHovered = hovering;
+        CaptureInitialTransformIfNeeded();
+        _hoverTween?.Kill();
+        _settlementPulseTween?.Kill();
+        _settlementPulseTween = null;
+
+        Vector3 targetScale = hovering
+            ? _initialScale * Mathf.Max(1f, _hoverScale)
+            : _initialScale;
+        Vector2 targetPosition = _initialAnchoredPosition + (hovering ? new Vector2(0f, _hoverOffsetY) : Vector2.zero);
+
+        var sequence = DOTween.Sequence().SetUpdate(true);
+        sequence.Join(transform.DOScale(targetScale, Mathf.Max(0.01f, _hoverDuration)).SetEase(Ease.OutCubic));
+        if (_rectTransform != null)
+        {
+            sequence.Join(_rectTransform.DOAnchorPos(targetPosition, Mathf.Max(0.01f, _hoverDuration)).SetEase(Ease.OutCubic));
+        }
+
+        _hoverTween = sequence.OnComplete(() => _hoverTween = null);
+    }
+
+    private void CaptureInitialTransformIfNeeded()
+    {
+        if (_rectTransform == null)
+        {
+            _rectTransform = transform as RectTransform;
+        }
+
+        if (!_hasInitialAnchoredPosition && _rectTransform != null)
+        {
+            _initialAnchoredPosition = _rectTransform.anchoredPosition;
+            _hasInitialAnchoredPosition = true;
+        }
+    }
+
+    private void CaptureCurrentTransformAsRestingState()
+    {
+        if (_rectTransform == null)
+        {
+            _rectTransform = transform as RectTransform;
+        }
+
+        _initialScale = transform.localScale;
+        if (_rectTransform != null)
+        {
+            _initialAnchoredPosition = _rectTransform.anchoredPosition;
+            _hasInitialAnchoredPosition = true;
+        }
+    }
+
     private void OnDisable()
     {
         _settlementPulseTween?.Kill();
         _settlementPulseTween = null;
+        _hoverTween?.Kill();
+        _hoverTween = null;
+        _isHovered = false;
+        if (_rectTransform != null && _hasInitialAnchoredPosition)
+        {
+            _rectTransform.anchoredPosition = _initialAnchoredPosition;
+        }
+
         transform.localScale = _initialScale;
         HideDescription();
     }
@@ -258,5 +345,7 @@ public class ScratchToolView : MonoBehaviour, IPointerEnterHandler, IPointerExit
     {
         _settlementPulseTween?.Kill();
         _settlementPulseTween = null;
+        _hoverTween?.Kill();
+        _hoverTween = null;
     }
 }

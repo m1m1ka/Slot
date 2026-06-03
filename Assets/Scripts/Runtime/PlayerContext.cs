@@ -9,11 +9,13 @@ public class PlayerContext
     public PlayerModel Player { get; }
     public RogueCardInventoryModel RogueCards { get; }
     public ScratchToolInventoryModel ScratchTools { get; }
+    public ScratchCardInventoryModel ScratchCards { get; }
 
     public PlayerContext(double initialCoins = 0)
     {
         Player = new PlayerModel(initialCoins);
         RogueCards = new RogueCardInventoryModel();
         ScratchTools = new ScratchToolInventoryModel(ScratchToolDefaultsProvider.GetStarterTools());
+        ScratchCards = new ScratchCardInventoryModel(ScratchCardInventoryModel.GetStarterCardTypes());
     }
 }

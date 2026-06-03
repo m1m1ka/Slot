@@ -50,9 +50,10 @@ Material:
     - _FlowSpeed: -0.67
     - _FlowStrength: 0.75
     - _GlowStrength: 0.64
+    - _HighlightAmount: 0
     - _HueOffset: 0.566
     - _OutlineAlpha: 1
-    - _OutlineWidth: 4.11
+    - _OutlineWidth: 12
     - _Saturation: 0.721
     - _Stencil: 0
     - _StencilComp: 8

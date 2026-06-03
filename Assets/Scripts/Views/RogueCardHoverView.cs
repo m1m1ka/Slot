@@ -6,6 +6,7 @@ public class RogueCardHoverView : MonoBehaviour, IPointerEnterHandler, IPointerE
 {
     [SerializeField] private float _hoverOffsetY = 80f;
     [SerializeField] private float _hoverDuration = 0.16f;
+    [SerializeField] private float _hoverScale = 1.08f;
     [SerializeField] private GameObject _effectOutline;
     [SerializeField] private float _effectScale = 1.2f;
     [SerializeField] private float _effectDuration = 0.2f;
@@ -18,6 +19,7 @@ public class RogueCardHoverView : MonoBehaviour, IPointerEnterHandler, IPointerE
     private Vector3 _initialScale = Vector3.one;
     private bool _isHovered;
     private bool _hasRestingPosition;
+    private bool _pointerInteractionEnabled = true;
 
     public int CardId { get; private set; }
 
@@ -37,6 +39,54 @@ public class RogueCardHoverView : MonoBehaviour, IPointerEnterHandler, IPointerE
     public void BindCardId(int cardId)
     {
         CardId = cardId;
+    }
+
+    public void SetPointerInteractionEnabled(bool enabled)
+    {
+        _pointerInteractionEnabled = enabled;
+        if (enabled)
+        {
+            return;
+        }
+
+        _isHovered = false;
+        _hoverTween?.Kill();
+        _hoverTween = null;
+    }
+
+    public void CaptureCurrentTransformAsRestingState()
+    {
+        _hoverTween?.Kill();
+        _hoverTween = null;
+        _effectTween?.Kill();
+        _effectTween = null;
+
+        _initialRotation = transform.localRotation;
+        _initialScale = transform.localScale;
+        _isHovered = false;
+        if (_rectTransform != null)
+        {
+            _restingAnchoredPosition = _rectTransform.anchoredPosition;
+            _hasRestingPosition = true;
+        }
+    }
+
+    public void RefreshHoverState(Vector2 screenPosition, Camera eventCamera)
+    {
+        if (!_pointerInteractionEnabled || _rectTransform == null)
+        {
+            return;
+        }
+
+        bool containsPointer = RectTransformUtility.RectangleContainsScreenPoint(_rectTransform, screenPosition, eventCamera);
+        if (containsPointer && !_isHovered)
+        {
+            BeginHover();
+        }
+        else if (!containsPointer && _isHovered)
+        {
+            EndHover();
+        }
     }
 
     public void PlayEffectTriggeredAnimation()
@@ -66,11 +116,36 @@ public class RogueCardHoverView : MonoBehaviour, IPointerEnterHandler, IPointerE
 
     public void OnPointerEnter(PointerEventData eventData)
     {
+        if (!_pointerInteractionEnabled)
+        {
+            return;
+        }
+
         if (_rectTransform == null)
         {
             return;
         }
 
+        BeginHover();
+    }
+
+    public void OnPointerExit(PointerEventData eventData)
+    {
+        if (!_pointerInteractionEnabled)
+        {
+            return;
+        }
+
+        if (_rectTransform == null)
+        {
+            return;
+        }
+
+        EndHover();
+    }
+
+    private void BeginHover()
+    {
         if (!_isHovered)
         {
             _restingAnchoredPosition = _rectTransform.anchoredPosition;
@@ -79,26 +154,29 @@ public class RogueCardHoverView : MonoBehaviour, IPointerEnterHandler, IPointerE
 
         _isHovered = true;
         _hoverTween?.Kill();
-        _hoverTween = _rectTransform
-            .DOAnchorPosY(_restingAnchoredPosition.y + _hoverOffsetY, _hoverDuration)
-            .SetEase(Ease.OutCubic)
+        _hoverTween = DOTween.Sequence()
             .SetUpdate(true)
+            .Join(_rectTransform
+                .DOAnchorPosY(_restingAnchoredPosition.y + _hoverOffsetY, _hoverDuration)
+                .SetEase(Ease.OutCubic))
+            .Join(transform
+                .DOScale(_initialScale * Mathf.Max(1f, _hoverScale), _hoverDuration)
+                .SetEase(Ease.OutCubic))
             .OnComplete(() => _hoverTween = null);
     }
 
-    public void OnPointerExit(PointerEventData eventData)
+    private void EndHover()
     {
-        if (_rectTransform == null)
-        {
-            return;
-        }
-
         _isHovered = false;
         _hoverTween?.Kill();
-        _hoverTween = _rectTransform
-            .DOAnchorPos(_restingAnchoredPosition, _hoverDuration)
-            .SetEase(Ease.OutCubic)
+        _hoverTween = DOTween.Sequence()
             .SetUpdate(true)
+            .Join(_rectTransform
+                .DOAnchorPos(_restingAnchoredPosition, _hoverDuration)
+                .SetEase(Ease.OutCubic))
+            .Join(transform
+                .DOScale(_initialScale, _hoverDuration)
+                .SetEase(Ease.OutCubic))
             .OnComplete(() => _hoverTween = null);
     }
 

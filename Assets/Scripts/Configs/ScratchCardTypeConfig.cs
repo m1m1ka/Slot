@@ -14,6 +14,7 @@ namespace Configs
         public int Price { get; set; }
         public int PatternPoolId { get; set; }
         public List<int> AllowedPatternIds { get; set; } = new List<int>();
+        public List<ScratchCardExtraEffectConfig> ExtraEffects { get; set; } = new List<ScratchCardExtraEffectConfig>();
         public List<ScratchCardWinRuleConfig> WinRules { get; set; } = new List<ScratchCardWinRuleConfig>();
         public int AreaTemplateId { get; set; }
         public string PrefabPath { get; set; }

@@ -15,6 +15,7 @@ public class ScratchCardView : MonoBehaviour, IPointerClickHandler, IPointerEnte
 {
     private const string FloatingTextPrefabPath = "UI/FloatingText";
     private const string PatternRevealHighlightAmountProperty = "_HighlightAmount";
+    private const float MaxPatternRevealHighlightDuration = 0.25f;
 
     [Header("Card Root")]
     [SerializeField] private RectTransform _cardTransform;
@@ -602,19 +603,52 @@ public class ScratchCardView : MonoBehaviour, IPointerClickHandler, IPointerEnte
         {
             activeTween?.Kill();
             _patternRevealHighlightTweens.Remove(targetImage);
+            ClearPatternRevealHighlight(targetImage);
         }
 
         targetImage.material = highlightMaterial;
         SetPatternRevealHighlightAmount(highlightMaterial, 1f);
-        _patternRevealHighlightTweens[targetImage] = highlightMaterial
-            .DOFloat(0f, PatternRevealHighlightAmountProperty, Mathf.Max(0.01f, _patternRevealHighlightDuration))
-            .SetEase(Ease.OutCubic)
+        _patternRevealHighlightTweens[targetImage] = DOTween
+            .To(
+                () => GetPatternRevealHighlightAmount(highlightMaterial),
+                amount =>
+                {
+                    SetPatternRevealHighlightAmount(highlightMaterial, amount);
+                    targetImage.SetMaterialDirty();
+                },
+                0f,
+                GetPatternRevealHighlightDuration())
+            .SetEase(Ease.InOutSine)
             .SetUpdate(true)
             .OnComplete(() =>
             {
+                SetPatternRevealHighlightAmount(highlightMaterial, 0f);
+                targetImage.SetMaterialDirty();
                 _patternRevealHighlightTweens.Remove(targetImage);
                 RestorePatternRevealMaterial(targetImage);
             });
+    }
+
+    public void RefreshPatternVisual(int cellIndex, ScratchCellModel cell)
+    {
+        if (cell == null || !TryGetPatternImage(cellIndex, out Image targetImage))
+        {
+            return;
+        }
+
+        var patternConfig = ScratchPatternDefaultProvider.GetById(cell.PatternId);
+        Sprite sprite = patternConfig != null
+            ? AssetProvider.LoadPatternSprite(patternConfig)
+            : null;
+        targetImage.sprite = sprite;
+        targetImage.enabled = sprite != null;
+        targetImage.color = GetPatternImageDefaultColor(targetImage);
+        RestorePatternMaterial(targetImage);
+
+        if (cell.IsGiantFruit)
+        {
+            ApplyGiantFruitPatternVisual(targetImage);
+        }
     }
 
     public void SetGiantFruitPatternVisual(int cellIndex, bool isGiant)
@@ -652,7 +686,7 @@ public class ScratchCardView : MonoBehaviour, IPointerClickHandler, IPointerEnte
         }
 
         int displayScore = ScratchSettlementResult.ApplyMultiplier(score, scoreMultiplier);
-        PlayFloatingText(targetRect, displayScore.ToString(), isEnhanced ? _enhancedScoreFloatTextColor : _scoreFloatTextColor);
+        PlayFloatingText(targetRect, NumberFormatter.FormatCompact(displayScore), isEnhanced ? _enhancedScoreFloatTextColor : _scoreFloatTextColor);
     }
 
     public void PlayPatternEffectTextReveal(int cellIndex, string text)
@@ -1574,7 +1608,7 @@ public class ScratchCardView : MonoBehaviour, IPointerClickHandler, IPointerEnte
 
             var patternConfig = ScratchPatternDefaultProvider.GetById(cells[i].PatternId);
             Sprite sprite = patternConfig != null
-                ? AssetProvider.LoadSpriteFromAtlas(patternConfig.AtlasPath, patternConfig.SpriteName)
+                ? AssetProvider.LoadPatternSprite(patternConfig)
                 : null;
             targetImage.sprite = sprite;
             targetImage.enabled = sprite != null;
@@ -1980,12 +2014,61 @@ public class ScratchCardView : MonoBehaviour, IPointerClickHandler, IPointerEnte
         RestorePatternMaterial(image);
     }
 
+    private void FinishPatternRevealHighlight(Image image)
+    {
+        if (image == null)
+        {
+            return;
+        }
+
+        if (_patternRevealHighlightTweens.TryGetValue(image, out Tween activeTween))
+        {
+            activeTween?.Kill();
+            _patternRevealHighlightTweens.Remove(image);
+        }
+
+        ClearPatternRevealHighlight(image);
+        RestorePatternRevealMaterial(image);
+    }
+
+    private void ClearPatternRevealHighlight(Image image)
+    {
+        if (image == null)
+        {
+            return;
+        }
+
+        if (_giantFruitMaterials.TryGetValue(image, out Material giantFruitMaterial))
+        {
+            SetPatternRevealHighlightAmount(giantFruitMaterial, 0f);
+        }
+
+        if (_patternRevealHighlightMaterials.TryGetValue(image, out Material revealMaterial))
+        {
+            SetPatternRevealHighlightAmount(revealMaterial, 0f);
+        }
+
+        image.SetMaterialDirty();
+    }
+
     private void SetPatternRevealHighlightAmount(Material material, float amount)
     {
         if (material != null && material.HasProperty(PatternRevealHighlightAmountProperty))
         {
             material.SetFloat(PatternRevealHighlightAmountProperty, amount);
         }
+    }
+
+    private float GetPatternRevealHighlightAmount(Material material)
+    {
+        return material != null && material.HasProperty(PatternRevealHighlightAmountProperty)
+            ? material.GetFloat(PatternRevealHighlightAmountProperty)
+            : 0f;
+    }
+
+    private float GetPatternRevealHighlightDuration()
+    {
+        return Mathf.Clamp(_patternRevealHighlightDuration, 0.01f, MaxPatternRevealHighlightDuration);
     }
 
     private void RestorePatternMaterial(Image image)
@@ -2032,21 +2115,7 @@ public class ScratchCardView : MonoBehaviour, IPointerClickHandler, IPointerEnte
             return;
         }
 
-        if (_patternRevealHighlightTweens.TryGetValue(image, out Tween activeTween))
-        {
-            activeTween?.Kill();
-            _patternRevealHighlightTweens.Remove(image);
-        }
-
-        if (_giantFruitMaterials.TryGetValue(image, out Material giantFruitMaterial))
-        {
-            SetPatternRevealHighlightAmount(giantFruitMaterial, 0f);
-        }
-
-        if (_patternRevealHighlightMaterials.TryGetValue(image, out Material revealMaterial))
-        {
-            SetPatternRevealHighlightAmount(revealMaterial, 0f);
-        }
+        FinishPatternRevealHighlight(image);
     }
 
     private void DestroyPatternRevealMaterials()
@@ -2153,7 +2222,7 @@ public class ScratchCardView : MonoBehaviour, IPointerClickHandler, IPointerEnte
 
     private static string FormatRewardAmount(int score)
     {
-        return $"{score:N0}";
+        return NumberFormatter.FormatCompact(score);
     }
 
     private void HandleClaimRewardButtonClicked()

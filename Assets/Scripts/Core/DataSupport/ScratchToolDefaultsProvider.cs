@@ -50,30 +50,6 @@ namespace Core
                 new ScratchToolConfig
                 {
                     Id = 4,
-                    Name = "Id卡",
-                    Description = "结算第一个刮出的图案",
-                    SettlementType = ScratchSettlementType.FirstRevealedPattern,
-                    IconAtlasPath = IconFolderPath,
-                    IconSpriteName = "IdCard"
-                }
-            },
-            {
-                5,
-                new ScratchToolConfig
-                {
-                    Id = 5,
-                    Name = "贝壳",
-                    Description = "结算最后一个刮出的图案",
-                    SettlementType = ScratchSettlementType.LastRevealedPattern,
-                    IconAtlasPath = IconFolderPath,
-                    IconSpriteName = "Shell"
-                }
-            },
-            {
-                6,
-                new ScratchToolConfig
-                {
-                    Id = 6,
                     Name = "猫爪",
                     Description = "结算3个相同或以上的图案",
                     SettlementType = ScratchSettlementType.MatchAnyThree,
@@ -82,15 +58,27 @@ namespace Core
                 }
             },
             {
-                7,
+                5,
                 new ScratchToolConfig
                 {
-                    Id = 7,
+                    Id = 5,
                     Name = "尺子",
                     Description = "结算连续竖向的3个相同图案，每个图案分数×2",
                     SettlementType = ScratchSettlementType.VerticalTripleMatch,
                     IconAtlasPath = IconFolderPath,
                     IconSpriteName = "Ruler"
+                }
+            },
+            {
+                6,
+                new ScratchToolConfig
+                {
+                    Id = 6,
+                    Name = "磁铁",
+                    Description = "结算2个相同或以上的金属图案",
+                    SettlementType = ScratchSettlementType.MetalMatchAnyPair,
+                    IconAtlasPath = IconFolderPath,
+                    IconSpriteName = "Magnet"
                 }
             }
         };

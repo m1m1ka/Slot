@@ -19,6 +19,9 @@ namespace Core
         ScratchRight = 209,
         ScratchLeft = 210,
         Ding = 211,
+        LevelPassCharging = 212,
+        LevelPassWin = 213,
+        CoinPouring = 214,
 
         MainMusic = 1000
     }

@@ -35,6 +35,7 @@ public class ScratchCardFocusPatternInfo
     public float Probability { get; }
     public string AtlasPath { get; }
     public string SpriteName { get; }
+    public string SpritePath { get; }
 
     public ScratchCardFocusPatternInfo(
         int patternId,
@@ -45,7 +46,8 @@ public class ScratchCardFocusPatternInfo
         int weight,
         float probability,
         string atlasPath,
-        string spriteName)
+        string spriteName,
+        string spritePath = null)
     {
         PatternId = patternId;
         PatternName = string.IsNullOrWhiteSpace(patternName) ? $"图案 {patternId}" : patternName;
@@ -56,5 +58,6 @@ public class ScratchCardFocusPatternInfo
         Probability = probability;
         AtlasPath = atlasPath;
         SpriteName = spriteName;
+        SpritePath = spritePath;
     }
 }

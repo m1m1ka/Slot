@@ -100,6 +100,12 @@ namespace Core
                     }
                 }
 
+                ApplyCellExtraEffects(
+                    cardTypeConfig.ExtraEffects,
+                    i,
+                    isScratchable,
+                    ref scoreMultiplierOnScore);
+
                 results.Add(new ScratchCellModel(
                     i,
                     row,
@@ -142,7 +148,7 @@ namespace Core
         {
             int cardTypeId = cardTypeConfig != null ? cardTypeConfig.Id : 0;
             HashSet<int> allowedPatternIds = BuildAllowedPatternIdSet(cardTypeConfig);
-            return BuildEffectivePatternWeights(globalPatternPool, cardTypeId, allowedPatternIds, runModifiers);
+            return BuildEffectivePatternWeights(globalPatternPool, cardTypeId, allowedPatternIds, cardTypeConfig?.ExtraEffects, runModifiers);
         }
 
         public static List<ScratchPatternWeightEntry> BuildEffectivePatternWeights(
@@ -150,13 +156,14 @@ namespace Core
             int cardTypeId,
             RogueCardRunModifierModel runModifiers)
         {
-            return BuildEffectivePatternWeights(patternPool, cardTypeId, null, runModifiers);
+            return BuildEffectivePatternWeights(patternPool, cardTypeId, null, null, runModifiers);
         }
 
         private static List<ScratchPatternWeightEntry> BuildEffectivePatternWeights(
             ScratchPatternPoolConfig patternPool,
             int cardTypeId,
             HashSet<int> allowedPatternIds,
+            IReadOnlyList<ScratchCardExtraEffectConfig> extraEffects,
             RogueCardRunModifierModel runModifiers)
         {
             var baseWeightsByPattern = new Dictionary<int, float>();
@@ -198,6 +205,8 @@ namespace Core
                 }
             }
 
+            HashSet<int> cardExtraEffectPatternIds = ApplyCardExtraEffects(baseWeightsByPattern, extraEffects);
+
             var results = new List<ScratchPatternWeightEntry>();
             foreach (KeyValuePair<int, float> pair in baseWeightsByPattern)
             {
@@ -214,7 +223,11 @@ namespace Core
                     continue;
                 }
 
-                results.Add(new ScratchPatternWeightEntry(pair.Key, effectiveWeight, dynamicPatternIds.Contains(pair.Key)));
+                results.Add(new ScratchPatternWeightEntry(
+                    pair.Key,
+                    effectiveWeight,
+                    dynamicPatternIds.Contains(pair.Key),
+                    cardExtraEffectPatternIds.Contains(pair.Key)));
             }
 
             results.Sort((left, right) => left.PatternId.CompareTo(right.PatternId));
@@ -360,6 +373,166 @@ namespace Core
         private static bool IsPatternAllowed(int patternId, HashSet<int> allowedPatternIds)
         {
             return allowedPatternIds == null || allowedPatternIds.Contains(patternId);
+        }
+
+        private static HashSet<int> ApplyCardExtraEffects(
+            Dictionary<int, float> weightsByPattern,
+            IReadOnlyList<ScratchCardExtraEffectConfig> extraEffects)
+        {
+            var affectedPatternIds = new HashSet<int>();
+            if (weightsByPattern == null ||
+                weightsByPattern.Count == 0 ||
+                extraEffects == null ||
+                extraEffects.Count == 0)
+            {
+                return affectedPatternIds;
+            }
+
+            for (int i = 0; i < extraEffects.Count; i++)
+            {
+                ScratchCardExtraEffectConfig effect = extraEffects[i];
+                if (effect == null)
+                {
+                    continue;
+                }
+
+                switch (effect.EffectType)
+                {
+                    case ScratchCardExtraEffectType.MultiplyPatternWeight:
+                        ApplyPatternWeightMultiplier(weightsByPattern, effect, affectedPatternIds);
+                        break;
+                }
+            }
+
+            return affectedPatternIds;
+        }
+
+        private static void ApplyPatternWeightMultiplier(
+            Dictionary<int, float> weightsByPattern,
+            ScratchCardExtraEffectConfig effect,
+            HashSet<int> affectedPatternIds)
+        {
+            if (weightsByPattern == null || effect == null)
+            {
+                return;
+            }
+
+            float multiplier = Mathf.Max(0f, (float)effect.Value);
+            if (Mathf.Approximately(multiplier, 1f))
+            {
+                return;
+            }
+
+            if (effect.TargetPatternIds == null || effect.TargetPatternIds.Count == 0)
+            {
+                var allPatternIds = new List<int>(weightsByPattern.Keys);
+                for (int i = 0; i < allPatternIds.Count; i++)
+                {
+                    MultiplyPatternWeight(weightsByPattern, allPatternIds[i], multiplier, affectedPatternIds);
+                }
+
+                return;
+            }
+
+            var targetPatternIds = new HashSet<int>();
+            for (int i = 0; i < effect.TargetPatternIds.Count; i++)
+            {
+                int patternId = effect.TargetPatternIds[i];
+                if (targetPatternIds.Add(patternId))
+                {
+                    MultiplyPatternWeight(weightsByPattern, patternId, multiplier, affectedPatternIds);
+                }
+            }
+        }
+
+        private static void MultiplyPatternWeight(
+            Dictionary<int, float> weightsByPattern,
+            int patternId,
+            float multiplier,
+            HashSet<int> affectedPatternIds)
+        {
+            if (patternId <= 0 || !weightsByPattern.TryGetValue(patternId, out float weight))
+            {
+                return;
+            }
+
+            weightsByPattern[patternId] = Mathf.Max(0f, weight * multiplier);
+            affectedPatternIds?.Add(patternId);
+        }
+
+        private static void ApplyCellExtraEffects(
+            IReadOnlyList<ScratchCardExtraEffectConfig> extraEffects,
+            int cellIndex,
+            bool isScratchable,
+            ref double scoreMultiplierOnScore)
+        {
+            if (!isScratchable || extraEffects == null || extraEffects.Count == 0)
+            {
+                return;
+            }
+
+            for (int i = 0; i < extraEffects.Count; i++)
+            {
+                ScratchCardExtraEffectConfig effect = extraEffects[i];
+                if (effect == null)
+                {
+                    continue;
+                }
+
+                switch (effect.EffectType)
+                {
+                    case ScratchCardExtraEffectType.MultiplyCellScoreMultiplier:
+                        ApplyCellScoreMultiplierEffect(effect, cellIndex, ref scoreMultiplierOnScore);
+                        break;
+                }
+            }
+        }
+
+        private static void ApplyCellScoreMultiplierEffect(
+            ScratchCardExtraEffectConfig effect,
+            int cellIndex,
+            ref double scoreMultiplierOnScore)
+        {
+            if (effect == null || !IsTargetCell(effect, cellIndex) || !RollProbability(effect.Probability))
+            {
+                return;
+            }
+
+            double multiplier = effect.Value > 0d ? effect.Value : 1d;
+            scoreMultiplierOnScore *= multiplier;
+        }
+
+        private static bool IsTargetCell(ScratchCardExtraEffectConfig effect, int cellIndex)
+        {
+            if (effect?.TargetCellIndices == null || effect.TargetCellIndices.Count == 0)
+            {
+                return true;
+            }
+
+            for (int i = 0; i < effect.TargetCellIndices.Count; i++)
+            {
+                if (effect.TargetCellIndices[i] == cellIndex)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static bool RollProbability(double probability)
+        {
+            if (probability <= 0d)
+            {
+                return false;
+            }
+
+            if (probability >= 1d)
+            {
+                return true;
+            }
+
+            return Random.value < (float)probability;
         }
 
         private static void AddRange(HashSet<int> target, IEnumerable<int> source)

@@ -14,6 +14,8 @@ namespace Configs
         LastRevealedPattern = 6,
         HorizontalTripleMatch = 7,
         HorizontalFiveMatch = 8,
-        VerticalTripleMatch = 9
+        VerticalTripleMatch = 9,
+        MetalMatchAnyPair = 10,
+        FruitMatchAnyPair = 11
     }
 }

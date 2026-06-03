@@ -10,16 +10,16 @@ public class ScratchCellModel
     public int CellIndex { get; }
     public int Row { get; }
     public int Column { get; }
-    public int PatternId { get; }
-    public string PatternName { get; }
-    public int BaseScore { get; }
-    public bool IsBaseScoreEnhanced { get; }
+    public int PatternId { get; private set; }
+    public string PatternName { get; private set; }
+    public int BaseScore { get; private set; }
+    public bool IsBaseScoreEnhanced { get; private set; }
     public bool IsGiantFruit { get; }
     public double ScoreMultiplierOnScore { get; }
     public double RewardMultiplierBonusOnScore { get; }
-    public IReadOnlyList<int> RogueCardEffectSourceIds { get; }
-    public ScratchPatternEffectType PatternEffectType { get; }
-    public double PatternEffectValue { get; }
+    public IReadOnlyList<int> RogueCardEffectSourceIds { get; private set; }
+    public ScratchPatternEffectType PatternEffectType { get; private set; }
+    public double PatternEffectValue { get; private set; }
     public bool IsScratchable { get; }
     public bool IsScratched { get; private set; }
     public int ScratchOrder { get; private set; } = -1;
@@ -67,5 +67,27 @@ public class ScratchCellModel
 
         IsScratched = true;
         ScratchOrder = scratchOrder;
+    }
+
+    public void TransformPattern(
+        ScratchPatternConfig patternConfig,
+        int baseScore,
+        bool isBaseScoreEnhanced,
+        IReadOnlyList<int> rogueCardEffectSourceIds = null)
+    {
+        if (patternConfig == null)
+        {
+            return;
+        }
+
+        PatternId = patternConfig.Id;
+        PatternName = patternConfig.Name;
+        BaseScore = baseScore;
+        IsBaseScoreEnhanced = isBaseScoreEnhanced;
+        PatternEffectType = patternConfig.EffectType;
+        PatternEffectValue = patternConfig.EffectValue;
+        RogueCardEffectSourceIds = rogueCardEffectSourceIds != null
+            ? (IReadOnlyList<int>)new List<int>(rogueCardEffectSourceIds)
+            : Array.Empty<int>();
     }
 }

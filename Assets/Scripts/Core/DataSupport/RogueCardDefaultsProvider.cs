@@ -10,6 +10,23 @@ namespace Core
         private const string TablePath = "Configs/RogueCards/RogueCards";
 
         private static List<RogueCardConfig> _cachedCards;
+        private static readonly Dictionary<int, Vector2Int> LevelDistributions = new Dictionary<int, Vector2Int>
+        {
+            { 1, new Vector2Int(1, 15) },
+            { 2, new Vector2Int(1, 15) },
+            { 3, new Vector2Int(1, 15) },
+            { 4, new Vector2Int(1, 15) },
+            { 5, new Vector2Int(1, 15) },
+            { 6, new Vector2Int(6, 15) },
+            { 7, new Vector2Int(6, 15) },
+            { 8, new Vector2Int(1, 15) },
+            { 9, new Vector2Int(1, 15) },
+            { 10, new Vector2Int(1, 15) },
+            { 11, new Vector2Int(3, 15) },
+            { 12, new Vector2Int(5, 15) },
+            { 13, new Vector2Int(6, 15) },
+            { 14, new Vector2Int(1, 15) }
+        };
 
         private static readonly List<RogueCardConfig> DefaultCards = new List<RogueCardConfig>
         {
@@ -158,6 +175,33 @@ namespace Core
         public static IReadOnlyList<RogueCardConfig> GetAll()
         {
             return GetCards();
+        }
+
+        public static IReadOnlyList<RogueCardConfig> GetAvailableForLevel(int levelId)
+        {
+            IReadOnlyList<RogueCardConfig> cards = GetCards();
+            var availableCards = new List<RogueCardConfig>();
+            int count = cards != null ? cards.Count : 0;
+            for (int i = 0; i < count; i++)
+            {
+                RogueCardConfig card = cards[i];
+                if (card != null && IsAvailableForLevel(card.Id, levelId))
+                {
+                    availableCards.Add(card);
+                }
+            }
+
+            return availableCards;
+        }
+
+        public static bool IsAvailableForLevel(int cardId, int levelId)
+        {
+            if (!LevelDistributions.TryGetValue(cardId, out Vector2Int levelRange))
+            {
+                return true;
+            }
+
+            return levelId >= levelRange.x && levelId <= levelRange.y;
         }
 
         public static RogueCardConfig GetById(int id)

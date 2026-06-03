@@ -12,6 +12,10 @@ namespace Configs
         AddJokerPatternToPool = 7,
         AddRiskMultiplierPatternToPool = 8,
         AddSettlementScoreBonus = 9,
-        AddSettlementMultiplierBonus = 10
+        AddSettlementMultiplierBonus = 10,
+        AddSettlementScorePerScratchedPattern = 11,
+        AddSettlementMultiplierPerScratchedPattern = 12,
+        ConvertPatternToPatternOnReveal = 13,
+        ConvertAdjacentPatternsToMetalOnReveal = 14
     }
 }

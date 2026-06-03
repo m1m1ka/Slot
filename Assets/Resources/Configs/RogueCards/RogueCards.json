@@ -8,40 +8,6 @@
                       "levels":  [
                                      {
                                          "level":  1,
-                                         "description":  "水果图案基础分+10",
-                                         "effects":  [
-                                                         {
-                                                             "effectType":  "IncreasePatternBaseScore",
-                                                             "targetIds":  [
-                                                                               1,
-                                                                               2,
-                                                                               3,
-                                                                               4
-                                                                           ],
-                                                             "value":  "10"
-                                                         }
-                                                     ],
-                                         "rarity":  "Common"
-                                     },
-                                     {
-                                         "level":  2,
-                                         "description":  "水果图案基础分+30",
-                                         "effects":  [
-                                                         {
-                                                             "effectType":  "IncreasePatternBaseScore",
-                                                             "targetIds":  [
-                                                                               1,
-                                                                               2,
-                                                                               3,
-                                                                               4
-                                                                           ],
-                                                             "value":  "30"
-                                                         }
-                                                     ],
-                                         "rarity":  "Common"
-                                     },
-                                     {
-                                         "level":  3,
                                          "description":  "水果图案基础分+80",
                                          "effects":  [
                                                          {
@@ -55,11 +21,11 @@
                                                              "value":  "80"
                                                          }
                                                      ],
-                                         "rarity":  "Rare"
+                                         "rarity":  "Common"
                                      },
                                      {
-                                         "level":  4,
-                                         "description":  "水果图案基础分+150",
+                                         "level":  2,
+                                         "description":  "水果图案基础分+100",
                                          "effects":  [
                                                          {
                                                              "effectType":  "IncreasePatternBaseScore",
@@ -69,13 +35,13 @@
                                                                                3,
                                                                                4
                                                                            ],
-                                                             "value":  "150"
+                                                             "value":  "100"
                                                          }
                                                      ],
                                          "rarity":  "Rare"
                                      },
                                      {
-                                         "level":  5,
+                                         "level":  3,
                                          "description":  "水果图案基础分+300",
                                          "effects":  [
                                                          {
@@ -86,7 +52,7 @@
                                                                                3,
                                                                                4
                                                                            ],
-                                                             "value":  "300"
+                                                             "value":  "150"
                                                          }
                                                      ],
                                          "rarity":  "Epic"
@@ -101,34 +67,6 @@
                       "levels":  [
                                      {
                                          "level":  1,
-                                         "description":  "葡萄图案概率+5%",
-                                         "effects":  [
-                                                         {
-                                                             "effectType":  "IncreasePatternProbability",
-                                                             "targetIds":  [
-                                                                               4
-                                                                           ],
-                                                             "value":  "5"
-                                                         }
-                                                     ],
-                                         "rarity":  "Common"
-                                     },
-                                     {
-                                         "level":  2,
-                                         "description":  "葡萄图案概率+10%",
-                                         "effects":  [
-                                                         {
-                                                             "effectType":  "IncreasePatternProbability",
-                                                             "targetIds":  [
-                                                                               4
-                                                                           ],
-                                                             "value":  "10"
-                                                         }
-                                                     ],
-                                         "rarity":  "Common"
-                                     },
-                                     {
-                                         "level":  3,
                                          "description":  "葡萄图案概率+20%",
                                          "effects":  [
                                                          {
@@ -139,10 +77,10 @@
                                                              "value":  "20"
                                                          }
                                                      ],
-                                         "rarity":  "Rare"
+                                         "rarity":  "Common"
                                      },
                                      {
-                                         "level":  4,
+                                         "level":  2,
                                          "description":  "葡萄图案概率+30%",
                                          "effects":  [
                                                          {
@@ -154,20 +92,6 @@
                                                          }
                                                      ],
                                          "rarity":  "Rare"
-                                     },
-                                     {
-                                         "level":  5,
-                                         "description":  "葡萄图案概率+50%",
-                                         "effects":  [
-                                                         {
-                                                             "effectType":  "IncreasePatternProbability",
-                                                             "targetIds":  [
-                                                                               4
-                                                                           ],
-                                                             "value":  "50"
-                                                         }
-                                                     ],
-                                         "rarity":  "Epic"
                                      }
                                  ]
                   },
@@ -481,6 +405,7 @@
                                                          {
                                                              "effectType":  "AddSettlementScoreBonus",
                                                              "targetIds":  [
+
                                                                            ],
                                                              "value":  100
                                                          }
@@ -494,6 +419,7 @@
                                                          {
                                                              "effectType":  "AddSettlementScoreBonus",
                                                              "targetIds":  [
+
                                                                            ],
                                                              "value":  300
                                                          }
@@ -507,6 +433,7 @@
                                                          {
                                                              "effectType":  "AddSettlementScoreBonus",
                                                              "targetIds":  [
+
                                                                            ],
                                                              "value":  800
                                                          }
@@ -520,6 +447,7 @@
                                                          {
                                                              "effectType":  "AddSettlementScoreBonus",
                                                              "targetIds":  [
+
                                                                            ],
                                                              "value":  1500
                                                          }
@@ -533,6 +461,7 @@
                                                          {
                                                              "effectType":  "AddSettlementScoreBonus",
                                                              "targetIds":  [
+
                                                                            ],
                                                              "value":  3000
                                                          }
@@ -545,7 +474,7 @@
                       "id":  9,
                       "name":  "加速器",
                       "rarity":  "Common",
-                      "description":  "你的刮刮卡在结算时额外+0.2倍率",
+                      "description":  "你的刮刮卡在结算时额外+0.5倍率",
                       "levels":  [
                                      {
                                          "level":  1,
@@ -554,8 +483,9 @@
                                                          {
                                                              "effectType":  "AddSettlementMultiplierBonus",
                                                              "targetIds":  [
+
                                                                            ],
-                                                             "value":  0.2
+                                                             "value":  0.5
                                                          }
                                                      ],
                                          "rarity":  "Common"
@@ -567,47 +497,287 @@
                                                          {
                                                              "effectType":  "AddSettlementMultiplierBonus",
                                                              "targetIds":  [
+
                                                                            ],
-                                                             "value":  0.4
+                                                             "value":  1
+                                                         }
+                                                     ],
+                                         "rarity":  "Rare"
+                                     }
+                                 ]
+                  },
+                  {
+                      "id":  10,
+                      "name":  "大富翁",
+                      "rarity":  "Common",
+                      "description":  "每刮出一个金属图案，结算时额外获得100分",
+                      "levels":  [
+                                     {
+                                         "level":  1,
+                                         "description":  "每刮出一个金属图案，结算时额外获得100分",
+                                         "effects":  [
+                                                         {
+                                                             "effectType":  "AddSettlementScorePerScratchedPattern",
+                                                             "targetIds":  [
+                                                                               5,
+                                                                               6,
+                                                                               8,
+                                                                               9
+                                                                           ],
+                                                             "value":  100
+                                                         }
+                                                     ],
+                                         "rarity":  "Common"
+                                     },
+                                     {
+                                         "level":  2,
+                                         "description":  "每刮出一个金属图案，结算时额外获得300分",
+                                         "effects":  [
+                                                         {
+                                                             "effectType":  "AddSettlementScorePerScratchedPattern",
+                                                             "targetIds":  [
+                                                                               5,
+                                                                               6,
+                                                                               8,
+                                                                               9
+                                                                           ],
+                                                             "value":  300
                                                          }
                                                      ],
                                          "rarity":  "Common"
                                      },
                                      {
                                          "level":  3,
-                                         "description":  "你的刮刮卡在结算时额外+0.6倍率",
+                                         "description":  "每刮出一个金属图案，结算时额外获得800分",
                                          "effects":  [
                                                          {
-                                                             "effectType":  "AddSettlementMultiplierBonus",
+                                                             "effectType":  "AddSettlementScorePerScratchedPattern",
                                                              "targetIds":  [
+                                                                               5,
+                                                                               6,
+                                                                               8,
+                                                                               9
                                                                            ],
-                                                             "value":  0.6
+                                                             "value":  800
                                                          }
                                                      ],
                                          "rarity":  "Rare"
                                      },
                                      {
                                          "level":  4,
-                                         "description":  "你的刮刮卡在结算时额外+0.8倍率",
+                                         "description":  "每刮出一个金属图案，结算时额外获得1500分",
                                          "effects":  [
                                                          {
-                                                             "effectType":  "AddSettlementMultiplierBonus",
+                                                             "effectType":  "AddSettlementScorePerScratchedPattern",
                                                              "targetIds":  [
+                                                                               5,
+                                                                               6,
+                                                                               8,
+                                                                               9
                                                                            ],
-                                                             "value":  0.8
+                                                             "value":  1500
                                                          }
                                                      ],
                                          "rarity":  "Rare"
                                      },
                                      {
                                          "level":  5,
-                                         "description":  "你的刮刮卡在结算时额外+1倍率",
+                                         "description":  "每刮出一个金属图案，结算时额外获得3000分",
                                          "effects":  [
                                                          {
-                                                             "effectType":  "AddSettlementMultiplierBonus",
+                                                             "effectType":  "AddSettlementScorePerScratchedPattern",
                                                              "targetIds":  [
+                                                                               5,
+                                                                               6,
+                                                                               8,
+                                                                               9
+                                                                           ],
+                                                             "value":  3000
+                                                         }
+                                                     ],
+                                         "rarity":  "Epic"
+                                     }
+                                 ]
+                  },
+                  {
+                      "id":  11,
+                      "name":  "火箭",
+                      "rarity":  "Epic",
+                      "description":  "每有一个金属图案计分，结算时额外获得0.5倍率",
+                      "levels":  [
+                                     {
+                                         "level":  1,
+                                         "description":  "每有一个金属图案计分，结算时额外获得0.5倍率",
+                                         "effects":  [
+                                                         {
+                                                             "effectType":  "IncreaseScratchCardMultiplier",
+                                                             "targetIds":  [
+                                                                               5,
+                                                                               6,
+                                                                               8,
+                                                                               9
+                                                                           ],
+                                                             "value":  0.5
+                                                         }
+                                                     ],
+                                         "rarity":  "Epic"
+                                     },
+                                     {
+                                         "level":  2,
+                                         "description":  "每有一个金属图案计分，结算时额外获得1倍率",
+                                         "effects":  [
+                                                         {
+                                                             "effectType":  "IncreaseScratchCardMultiplier",
+                                                             "targetIds":  [
+                                                                               5,
+                                                                               6,
+                                                                               8,
+                                                                               9
                                                                            ],
                                                              "value":  1
+                                                         }
+                                                     ],
+                                         "rarity":  "Legendary"
+                                     }
+                                 ]
+                  },
+                  {
+                      "id":  12,
+                      "name":  "炼金术",
+                      "rarity":  "Epic",
+                      "description":  "你刮出的金属图案有概率变换为钻石",
+                      "levels":  [
+                                     {
+                                         "level":  1,
+                                         "description":  "你刮出的金属图案有概率变换为钻石",
+                                         "effects":  [
+                                                         {
+                                                             "effectType":  "ConvertPatternToPatternOnReveal",
+                                                             "targetIds":  [
+                                                                               5,
+                                                                               6,
+                                                                               8,
+                                                                               9
+                                                                           ],
+                                                             "value":  "10%"
+                                                         }
+                                                     ],
+                                         "rarity":  "Epic"
+                                     },
+                                     {
+                                         "level":  2,
+                                         "description":  "你刮出的金属图案有概率变换为钻石",
+                                         "effects":  [
+                                                         {
+                                                             "effectType":  "ConvertPatternToPatternOnReveal",
+                                                             "targetIds":  [
+                                                                               5,
+                                                                               6,
+                                                                               8,
+                                                                               9
+                                                                           ],
+                                                             "value":  "20%"
+                                                         }
+                                                     ],
+                                         "rarity":  "Legendary"
+                                     }
+                                 ]
+                  },
+                  {
+                      "id":  13,
+                      "name":  "点石成金",
+                      "rarity":  "Epic",
+                      "description":  "刮出的金属图案周围非金属图案有概率变换为金属图案",
+                      "levels":  [
+                                     {
+                                         "level":  1,
+                                         "description":  "刮出的金属图案周围非金属图案有概率变换为金属图案",
+                                         "effects":  [
+                                                         {
+                                                             "effectType":  "ConvertAdjacentPatternsToMetalOnReveal",
+                                                             "targetIds":  [
+                                                                               5,
+                                                                               6,
+                                                                               8,
+                                                                               9
+                                                                           ],
+                                                             "value":  "10%"
+                                                         }
+                                                     ],
+                                         "rarity":  "Epic"
+                                     },
+                                     {
+                                         "level":  2,
+                                         "description":  "刮出的金属图案周围非金属图案有概率变换为金属图案",
+                                         "effects":  [
+                                                         {
+                                                             "effectType":  "ConvertAdjacentPatternsToMetalOnReveal",
+                                                             "targetIds":  [
+                                                                               5,
+                                                                               6,
+                                                                               8,
+                                                                               9
+                                                                           ],
+                                                             "value":  "20%"
+                                                         }
+                                                     ],
+                                         "rarity":  "Legendary"
+                                     }
+                                 ]
+                  },
+                  {
+                      "id":  14,
+                      "name":  "抛光",
+                      "rarity":  "Common",
+                      "description":  "金属图案基础分提升。",
+                      "levels":  [
+                                     {
+                                         "level":  1,
+                                         "description":  "金属图案基础分+100",
+                                         "effects":  [
+                                                         {
+                                                             "effectType":  "IncreasePatternBaseScore",
+                                                             "targetIds":  [
+                                                                               5,
+                                                                               6,
+                                                                               8,
+                                                                               9
+                                                                           ],
+                                                             "value":  "100"
+                                                         }
+                                                     ],
+                                         "rarity":  "Common"
+                                     },
+                                     {
+                                         "level":  2,
+                                         "description":  "金属图案基础分+250",
+                                         "effects":  [
+                                                         {
+                                                             "effectType":  "IncreasePatternBaseScore",
+                                                             "targetIds":  [
+                                                                               5,
+                                                                               6,
+                                                                               8,
+                                                                               9
+                                                                           ],
+                                                             "value":  "250"
+                                                         }
+                                                     ],
+                                         "rarity":  "Rare"
+                                     },
+                                     {
+                                         "level":  3,
+                                         "description":  "金属图案基础分+500",
+                                         "effects":  [
+                                                         {
+                                                             "effectType":  "IncreasePatternBaseScore",
+                                                             "targetIds":  [
+                                                                               5,
+                                                                               6,
+                                                                               8,
+                                                                               9
+                                                                           ],
+                                                             "value":  "500"
                                                          }
                                                      ],
                                          "rarity":  "Epic"

@@ -123,6 +123,21 @@ namespace Core
             return null;
         }
 
+        public static Sprite LoadPatternSprite(Configs.ScratchPatternConfig patternConfig)
+        {
+            if (patternConfig == null)
+            {
+                return null;
+            }
+
+            if (!string.IsNullOrWhiteSpace(patternConfig.SpritePath))
+            {
+                return Load<Sprite>(patternConfig.SpritePath);
+            }
+
+            return LoadSpriteFromAtlas(patternConfig.AtlasPath, patternConfig.SpriteName);
+        }
+
         public static GameObject InstantiatePrefab(string resourcesPath, Transform parent = null)
         {
             GameObject prefab = LoadPrefab(resourcesPath);

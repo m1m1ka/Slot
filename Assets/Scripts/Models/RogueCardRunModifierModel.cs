@@ -7,10 +7,12 @@ public class RogueCardRunModifierModel
     private readonly Dictionary<int, int> _permanentPatternBaseScoreBonuses = new Dictionary<int, int>();
     private readonly Dictionary<int, double> _patternWeightBonuses = new Dictionary<int, double>();
     private readonly Dictionary<int, double> _patternScratchCardMultiplierBonuses = new Dictionary<int, double>();
+    private readonly Dictionary<int, double> _permanentScratchCardTypeMultiplierBonuses = new Dictionary<int, double>();
     private readonly Dictionary<int, List<PatternBaseScoreGrowthRule>> _patternBaseScoreGrowthRulesByScoredPattern = new Dictionary<int, List<PatternBaseScoreGrowthRule>>();
     private readonly Dictionary<int, List<GiantPatternRule>> _giantPatternRulesByPattern = new Dictionary<int, List<GiantPatternRule>>();
     private readonly Dictionary<int, List<JokerPatternRule>> _jokerPatternRulesByPattern = new Dictionary<int, List<JokerPatternRule>>();
     private readonly Dictionary<int, List<RiskMultiplierPatternRule>> _riskMultiplierRulesByPattern = new Dictionary<int, List<RiskMultiplierPatternRule>>();
+    private readonly List<PatternRevealConversionRuleModel> _patternConversionRules = new List<PatternRevealConversionRuleModel>();
     private readonly Dictionary<int, int> _jokerGoodFaceScoreOverrides = new Dictionary<int, int>();
     private readonly Dictionary<int, HashSet<int>> _patternBaseScoreSourceCardIds = new Dictionary<int, HashSet<int>>();
     private readonly Dictionary<int, HashSet<int>> _permanentPatternBaseScoreSourceCardIds = new Dictionary<int, HashSet<int>>();
@@ -25,6 +27,9 @@ public class RogueCardRunModifierModel
     private readonly HashSet<int> _settlementScoreBonusSourceCardIds = new HashSet<int>();
     private readonly HashSet<int> _settlementMultiplierBonusSourceCardIds = new HashSet<int>();
     private readonly List<DynamicScratchPatternPoolEntryModel> _addedScratchPatterns = new List<DynamicScratchPatternPoolEntryModel>();
+    private readonly List<AdjacentPatternMetalConversionRuleModel> _adjacentPatternMetalConversionRules = new List<AdjacentPatternMetalConversionRuleModel>();
+    private readonly List<PatternSettlementScoreBonusRuleModel> _patternSettlementScoreBonusRules = new List<PatternSettlementScoreBonusRuleModel>();
+    private readonly List<PatternSettlementMultiplierBonusRuleModel> _patternSettlementMultiplierBonusRules = new List<PatternSettlementMultiplierBonusRuleModel>();
 
     public double ScratchCardMultiplierBonus { get; private set; }
     public double ScratchCardMultiplier => 1d + ScratchCardMultiplierBonus;
@@ -257,6 +262,70 @@ public class RogueCardRunModifierModel
         return _jokerGoodFaceScoreOverrides.TryGetValue(goodFacePatternId, out int score) ? score : 0;
     }
 
+    public void AddPatternConversionRule(
+        int sourcePatternId,
+        int targetPatternId,
+        double chance,
+        IReadOnlyList<int> cardTypeIds = null,
+        int sourceCardId = 0)
+    {
+        if (sourcePatternId <= 0 || targetPatternId <= 0 || chance <= 0d)
+        {
+            return;
+        }
+
+        var rule = new PatternRevealConversionRuleModel(sourcePatternId, targetPatternId, NormalizeChance(chance), cardTypeIds, sourceCardId);
+        _patternConversionRules.Add(rule);
+    }
+
+    public List<PatternRevealConversionRuleModel> GetPatternConversionRulesForCardType(int cardTypeId)
+    {
+        var results = new List<PatternRevealConversionRuleModel>();
+        for (int i = 0; i < _patternConversionRules.Count; i++)
+        {
+            PatternRevealConversionRuleModel rule = _patternConversionRules[i];
+            if (rule != null && rule.AppliesToCardType(cardTypeId))
+            {
+                results.Add(rule);
+            }
+        }
+
+        return results;
+    }
+
+    public void AddAdjacentPatternMetalConversionRule(
+        IReadOnlyCollection<int> metalPatternIds,
+        double chance,
+        IReadOnlyCollection<int> cardTypeIds = null,
+        int sourceCardId = 0)
+    {
+        if (chance <= 0d)
+        {
+            return;
+        }
+
+        _adjacentPatternMetalConversionRules.Add(new AdjacentPatternMetalConversionRuleModel(
+            metalPatternIds,
+            NormalizeChance(chance),
+            cardTypeIds,
+            sourceCardId));
+    }
+
+    public List<AdjacentPatternMetalConversionRuleModel> GetAdjacentPatternMetalConversionRulesForCardType(int cardTypeId)
+    {
+        var results = new List<AdjacentPatternMetalConversionRuleModel>();
+        for (int i = 0; i < _adjacentPatternMetalConversionRules.Count; i++)
+        {
+            AdjacentPatternMetalConversionRuleModel rule = _adjacentPatternMetalConversionRules[i];
+            if (rule != null && rule.AppliesToCardType(cardTypeId))
+            {
+                results.Add(rule);
+            }
+        }
+
+        return results;
+    }
+
     public void AddRiskMultiplierPatternRule(
         int riskMultiplierPatternId,
         double chance,
@@ -428,6 +497,31 @@ public class RogueCardRunModifierModel
         return _scratchCardMultiplierSourceCardIds;
     }
 
+    public void AddScratchCardTypeMultiplierBonus(int cardTypeId, double bonus)
+    {
+        if (cardTypeId <= 0 || bonus <= 0d)
+        {
+            return;
+        }
+
+        if (!_permanentScratchCardTypeMultiplierBonuses.ContainsKey(cardTypeId))
+        {
+            _permanentScratchCardTypeMultiplierBonuses[cardTypeId] = 0d;
+        }
+
+        _permanentScratchCardTypeMultiplierBonuses[cardTypeId] += bonus;
+    }
+
+    public double GetScratchCardTypeMultiplierBonus(int cardTypeId)
+    {
+        return _permanentScratchCardTypeMultiplierBonuses.TryGetValue(cardTypeId, out double bonus) ? bonus : 0d;
+    }
+
+    public double GetScratchCardMultiplierForCardType(int cardTypeId)
+    {
+        return ScratchCardMultiplier + GetScratchCardTypeMultiplierBonus(cardTypeId);
+    }
+
     public void AddSettlementScoreBonus(int bonus, int sourceCardId = 0)
     {
         if (bonus == 0)
@@ -466,6 +560,72 @@ public class RogueCardRunModifierModel
         return _settlementMultiplierBonusSourceCardIds;
     }
 
+    public void AddPatternSettlementScoreBonusRule(
+        IReadOnlyCollection<int> targetPatternIds,
+        int scorePerPattern,
+        IReadOnlyCollection<int> cardTypeIds = null,
+        int sourceCardId = 0)
+    {
+        if (scorePerPattern == 0)
+        {
+            return;
+        }
+
+        _patternSettlementScoreBonusRules.Add(new PatternSettlementScoreBonusRuleModel(
+            targetPatternIds,
+            scorePerPattern,
+            cardTypeIds,
+            sourceCardId));
+    }
+
+    public List<PatternSettlementScoreBonusRuleModel> GetPatternSettlementScoreBonusRulesForCardType(int cardTypeId)
+    {
+        var results = new List<PatternSettlementScoreBonusRuleModel>();
+        for (int i = 0; i < _patternSettlementScoreBonusRules.Count; i++)
+        {
+            PatternSettlementScoreBonusRuleModel rule = _patternSettlementScoreBonusRules[i];
+            if (rule != null && rule.AppliesToCardType(cardTypeId))
+            {
+                results.Add(rule);
+            }
+        }
+
+        return results;
+    }
+
+    public void AddPatternSettlementMultiplierBonusRule(
+        IReadOnlyCollection<int> targetPatternIds,
+        double multiplierBonusPerPattern,
+        IReadOnlyCollection<int> cardTypeIds = null,
+        int sourceCardId = 0)
+    {
+        if (multiplierBonusPerPattern <= 0d)
+        {
+            return;
+        }
+
+        _patternSettlementMultiplierBonusRules.Add(new PatternSettlementMultiplierBonusRuleModel(
+            targetPatternIds,
+            multiplierBonusPerPattern,
+            cardTypeIds,
+            sourceCardId));
+    }
+
+    public List<PatternSettlementMultiplierBonusRuleModel> GetPatternSettlementMultiplierBonusRulesForCardType(int cardTypeId)
+    {
+        var results = new List<PatternSettlementMultiplierBonusRuleModel>();
+        for (int i = 0; i < _patternSettlementMultiplierBonusRules.Count; i++)
+        {
+            PatternSettlementMultiplierBonusRuleModel rule = _patternSettlementMultiplierBonusRules[i];
+            if (rule != null && rule.AppliesToCardType(cardTypeId))
+            {
+                results.Add(rule);
+            }
+        }
+
+        return results;
+    }
+
     public void Clear()
     {
         _patternBaseScoreBonuses.Clear();
@@ -475,6 +635,7 @@ public class RogueCardRunModifierModel
         _giantPatternRulesByPattern.Clear();
         _jokerPatternRulesByPattern.Clear();
         _riskMultiplierRulesByPattern.Clear();
+        _patternConversionRules.Clear();
         _jokerGoodFaceScoreOverrides.Clear();
         _patternBaseScoreSourceCardIds.Clear();
         _patternBaseScoreGrowthSourceCardIds.Clear();
@@ -488,6 +649,9 @@ public class RogueCardRunModifierModel
         _settlementScoreBonusSourceCardIds.Clear();
         _settlementMultiplierBonusSourceCardIds.Clear();
         _addedScratchPatterns.Clear();
+        _adjacentPatternMetalConversionRules.Clear();
+        _patternSettlementScoreBonusRules.Clear();
+        _patternSettlementMultiplierBonusRules.Clear();
         ScratchCardMultiplierBonus = 0d;
         SettlementScoreBonus = 0;
         SettlementMultiplierBonus = 0d;
@@ -498,6 +662,7 @@ public class RogueCardRunModifierModel
         Clear();
         _permanentPatternBaseScoreBonuses.Clear();
         _permanentPatternBaseScoreSourceCardIds.Clear();
+        _permanentScratchCardTypeMultiplierBonuses.Clear();
     }
 
     private static void AddSourceCardId(Dictionary<int, HashSet<int>> sourceCardIdsByPattern, int patternId, int sourceCardId)
@@ -660,5 +825,237 @@ public class RogueCardRunModifierModel
 
             return _resolvedPatternIds[_resolvedPatternIds.Count - 1];
         }
+    }
+}
+
+public class PatternSettlementScoreBonusRuleModel
+{
+    private readonly HashSet<int> _targetPatternIds;
+    private readonly HashSet<int> _cardTypeIds;
+
+    public int ScorePerPattern { get; }
+    public int SourceCardId { get; }
+
+    public PatternSettlementScoreBonusRuleModel(
+        IReadOnlyCollection<int> targetPatternIds,
+        int scorePerPattern,
+        IReadOnlyCollection<int> cardTypeIds = null,
+        int sourceCardId = 0)
+    {
+        _targetPatternIds = new HashSet<int>();
+        if (targetPatternIds != null)
+        {
+            foreach (int patternId in targetPatternIds)
+            {
+                if (patternId > 0)
+                {
+                    _targetPatternIds.Add(patternId);
+                }
+            }
+        }
+
+        _cardTypeIds = new HashSet<int>();
+        if (cardTypeIds != null)
+        {
+            foreach (int cardTypeId in cardTypeIds)
+            {
+                if (cardTypeId > 0)
+                {
+                    _cardTypeIds.Add(cardTypeId);
+                }
+            }
+        }
+
+        ScorePerPattern = scorePerPattern;
+        SourceCardId = sourceCardId;
+    }
+
+    public bool AppliesToCardType(int cardTypeId)
+    {
+        return _cardTypeIds.Count == 0 || _cardTypeIds.Contains(cardTypeId);
+    }
+
+    public bool MatchesPattern(int patternId)
+    {
+        return _targetPatternIds.Count == 0 || _targetPatternIds.Contains(patternId);
+    }
+}
+
+public class PatternRevealConversionRuleModel
+{
+    private readonly HashSet<int> _cardTypeIds;
+
+    public int SourcePatternId { get; }
+    public int TargetPatternId { get; }
+    public double Chance { get; }
+    public int SourceCardId { get; }
+
+    public PatternRevealConversionRuleModel(
+        int sourcePatternId,
+        int targetPatternId,
+        double chance,
+        IReadOnlyList<int> cardTypeIds = null,
+        int sourceCardId = 0)
+    {
+        SourcePatternId = sourcePatternId;
+        TargetPatternId = targetPatternId;
+        Chance = chance > 0d ? chance : 0d;
+        SourceCardId = sourceCardId;
+        _cardTypeIds = new HashSet<int>();
+        if (cardTypeIds == null)
+        {
+            return;
+        }
+
+        for (int i = 0; i < cardTypeIds.Count; i++)
+        {
+            int cardTypeId = cardTypeIds[i];
+            if (cardTypeId > 0)
+            {
+                _cardTypeIds.Add(cardTypeId);
+            }
+        }
+    }
+
+    public bool AppliesToCardType(int cardTypeId)
+    {
+        return _cardTypeIds.Count == 0 || _cardTypeIds.Contains(cardTypeId);
+    }
+
+    public bool MatchesPattern(int patternId)
+    {
+        return SourcePatternId <= 0 || SourcePatternId == patternId;
+    }
+}
+
+public class AdjacentPatternMetalConversionRuleModel
+{
+    private static readonly int[] DefaultMetalPatternIds = { 5, 6, 8, 9 };
+
+    private readonly HashSet<int> _metalPatternIds;
+    private readonly List<int> _metalPatternIdList;
+    private readonly HashSet<int> _cardTypeIds;
+
+    public double Chance { get; }
+    public int SourceCardId { get; }
+
+    public AdjacentPatternMetalConversionRuleModel(
+        IReadOnlyCollection<int> metalPatternIds,
+        double chance,
+        IReadOnlyCollection<int> cardTypeIds = null,
+        int sourceCardId = 0)
+    {
+        _metalPatternIds = new HashSet<int>();
+        _metalPatternIdList = new List<int>();
+        AddMetalPatternIds(metalPatternIds);
+        if (_metalPatternIdList.Count == 0)
+        {
+            AddMetalPatternIds(DefaultMetalPatternIds);
+        }
+
+        _cardTypeIds = new HashSet<int>();
+        if (cardTypeIds != null)
+        {
+            foreach (int cardTypeId in cardTypeIds)
+            {
+                if (cardTypeId > 0)
+                {
+                    _cardTypeIds.Add(cardTypeId);
+                }
+            }
+        }
+
+        Chance = chance > 0d ? chance : 0d;
+        SourceCardId = sourceCardId;
+    }
+
+    public bool AppliesToCardType(int cardTypeId)
+    {
+        return _cardTypeIds.Count == 0 || _cardTypeIds.Contains(cardTypeId);
+    }
+
+    public bool IsMetalPattern(int patternId)
+    {
+        return _metalPatternIds.Contains(patternId);
+    }
+
+    public int PickMetalPatternId()
+    {
+        if (_metalPatternIdList.Count == 0)
+        {
+            return 0;
+        }
+
+        int index = Random.Range(0, _metalPatternIdList.Count);
+        return _metalPatternIdList[index];
+    }
+
+    private void AddMetalPatternIds(IEnumerable<int> metalPatternIds)
+    {
+        if (metalPatternIds == null)
+        {
+            return;
+        }
+
+        foreach (int patternId in metalPatternIds)
+        {
+            if (patternId > 0 && _metalPatternIds.Add(patternId))
+            {
+                _metalPatternIdList.Add(patternId);
+            }
+        }
+    }
+}
+
+public class PatternSettlementMultiplierBonusRuleModel
+{
+    private readonly HashSet<int> _targetPatternIds;
+    private readonly HashSet<int> _cardTypeIds;
+
+    public double MultiplierBonusPerPattern { get; }
+    public int SourceCardId { get; }
+
+    public PatternSettlementMultiplierBonusRuleModel(
+        IReadOnlyCollection<int> targetPatternIds,
+        double multiplierBonusPerPattern,
+        IReadOnlyCollection<int> cardTypeIds = null,
+        int sourceCardId = 0)
+    {
+        _targetPatternIds = new HashSet<int>();
+        if (targetPatternIds != null)
+        {
+            foreach (int patternId in targetPatternIds)
+            {
+                if (patternId > 0)
+                {
+                    _targetPatternIds.Add(patternId);
+                }
+            }
+        }
+
+        _cardTypeIds = new HashSet<int>();
+        if (cardTypeIds != null)
+        {
+            foreach (int cardTypeId in cardTypeIds)
+            {
+                if (cardTypeId > 0)
+                {
+                    _cardTypeIds.Add(cardTypeId);
+                }
+            }
+        }
+
+        MultiplierBonusPerPattern = multiplierBonusPerPattern > 0d ? multiplierBonusPerPattern : 0d;
+        SourceCardId = sourceCardId;
+    }
+
+    public bool AppliesToCardType(int cardTypeId)
+    {
+        return _cardTypeIds.Count == 0 || _cardTypeIds.Contains(cardTypeId);
+    }
+
+    public bool MatchesPattern(int patternId)
+    {
+        return _targetPatternIds.Count == 0 || _targetPatternIds.Contains(patternId);
     }
 }

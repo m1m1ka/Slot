@@ -87,7 +87,7 @@ public class ShopItemView : MonoBehaviour, IPointerEnterHandler, IPointerExitHan
             _nameText.text = slotName;
             
         if (_costText != null) 
-            _costText.text = $"{cost:N0}";
+            _costText.text = NumberFormatter.FormatCompact(cost);
 
         SetIcon(iconPath);
     }
