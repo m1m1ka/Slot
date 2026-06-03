@@ -478,7 +478,7 @@
                       "levels":  [
                                      {
                                          "level":  1,
-                                         "description":  "你的刮刮卡在结算时额外+0.2倍率",
+                                         "description":  "你的刮刮卡在结算时额外+0.5倍率",
                                          "effects":  [
                                                          {
                                                              "effectType":  "AddSettlementMultiplierBonus",
@@ -492,7 +492,7 @@
                                      },
                                      {
                                          "level":  2,
-                                         "description":  "你的刮刮卡在结算时额外+0.4倍率",
+                                         "description":  "你的刮刮卡在结算时额外+1倍率",
                                          "effects":  [
                                                          {
                                                              "effectType":  "AddSettlementMultiplierBonus",

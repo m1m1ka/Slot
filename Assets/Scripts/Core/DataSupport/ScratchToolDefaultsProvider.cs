@@ -80,6 +80,18 @@ namespace Core
                     IconAtlasPath = IconFolderPath,
                     IconSpriteName = "Magnet"
                 }
+            },
+            {
+                7,
+                new ScratchToolConfig
+                {
+                    Id = 7,
+                    Name = "水果刮刀",
+                    Description = "结算2个相同或以上的水果图案",
+                    SettlementType = ScratchSettlementType.FruitMatchAnyPair,
+                    IconAtlasPath = IconFolderPath,
+                    IconSpriteName = "FruitScraper"
+                }
             }
         };
 
