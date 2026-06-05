@@ -151,7 +151,7 @@ public class MainGameController : MonoBehaviour
 
             if (itemView != null)
             {
-                int cardPrice = GetScratchCardPrice(cardTypeConfig.Id);
+                double cardPrice = GetScratchCardPrice(cardTypeConfig.Id);
                 // View 只展示配置数据，购买校验和扣费留在 Controller。
                 itemView.SetData(
                     cardTypeConfig.Id,
@@ -681,7 +681,7 @@ public class MainGameController : MonoBehaviour
         LoadScratchToolViews();
     }
 
-    private int GetScratchCardPrice(int cardTypeId)
+    private double GetScratchCardPrice(int cardTypeId)
     {
         int levelId = _levelModel != null ? _levelModel.LevelId : 1;
         return ScratchCardDefaultsProvider.GetCardTypePrice(cardTypeId, levelId);
@@ -1240,7 +1240,7 @@ public class MainGameController : MonoBehaviour
             patterns.Add(new ScratchCardFocusPatternInfo(
                 patternConfig.Id,
                 patternConfig.Name,
-                patternConfig.BaseScore + baseScoreBonus,
+                entry.BaseScore + baseScoreBonus,
                 baseScoreBonus != 0,
                 isProbabilityEnhanced,
                 Mathf.RoundToInt(weight),

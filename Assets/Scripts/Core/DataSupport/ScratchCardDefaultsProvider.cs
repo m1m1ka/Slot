@@ -20,16 +20,12 @@ namespace Core
                     Name = "Global Pattern Pool",
                     Entries = new List<ScratchPatternPoolEntryConfig>
                     {
-                        new ScratchPatternPoolEntryConfig { PatternId = 1, Weight = 24 },
-                        new ScratchPatternPoolEntryConfig { PatternId = 2, Weight = 20 },
-                        new ScratchPatternPoolEntryConfig { PatternId = 3, Weight = 15 },
-                        new ScratchPatternPoolEntryConfig { PatternId = 4, Weight = 8 },
-                        new ScratchPatternPoolEntryConfig { PatternId = 5, Weight = 10 },
-                        new ScratchPatternPoolEntryConfig { PatternId = 6, Weight = 8 },
-                        new ScratchPatternPoolEntryConfig { PatternId = 7, Weight = 6 },
-                        new ScratchPatternPoolEntryConfig { PatternId = 8, Weight = 4 },
-                        new ScratchPatternPoolEntryConfig { PatternId = 9, Weight = 2 },
-                        new ScratchPatternPoolEntryConfig { PatternId = 10, Weight = 1 }
+                        new ScratchPatternPoolEntryConfig { PatternId = 1, Weight = 34, BaseScore = 10 },
+                        new ScratchPatternPoolEntryConfig { PatternId = 2, Weight = 20, BaseScore = 20 },
+                        new ScratchPatternPoolEntryConfig { PatternId = 9, Weight = 30, BaseScore = 10 },
+                        new ScratchPatternPoolEntryConfig { PatternId = 10, Weight = 10, BaseScore = 30 },
+                        new ScratchPatternPoolEntryConfig { PatternId = 17, Weight = 5, BaseScore = 80 },
+                        new ScratchPatternPoolEntryConfig { PatternId = 25, Weight = 1, BaseScore = 200 }
                     }
                 }
             },
@@ -41,10 +37,15 @@ namespace Core
                     Name = "Fruit Pattern Pool",
                     Entries = new List<ScratchPatternPoolEntryConfig>
                     {
-                        new ScratchPatternPoolEntryConfig { PatternId = 1, Weight = 24 },
-                        new ScratchPatternPoolEntryConfig { PatternId = 2, Weight = 20 },
-                        new ScratchPatternPoolEntryConfig { PatternId = 3, Weight = 15 },
-                        new ScratchPatternPoolEntryConfig { PatternId = 4, Weight = 8 }
+                        new ScratchPatternPoolEntryConfig { PatternId = 2, Weight = 15, BaseScore = 20 },
+                        new ScratchPatternPoolEntryConfig { PatternId = 3, Weight = 20, BaseScore = 40 },
+                        new ScratchPatternPoolEntryConfig { PatternId = 4, Weight = 15, BaseScore = 80 },
+                        new ScratchPatternPoolEntryConfig { PatternId = 6, Weight = 10, BaseScore = 100 },
+                        new ScratchPatternPoolEntryConfig { PatternId = 8, Weight = 1, BaseScore = 400 },
+                        new ScratchPatternPoolEntryConfig { PatternId = 9, Weight = 10, BaseScore = 10 },
+                        new ScratchPatternPoolEntryConfig { PatternId = 10, Weight = 19, BaseScore = 30 },
+                        new ScratchPatternPoolEntryConfig { PatternId = 17, Weight = 4, BaseScore = 150 },
+                        new ScratchPatternPoolEntryConfig { PatternId = 25, Weight = 1, BaseScore = 300 }
                     }
                 }
             },
@@ -56,10 +57,15 @@ namespace Core
                     Name = "Metal Pattern Pool",
                     Entries = new List<ScratchPatternPoolEntryConfig>
                     {
-                        new ScratchPatternPoolEntryConfig { PatternId = 5, Weight = 10 },
-                        new ScratchPatternPoolEntryConfig { PatternId = 6, Weight = 8 },
-                        new ScratchPatternPoolEntryConfig { PatternId = 8, Weight = 4 },
-                        new ScratchPatternPoolEntryConfig { PatternId = 9, Weight = 2 }
+                        new ScratchPatternPoolEntryConfig { PatternId = 2, Weight = 5, BaseScore = 20 },
+                        new ScratchPatternPoolEntryConfig { PatternId = 3, Weight = 15, BaseScore = 40 },
+                        new ScratchPatternPoolEntryConfig { PatternId = 9, Weight = 20, BaseScore = 10 },
+                        new ScratchPatternPoolEntryConfig { PatternId = 10, Weight = 30, BaseScore = 30 },
+                        new ScratchPatternPoolEntryConfig { PatternId = 11, Weight = 20, BaseScore = 100 },
+                        new ScratchPatternPoolEntryConfig { PatternId = 12, Weight = 4, BaseScore = 400 },
+                        new ScratchPatternPoolEntryConfig { PatternId = 13, Weight = 1, BaseScore = 800 },
+                        new ScratchPatternPoolEntryConfig { PatternId = 17, Weight = 4, BaseScore = 150 },
+                        new ScratchPatternPoolEntryConfig { PatternId = 25, Weight = 1, BaseScore = 200 }
                     }
                 }
             }
@@ -86,23 +92,23 @@ namespace Core
             { 15, new Vector2Int(6, 15) },
             { 16, new Vector2Int(8, 15) }
         };
-        private static readonly Dictionary<int, Dictionary<int, int>> LevelCardPrices = new Dictionary<int, Dictionary<int, int>>
+        private static readonly Dictionary<int, Dictionary<int, double>> LevelCardPrices = new Dictionary<int, Dictionary<int, double>>
         {
-            { 1, CreateLevelPriceRow(50, 50, 100, 125, 50, 100, 125, 100, 100, 125, 100, 125, 100, 125, 100, 125) },
-            { 2, CreateLevelPriceRow(112, 112, 224, 280, 112, 224, 280, 224, 224, 280, 224, 280, 224, 280, 224, 280) },
-            { 3, CreateLevelPriceRow(187, 187, 374, 467, 187, 374, 467, 374, 374, 467, 374, 467, 374, 467, 374, 467) },
-            { 4, CreateLevelPriceRow(300, 300, 600, 750, 300, 600, 750, 600, 600, 750, 600, 750, 600, 750, 600, 750) },
-            { 5, CreateLevelPriceRow(500, 500, 1000, 1250, 500, 1000, 1250, 1000, 1000, 1250, 1000, 1250, 1000, 1250, 1000, 1250) },
-            { 6, CreateLevelPriceRow(1000, 1000, 2000, 2500, 1000, 2000, 2500, 2000, 2000, 2500, 2000, 2500, 2000, 2500, 2000, 2500) },
-            { 7, CreateLevelPriceRow(1500, 1500, 3000, 3750, 1500, 3000, 3750, 3000, 3000, 3750, 3000, 3750, 3000, 3750, 3000, 3750) },
-            { 8, CreateLevelPriceRow(2500, 2500, 5000, 6250, 2500, 5000, 6250, 5000, 5000, 6250, 5000, 6250, 5000, 6250, 5000, 6250) },
-            { 9, CreateLevelPriceRow(4000, 4000, 8000, 10000, 4000, 8000, 10000, 8000, 8000, 10000, 8000, 10000, 8000, 10000, 8000, 10000) },
-            { 10, CreateLevelPriceRow(16000, 16000, 32000, 40000, 16000, 32000, 40000, 32000, 32000, 40000, 32000, 40000, 32000, 40000, 32000, 40000) },
-            { 11, CreateLevelPriceRow(24000, 24000, 48000, 60000, 24000, 48000, 60000, 48000, 48000, 60000, 48000, 60000, 48000, 60000, 48000, 60000) },
-            { 12, CreateLevelPriceRow(36000, 36000, 72000, 90000, 36000, 72000, 90000, 72000, 72000, 90000, 72000, 90000, 72000, 90000, 72000, 90000) },
-            { 13, CreateLevelPriceRow(50000, 50000, 100000, 125000, 50000, 100000, 125000, 100000, 100000, 125000, 100000, 125000, 100000, 125000, 100000, 125000) },
-            { 14, CreateLevelPriceRow(80000, 80000, 160000, 200000, 80000, 160000, 200000, 160000, 160000, 200000, 160000, 200000, 160000, 200000, 160000, 200000) },
-            { 15, CreateLevelPriceRow(120000, 120000, 240000, 300000, 120000, 240000, 300000, 240000, 240000, 300000, 240000, 300000, 240000, 300000, 240000, 300000) }
+            { 1, CreateUniformLevelPriceRow(6.25d) },
+            { 2, CreateUniformLevelPriceRow(18.75d) },
+            { 3, CreateUniformLevelPriceRow(37.5d) },
+            { 4, CreateUniformLevelPriceRow(50d) },
+            { 5, CreateUniformLevelPriceRow(93.75d) },
+            { 6, CreateUniformLevelPriceRow(125d) },
+            { 7, CreateUniformLevelPriceRow(250d) },
+            { 8, CreateUniformLevelPriceRow(500d) },
+            { 9, CreateUniformLevelPriceRow(937.5d) },
+            { 10, CreateUniformLevelPriceRow(1875d) },
+            { 11, CreateUniformLevelPriceRow(6250d) },
+            { 12, CreateUniformLevelPriceRow(25000d) },
+            { 13, CreateUniformLevelPriceRow(50000d) },
+            { 14, CreateUniformLevelPriceRow(62500d) },
+            { 15, CreateUniformLevelPriceRow(125000d) }
         };
 
         static ScratchCardDefaultsProvider()
@@ -120,24 +126,24 @@ namespace Core
             CardTypes[2] = CreateCardType(2, "水果超市", "刮开5个相同图案获奖；初始只有水果图案", 1, FruitPatternPoolId, 5, 5, "UI/ScratchCards/ScratchCardView_2", "Icons/FruitMarket");
             CardTypes[3] = CreateCardType(3, "水果超市+", "刮开10个相同图案获奖；初始只有水果图案", 2, FruitPatternPoolId, 10, 6, "UI/ScratchCards/ScratchCardView_3", "Icons/FruitMarket");
             CardTypes[4] = CreateCardType(4, "水果超市++", "刮开15个相同图案获奖；初始只有水果图案", 2, FruitPatternPoolId, 15, 7, "UI/ScratchCards/ScratchCardView_4", "Icons/FruitMarket");
-            CardTypes[5] = CreateCardType(5, "金属探测器", "刮开5个相同图案获奖；金属图案概率翻倍", 1, GlobalPatternPoolId, 5, 5, "UI/ScratchCards/ScratchCardView_5", "Icons/Clover", CreateMetalWeightDoubleEffect());
-            CardTypes[6] = CreateCardType(6, "金属探测器+", "刮开10个相同图案获奖；金属图案概率翻倍", 1, GlobalPatternPoolId, 10, 6, "UI/ScratchCards/ScratchCardView_6", "Icons/Clover", CreateMetalWeightDoubleEffect());
-            CardTypes[7] = CreateCardType(7, "金属探测器++", "刮开15个相同图案获奖；金属图案概率翻倍", 1, GlobalPatternPoolId, 15, 7, "UI/ScratchCards/ScratchCardView_7", "Icons/Clover", CreateMetalWeightDoubleEffect());
+            CardTypes[5] = CreateCardType(5, "金属探测器", "刮开5个相同图案获奖；使用金属探测器图案池", 1, MetalPatternPoolId, 5, 5, "UI/ScratchCards/ScratchCardView_5", "Icons/Clover");
+            CardTypes[6] = CreateCardType(6, "金属探测器+", "刮开10个相同图案获奖；使用金属探测器图案池", 1, MetalPatternPoolId, 10, 6, "UI/ScratchCards/ScratchCardView_6", "Icons/Clover");
+            CardTypes[7] = CreateCardType(7, "金属探测器++", "刮开15个相同图案获奖；使用金属探测器图案池", 1, MetalPatternPoolId, 15, 7, "UI/ScratchCards/ScratchCardView_7", "Icons/Clover");
             CardTypes[8] = CreateCardType(8, "保险箱", "刮开即中奖；并获得10倍率", 1, GlobalPatternPoolId, 1, 8, "UI/ScratchCards/ScratchCardView_8", "Icons/Clover", null, 10d);
-            CardTypes[9] = CreateCardType(9, "马戏团", "刮出5个小丑获奖；小丑图案概率翻倍", 1, GlobalPatternPoolId, 5, 6, "UI/ScratchCards/ScratchCardView_9", "Icons/Clover", CreatePatternWeightMultiplierEffect(14, 2d), 1d, ScratchCardWinRuleType.SpecificPatternCount, 14);
-            CardTypes[10] = CreateCardType(10, "马戏团+", "刮出10个小丑获奖；小丑图案概率翻倍", 1, GlobalPatternPoolId, 10, 7, "UI/ScratchCards/ScratchCardView_10", "Icons/Clover", CreatePatternWeightMultiplierEffect(14, 2d), 1d, ScratchCardWinRuleType.SpecificPatternCount, 14);
+            CardTypes[9] = CreateCardType(9, "马戏团", "刮出5个小丑获奖；小丑图案概率翻倍", 1, GlobalPatternPoolId, 5, 6, "UI/ScratchCards/ScratchCardView_9", "Icons/Clover", CreatePatternWeightMultiplierEffect(26, 2d), 1d, ScratchCardWinRuleType.SpecificPatternCount, 26);
+            CardTypes[10] = CreateCardType(10, "马戏团+", "刮出10个小丑获奖；小丑图案概率翻倍", 1, GlobalPatternPoolId, 10, 7, "UI/ScratchCards/ScratchCardView_10", "Icons/Clover", CreatePatternWeightMultiplierEffect(26, 2d), 1d, ScratchCardWinRuleType.SpecificPatternCount, 26);
             CardTypes[11] = CreateCardType(11, "幸运四叶草", "刮出10个相同图案获奖；特定位置图案获得额外效果", 1, GlobalPatternPoolId, 10, 6, "UI/ScratchCards/ScratchCardView_11", "Icons/Clover", CreateCellScoreMultiplierEffect(3d, 0.08d));
             CardTypes[12] = CreateCardType(12, "幸运四叶草+", "刮开15个相同图案获奖；特定位置图案获得额外效果", 1, GlobalPatternPoolId, 15, 7, "UI/ScratchCards/ScratchCardView_12", "Icons/Clover", CreateCellScoreMultiplierEffect(3d, 0.08d));
-            CardTypes[13] = CreateCardType(13, "幸运数字", "刮出7个相同图案获奖；刮出幸运7图案概率翻倍", 1, GlobalPatternPoolId, 7, 6, "UI/ScratchCards/ScratchCardView_13", "Icons/Clover", CreatePatternWeightMultiplierEffect(10, 2d));
-            CardTypes[14] = CreateCardType(14, "幸运数字+", "刮出14个相同图案获奖；刮出幸运7图案概率翻倍", 1, GlobalPatternPoolId, 14, 7, "UI/ScratchCards/ScratchCardView_14", "Icons/Clover", CreatePatternWeightMultiplierEffect(10, 2d));
-            CardTypes[15] = CreateCardType(15, "幸运倍率", "刮出10个相同图案获奖；倍率图案概率翻倍", 1, GlobalPatternPoolId, 10, 7, "UI/ScratchCards/ScratchCardView_15", "Icons/Clover", CreatePatternWeightMultiplierEffect(15, 2d));
-            CardTypes[16] = CreateCardType(16, "幸运倍率+", "刮出10个相同图案获奖；倍率图案概率翻倍", 1, GlobalPatternPoolId, 15, 7, "UI/ScratchCards/ScratchCardView_16", "Icons/Clover", CreatePatternWeightMultiplierEffect(15, 2d));
+            CardTypes[13] = CreateCardType(13, "幸运数字", "刮出7个相同图案获奖；刮出幸运7图案概率翻倍", 1, GlobalPatternPoolId, 7, 6, "UI/ScratchCards/ScratchCardView_13", "Icons/Clover", CreatePatternWeightMultiplierEffect(25, 2d));
+            CardTypes[14] = CreateCardType(14, "幸运数字+", "刮出14个相同图案获奖；刮出幸运7图案概率翻倍", 1, GlobalPatternPoolId, 14, 7, "UI/ScratchCards/ScratchCardView_14", "Icons/Clover", CreatePatternWeightMultiplierEffect(25, 2d));
+            CardTypes[15] = CreateCardType(15, "幸运倍率", "刮出10个相同图案获奖；倍率图案概率翻倍", 1, GlobalPatternPoolId, 10, 7, "UI/ScratchCards/ScratchCardView_15", "Icons/Clover", CreatePatternWeightMultiplierEffect(29, 2d));
+            CardTypes[16] = CreateCardType(16, "幸运倍率+", "刮出10个相同图案获奖；倍率图案概率翻倍", 1, GlobalPatternPoolId, 15, 7, "UI/ScratchCards/ScratchCardView_16", "Icons/Clover", CreatePatternWeightMultiplierEffect(29, 2d));
         }
 
-        public static int GetCardTypePrice(int cardTypeId, int levelId)
+        public static double GetCardTypePrice(int cardTypeId, int levelId)
         {
-            if (LevelCardPrices.TryGetValue(levelId, out Dictionary<int, int> levelPrices) &&
-                levelPrices.TryGetValue(cardTypeId, out int price))
+            if (LevelCardPrices.TryGetValue(levelId, out Dictionary<int, double> levelPrices) &&
+                levelPrices.TryGetValue(cardTypeId, out double price))
             {
                 return price;
             }
@@ -235,9 +241,9 @@ namespace Core
             };
         }
 
-        private static Dictionary<int, int> CreateLevelPriceRow(params int[] prices)
+        private static Dictionary<int, double> CreateLevelPriceRow(params double[] prices)
         {
-            var row = new Dictionary<int, int>();
+            var row = new Dictionary<int, double>();
             if (prices == null)
             {
                 return row;
@@ -251,11 +257,20 @@ namespace Core
             return row;
         }
 
+        private static Dictionary<int, double> CreateUniformLevelPriceRow(double price)
+        {
+            return CreateLevelPriceRow(
+                price, price, price, price,
+                price, price, price, price,
+                price, price, price, price,
+                price, price, price, price);
+        }
+
         private static ScratchCardTypeConfig CreateCardType(
             int id,
             string name,
             string description,
-            int price,
+            double price,
             int patternPoolId,
             int requiredCount,
             int areaTemplateId,
@@ -304,7 +319,7 @@ namespace Core
                 new ScratchCardExtraEffectConfig
                 {
                     EffectType = ScratchCardExtraEffectType.MultiplyPatternWeight,
-                    TargetPatternIds = new List<int> { 5, 6, 8, 9 },
+                    TargetPatternIds = new List<int> { 9, 10, 11, 12, 13, 14, 15, 16 },
                     Value = 2d,
                     Description = "Metal pattern weights x2."
                 }

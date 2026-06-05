@@ -16,5 +16,6 @@ namespace Configs
     {
         public int PatternId { get; set; }
         public int Weight { get; set; }
+        public int BaseScore { get; set; }
     }
 }

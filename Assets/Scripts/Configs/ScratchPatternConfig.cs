@@ -9,6 +9,7 @@ namespace Configs
         public int Id { get; set; }
         public string Name { get; set; }
         public int BaseScore { get; set; }
+        public string Type { get; set; }
         public string AtlasPath { get; set; }
         public string SpriteName { get; set; }
         public string SpritePath { get; set; }

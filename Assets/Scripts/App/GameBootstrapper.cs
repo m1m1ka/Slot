@@ -48,7 +48,7 @@ public class GameBootstrapper : MonoBehaviour
 
         _appRoot.BindManagers(uiManager, poolManager, timeManager, audioManager);
         _appRoot.InitializeContexts(
-            _appRoot.PlayerContext ?? new PlayerContext(initialCoins: 150),
+            _appRoot.PlayerContext ?? new PlayerContext(initialCoins: 25),
             _appRoot.GameSession ?? new GameSession()
         );
 

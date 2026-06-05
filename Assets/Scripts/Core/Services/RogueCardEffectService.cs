@@ -269,9 +269,9 @@ namespace Core
 
         private class AddJokerPatternToPoolEffect : IRogueCardEffect
         {
-            private const int DefaultJokerPatternId = 14;
-            private const int DefaultGoodFacePatternId = 12;
-            private const int DefaultBadFacePatternId = 13;
+            private const int DefaultJokerPatternId = 26;
+            private const int DefaultGoodFacePatternId = 27;
+            private const int DefaultBadFacePatternId = 28;
             private const int DefaultGoodFaceScore = 3000;
             private const float DefaultWeight = 10f;
             private const double DefaultGoodFaceChance = 0.5d;
@@ -340,10 +340,10 @@ namespace Core
 
         private class AddRiskMultiplierPatternToPoolEffect : IRogueCardEffect
         {
-            private const int DefaultRiskMultiplierPatternId = 15;
+            private const int DefaultRiskMultiplierPatternId = 29;
             private const double DefaultChance = 0.05d;
 
-            private static readonly int[] ResolvedPatternIds = { 16, 17, 18, 19 };
+            private static readonly int[] ResolvedPatternIds = { 30, 31, 32, 33 };
             private static readonly double[] DefaultResolvedWeights = { 1d, 1d, 1d, 1d };
 
             public RogueCardEffectType EffectType => RogueCardEffectType.AddRiskMultiplierPatternToPool;

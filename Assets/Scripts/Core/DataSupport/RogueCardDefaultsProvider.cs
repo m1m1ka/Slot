@@ -9,168 +9,10 @@ namespace Core
     {
         private const string TablePath = "Configs/RogueCards/RogueCards";
 
-        private static List<RogueCardConfig> _cachedCards;
-        private static readonly Dictionary<int, Vector2Int> LevelDistributions = new Dictionary<int, Vector2Int>
-        {
-            { 1, new Vector2Int(1, 15) },
-            { 2, new Vector2Int(1, 15) },
-            { 3, new Vector2Int(1, 15) },
-            { 4, new Vector2Int(6, 15) },
-            { 5, new Vector2Int(-1, -1) },
-            { 6, new Vector2Int(6, 15) },
-            { 7, new Vector2Int(6, 15) },
-            { 8, new Vector2Int(1, 15) },
-            { 9, new Vector2Int(1, 15) },
-            { 10, new Vector2Int(1, 15) },
-            { 11, new Vector2Int(5, 15) },
-            { 12, new Vector2Int(5, 15) },
-            { 13, new Vector2Int(6, 15) },
-            { 14, new Vector2Int(1, 15) }
-        };
+        private static readonly Dictionary<int, Vector2Int> LevelDistributions = new Dictionary<int, Vector2Int>();
+        private static readonly List<RogueCardConfig> DefaultCards = new List<RogueCardConfig>();
 
-        private static readonly List<RogueCardConfig> DefaultCards = new List<RogueCardConfig>
-        {
-            new RogueCardConfig
-            {
-                Id = 1,
-                Name = "樱桃抛光",
-                Rarity = RogueCardRarity.Common,
-                Description = "樱桃图案基础分增加。",
-                Levels = new List<RogueCardLevelConfig>
-                {
-                    new RogueCardLevelConfig
-                    {
-                        Level = 1,
-                        Rarity = RogueCardRarity.Common,
-                        Description = "樱桃图案基础分增加 5。",
-                        Effects = new List<RogueCardEffectConfig>
-                        {
-                            new RogueCardEffectConfig { EffectType = RogueCardEffectType.IncreasePatternBaseScore, TargetIds = new List<int> { 1 }, Value = 5 }
-                        }
-                    },
-                    new RogueCardLevelConfig
-                    {
-                        Level = 2,
-                        Rarity = RogueCardRarity.Common,
-                        Description = "樱桃与柠檬图案基础分增加 12。",
-                        Effects = new List<RogueCardEffectConfig>
-                        {
-                            new RogueCardEffectConfig { EffectType = RogueCardEffectType.IncreasePatternBaseScore, TargetIds = new List<int> { 1, 2 }, Value = 12 }
-                        }
-                    },
-                    new RogueCardLevelConfig
-                    {
-                        Level = 3,
-                        Rarity = RogueCardRarity.Common,
-                        Description = "樱桃、柠檬与橙子图案基础分增加 22。",
-                        Effects = new List<RogueCardEffectConfig>
-                        {
-                            new RogueCardEffectConfig { EffectType = RogueCardEffectType.IncreasePatternBaseScore, TargetIds = new List<int> { 1, 2, 3 }, Value = 22 }
-                        }
-                    }
-                }
-            },
-            new RogueCardConfig
-            {
-                Id = 2,
-                Name = "幸运刮刀",
-                Rarity = RogueCardRarity.Common,
-                Description = "刮刮卡奖励获得少量倍率。",
-                Levels = new List<RogueCardLevelConfig>
-                {
-                    new RogueCardLevelConfig
-                    {
-                        Level = 1,
-                        Rarity = RogueCardRarity.Common,
-                        Description = "刮刮卡奖励倍率 +0.1。",
-                        Effects = new List<RogueCardEffectConfig>
-                        {
-                            new RogueCardEffectConfig { EffectType = RogueCardEffectType.IncreaseScratchCardMultiplier, Value = 0.1 }
-                        }
-                    },
-                    new RogueCardLevelConfig
-                    {
-                        Level = 2,
-                        Rarity = RogueCardRarity.Common,
-                        Description = "刮刮卡奖励倍率 +0.25。",
-                        Effects = new List<RogueCardEffectConfig>
-                        {
-                            new RogueCardEffectConfig { EffectType = RogueCardEffectType.IncreaseScratchCardMultiplier, Value = 0.25 }
-                        }
-                    },
-                    new RogueCardLevelConfig
-                    {
-                        Level = 3,
-                        Rarity = RogueCardRarity.Common,
-                        Description = "刮刮卡奖励倍率 +0.45。",
-                        Effects = new List<RogueCardEffectConfig>
-                        {
-                            new RogueCardEffectConfig { EffectType = RogueCardEffectType.IncreaseScratchCardMultiplier, Value = 0.45 }
-                        }
-                    }
-                }
-            },
-            new RogueCardConfig
-            {
-                Id = 3,
-                Name = "铃铛回响",
-                Rarity = RogueCardRarity.Common,
-                Description = "铃铛图案基础分增加。",
-                Levels = new List<RogueCardLevelConfig>
-                {
-                    new RogueCardLevelConfig
-                    {
-                        Level = 1,
-                        Rarity = RogueCardRarity.Common,
-                        Description = "铃铛图案基础分增加 8。",
-                        Effects = new List<RogueCardEffectConfig>
-                        {
-                            new RogueCardEffectConfig { EffectType = RogueCardEffectType.IncreasePatternBaseScore, TargetIds = new List<int> { 5 }, Value = 8 }
-                        }
-                    },
-                    new RogueCardLevelConfig
-                    {
-                        Level = 2,
-                        Rarity = RogueCardRarity.Common,
-                        Description = "铃铛与横条图案基础分增加 18。",
-                        Effects = new List<RogueCardEffectConfig>
-                        {
-                            new RogueCardEffectConfig { EffectType = RogueCardEffectType.IncreasePatternBaseScore, TargetIds = new List<int> { 5, 6 }, Value = 18 }
-                        }
-                    },
-                    new RogueCardLevelConfig
-                    {
-                        Level = 3,
-                        Rarity = RogueCardRarity.Common,
-                        Description = "铃铛、横条与星星图案基础分增加 32。",
-                        Effects = new List<RogueCardEffectConfig>
-                        {
-                            new RogueCardEffectConfig { EffectType = RogueCardEffectType.IncreasePatternBaseScore, TargetIds = new List<int> { 5, 6, 7 }, Value = 32 }
-                        }
-                    }
-                }
-            },
-            new RogueCardConfig
-            {
-                Id = 4,
-                Name = "黄金边缘",
-                Rarity = RogueCardRarity.Rare,
-                Description = "后续奖励规则可接入这张卡。",
-                Levels = new List<RogueCardLevelConfig>
-                {
-                    new RogueCardLevelConfig
-                    {
-                        Level = 1,
-                        Rarity = RogueCardRarity.Rare,
-                        Description = "后续奖励规则可接入这张卡。",
-                        Effects = new List<RogueCardEffectConfig>
-                        {
-                            new RogueCardEffectConfig { EffectType = RogueCardEffectType.None }
-                        }
-                    }
-                }
-            }
-        };
+        private static List<RogueCardConfig> _cachedCards;
 
         public static IReadOnlyList<RogueCardConfig> GetAll()
         {
@@ -207,9 +49,10 @@ namespace Core
         public static RogueCardConfig GetById(int id)
         {
             IReadOnlyList<RogueCardConfig> cards = GetCards();
-            for (int i = 0; i < cards.Count; i++)
+            int count = cards != null ? cards.Count : 0;
+            for (int i = 0; i < count; i++)
             {
-                if (cards[i].Id == id)
+                if (cards[i] != null && cards[i].Id == id)
                 {
                     return cards[i];
                 }
@@ -231,7 +74,7 @@ namespace Core
             }
 
             _cachedCards = LoadCardsFromJson();
-            if (_cachedCards == null || _cachedCards.Count == 0)
+            if (_cachedCards == null)
             {
                 _cachedCards = DefaultCards;
             }
@@ -258,9 +101,9 @@ namespace Core
                 return null;
             }
 
-            if (tableData == null || tableData.cards == null || tableData.cards.Count == 0)
+            if (tableData == null || tableData.cards == null)
             {
-                return null;
+                return new List<RogueCardConfig>();
             }
 
             var cards = new List<RogueCardConfig>();
@@ -291,8 +134,7 @@ namespace Core
                 int levelCount = cardData.levels != null ? cardData.levels.Count : 0;
                 for (int levelIndex = 0; levelIndex < levelCount; levelIndex++)
                 {
-                    RogueCardLevelData levelData = cardData.levels[levelIndex];
-                    RogueCardLevelConfig levelConfig = BuildLevelConfig(cardData.id, rarity, levelData);
+                    RogueCardLevelConfig levelConfig = BuildLevelConfig(cardData.id, rarity, cardData.levels[levelIndex]);
                     if (levelConfig != null)
                     {
                         cardConfig.Levels.Add(levelConfig);
@@ -347,7 +189,11 @@ namespace Core
                 levelConfig.Effects.Add(new RogueCardEffectConfig
                 {
                     EffectType = effectType,
+                    TriggerTime = TryParseTriggerTime(effectData.triggerTime, out RogueCardTriggerTime triggerTime)
+                        ? triggerTime
+                        : RogueCardTriggerTime.Settlement,
                     TargetIds = effectData.targetIds ?? new List<int>(),
+                    TargetType = effectData.targetType,
                     CardTypeIds = effectData.cardTypeIds ?? new List<int>(),
                     Value = ParseEffectValue(effectData.value),
                     ValueExpression = effectData.value
@@ -376,13 +222,10 @@ namespace Core
 
         private static double ParseEffectValue(string rawValue)
         {
-            if (string.IsNullOrWhiteSpace(rawValue))
-            {
-                return 0d;
-            }
-
-            string[] parts = rawValue.Split('|', '/', ',', '，', ';', '；');
-            return double.TryParse(parts[0], out double value) ? value : 0d;
+            string[] parts = RogueCardEffectValueParser.Split(rawValue);
+            return parts.Length > 0 && RogueCardEffectValueParser.TryParseNumber(parts[0], out double value)
+                ? value
+                : 0d;
         }
 
         private static bool TryParseRarity(string rawValue, out RogueCardRarity rarity)
@@ -399,29 +242,24 @@ namespace Core
                 return Enum.IsDefined(typeof(RogueCardRarity), rarity);
             }
 
-            if (Enum.TryParse(rawValue, true, out rarity))
+            return Enum.TryParse(rawValue, true, out rarity);
+        }
+
+        private static bool TryParseTriggerTime(string rawValue, out RogueCardTriggerTime triggerTime)
+        {
+            if (string.IsNullOrWhiteSpace(rawValue))
             {
-                return true;
+                triggerTime = RogueCardTriggerTime.Settlement;
+                return false;
             }
 
-            switch (rawValue)
+            if (int.TryParse(rawValue, out int intValue))
             {
-                case "普通":
-                    rarity = RogueCardRarity.Common;
-                    return true;
-                case "罕见":
-                    rarity = RogueCardRarity.Rare;
-                    return true;
-                case "史诗":
-                    rarity = RogueCardRarity.Epic;
-                    return true;
-                case "传说":
-                    rarity = RogueCardRarity.Legendary;
-                    return true;
-                default:
-                    rarity = RogueCardRarity.Common;
-                    return false;
+                triggerTime = (RogueCardTriggerTime)intValue;
+                return Enum.IsDefined(typeof(RogueCardTriggerTime), triggerTime);
             }
+
+            return Enum.TryParse(rawValue, true, out triggerTime);
         }
 
         [Serializable]
@@ -453,7 +291,9 @@ namespace Core
         private class RogueCardEffectData
         {
             public string effectType;
+            public string triggerTime;
             public List<int> targetIds;
+            public string targetType;
             public List<int> cardTypeIds;
             public string value;
         }

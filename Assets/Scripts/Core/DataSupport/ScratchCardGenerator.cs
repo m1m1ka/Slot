@@ -29,12 +29,15 @@ namespace Core
             for (int i = 0; i < cellCount; i++)
             {
                 bool isScratchable = areaTemplateConfig.ScratchableCellIndices.Contains(i);
-                ScratchPatternConfig patternConfig = PickRandomPattern(patternWeights);
+                ScratchPatternWeightEntry patternEntry = PickRandomPatternEntry(patternWeights);
+                ScratchPatternConfig patternConfig = patternEntry != null
+                    ? ScratchPatternDefaultProvider.GetById(patternEntry.PatternId)
+                    : null;
 
                 int row = areaTemplateConfig.Width > 0 ? i / areaTemplateConfig.Width : 0;
                 int column = areaTemplateConfig.Width > 0 ? i % areaTemplateConfig.Width : 0;
 
-                int baseScore = patternConfig != null ? patternConfig.BaseScore : 0;
+                int baseScore = patternEntry != null ? patternEntry.BaseScore : 0;
                 bool isBaseScoreEnhanced = false;
                 bool isGiantFruit = false;
                 double scoreMultiplierOnScore = 1d;
@@ -59,8 +62,17 @@ namespace Core
                     {
                         if (hasGeneratedRiskMultiplierPattern)
                         {
-                            patternConfig = PickRandomPatternWithoutPattern(patternWeights, originalPatternId) ?? patternConfig;
-                            originalPatternId = patternConfig.Id;
+                            ScratchPatternWeightEntry replacementEntry = PickRandomPatternEntryWithoutPattern(patternWeights, originalPatternId);
+                            ScratchPatternConfig replacementPattern = replacementEntry != null
+                                ? ScratchPatternDefaultProvider.GetById(replacementEntry.PatternId)
+                                : null;
+                            if (replacementPattern != null)
+                            {
+                                patternEntry = replacementEntry;
+                                patternConfig = replacementPattern;
+                                baseScore = patternEntry.BaseScore;
+                                originalPatternId = patternConfig.Id;
+                            }
                         }
                         else
                         {
@@ -70,7 +82,6 @@ namespace Core
                         }
                     }
 
-                    baseScore = patternConfig.BaseScore;
                     int baseScoreBonus = runModifiers.GetPatternBaseScoreBonus(patternConfig.Id);
                     int jokerGoodFaceScore = runModifiers.GetJokerGoodFaceScoreOverride(patternConfig.Id);
                     if (jokerGoodFaceScore > 0)
@@ -167,6 +178,7 @@ namespace Core
             RogueCardRunModifierModel runModifiers)
         {
             var baseWeightsByPattern = new Dictionary<int, float>();
+            var baseScoresByPattern = new Dictionary<int, int>();
             var dynamicPatternIds = new HashSet<int>();
 
             if (patternPool != null && patternPool.Entries != null)
@@ -182,6 +194,7 @@ namespace Core
                     if (IsPatternAllowed(entry.PatternId, allowedPatternIds))
                     {
                         AddWeight(baseWeightsByPattern, entry.PatternId, entry.Weight);
+                        SetBaseScore(baseScoresByPattern, entry.PatternId, entry.BaseScore);
                     }
                 }
             }
@@ -201,6 +214,7 @@ namespace Core
                         ? ConvertProbabilityToWeight(baseWeightsByPattern, entry.Weight)
                         : entry.Weight;
                     AddWeight(baseWeightsByPattern, entry.PatternId, addedWeight);
+                    SetBaseScore(baseScoresByPattern, entry.PatternId, ScratchPatternDefaultProvider.GetById(entry.PatternId)?.BaseScore ?? 0);
                     dynamicPatternIds.Add(entry.PatternId);
                 }
             }
@@ -226,6 +240,7 @@ namespace Core
                 results.Add(new ScratchPatternWeightEntry(
                     pair.Key,
                     effectiveWeight,
+                    baseScoresByPattern.TryGetValue(pair.Key, out int baseScore) ? baseScore : 0,
                     dynamicPatternIds.Contains(pair.Key),
                     cardExtraEffectPatternIds.Contains(pair.Key)));
             }
@@ -234,7 +249,7 @@ namespace Core
             return results;
         }
 
-        private static ScratchPatternConfig PickRandomPattern(IReadOnlyList<ScratchPatternWeightEntry> patternWeights)
+        private static ScratchPatternWeightEntry PickRandomPatternEntry(IReadOnlyList<ScratchPatternWeightEntry> patternWeights)
         {
             float totalWeight = 0f;
             for (int i = 0; i < patternWeights.Count; i++)
@@ -265,14 +280,14 @@ namespace Core
                 accumulatedWeight += Mathf.Max(0f, entry.Weight);
                 if (randomValue < accumulatedWeight)
                 {
-                    return ScratchPatternDefaultProvider.GetById(entry.PatternId);
+                    return entry;
                 }
             }
 
             return null;
         }
 
-        private static ScratchPatternConfig PickRandomPatternWithoutPattern(
+        private static ScratchPatternWeightEntry PickRandomPatternEntryWithoutPattern(
             IReadOnlyList<ScratchPatternWeightEntry> patternWeights,
             int excludedPatternId)
         {
@@ -304,7 +319,7 @@ namespace Core
                 accumulatedWeight += Mathf.Max(0f, entry.Weight);
                 if (randomValue < accumulatedWeight)
                 {
-                    return ScratchPatternDefaultProvider.GetById(entry.PatternId);
+                    return entry;
                 }
             }
 
@@ -324,6 +339,19 @@ namespace Core
             }
 
             weightsByPattern[patternId] += weight;
+        }
+
+        private static void SetBaseScore(Dictionary<int, int> baseScoresByPattern, int patternId, int baseScore)
+        {
+            if (baseScoresByPattern == null || patternId <= 0)
+            {
+                return;
+            }
+
+            if (!baseScoresByPattern.ContainsKey(patternId))
+            {
+                baseScoresByPattern[patternId] = baseScore;
+            }
         }
 
         private static float ConvertProbabilityToWeight(Dictionary<int, float> weightsByPattern, float probability)

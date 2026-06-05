@@ -11,7 +11,7 @@ namespace Configs
         public int Id { get; set; }
         public string Name { get; set; }
         public string WinDescription { get; set; }
-        public int Price { get; set; }
+        public double Price { get; set; }
         public int PatternPoolId { get; set; }
         public List<int> AllowedPatternIds { get; set; } = new List<int>();
         public List<ScratchCardExtraEffectConfig> ExtraEffects { get; set; } = new List<ScratchCardExtraEffectConfig>();

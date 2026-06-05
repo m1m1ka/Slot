@@ -45,7 +45,7 @@ public class ScratchCardController : MonoBehaviour
     private const float SettlementDingPitchStep = 0.12f;
     private const float SettlementDingMaxPitch = 1.8f;
     private const int LuckySevenPatternId = 10;
-    private const int GoodJokerPatternId = 12;
+    private const int GoodJokerPatternId = 27;
 
     public ScratchCardModel Model => _model;
     public int CurrentRevealedReward => _currentRevealedReward;
@@ -287,7 +287,7 @@ public class ScratchCardController : MonoBehaviour
             }
         }
 
-        cell.TransformPattern(targetPattern, targetPattern.BaseScore, false, new List<int>(cellSourceIds));
+        cell.TransformPattern(targetPattern, cell.BaseScore, cell.IsBaseScoreEnhanced, new List<int>(cellSourceIds));
         _view.RefreshPatternVisual(cellIndex, cell);
         _view.PlayPatternRevealHighlight(cellIndex);
         _view.PlayPatternEffectTextReveal(cellIndex, targetPattern.Name);
@@ -377,7 +377,7 @@ public class ScratchCardController : MonoBehaviour
             triggeredSourceCardIds?.Add(rule.SourceCardId);
         }
 
-        cell.TransformPattern(targetPattern, targetPattern.BaseScore, false, new List<int>(cellSourceIds));
+        cell.TransformPattern(targetPattern, cell.BaseScore, cell.IsBaseScoreEnhanced, new List<int>(cellSourceIds));
         _view.RefreshPatternVisual(cellIndex, cell);
         _view.PlayPatternRevealHighlight(cellIndex);
         if (cell.IsScratched)
