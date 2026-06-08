@@ -99,7 +99,7 @@ namespace Core
             {
                 SourceScratchToolId = -1,
                 SourceScratchToolName = "Direct Pattern",
-                Summary = "特殊图案直接计分。"
+                Summary = "\u7279\u6b8a\u56fe\u6848\u76f4\u63a5\u8ba1\u5206\u3002"
             };
 
             for (int i = 0; i < model.Cells.Count; i++)
@@ -151,7 +151,7 @@ namespace Core
         private static string FormatFinalRewardMultiplierText(double multiplier)
         {
             double normalizedMultiplier = multiplier >= 0d ? multiplier : 0d;
-            return $"×{normalizedMultiplier:0.##}";
+            return $"\u00d7{normalizedMultiplier:0.##}";
         }
     }
 }

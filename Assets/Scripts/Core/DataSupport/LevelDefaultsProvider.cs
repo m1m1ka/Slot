@@ -7,40 +7,32 @@ namespace Core
     {
         private static readonly Dictionary<int, LevelConfig> Levels = new Dictionary<int, LevelConfig>
         {
-            { 1, new LevelConfig { Id = 1, Name = "第1关", RequiredCoins = 100, ScratchCardPurchaseLimit = 5 } },
-            { 2, new LevelConfig { Id = 2, Name = "第2关", RequiredCoins = 300, ScratchCardPurchaseLimit = 6 } },
-            { 3, new LevelConfig { Id = 3, Name = "第3关", RequiredCoins = 600, ScratchCardPurchaseLimit = 7 } },
-            { 4, new LevelConfig { Id = 4, Name = "第4关", RequiredCoins = 800, ScratchCardPurchaseLimit = 7 } },
-            { 5, new LevelConfig { Id = 5, Name = "第5关", RequiredCoins = 1500, ScratchCardPurchaseLimit = 8 } },
-            { 6, new LevelConfig { Id = 6, Name = "第6关", RequiredCoins = 2000, ScratchCardPurchaseLimit = 8 } },
-            { 7, new LevelConfig { Id = 7, Name = "第7关", RequiredCoins = 4000, ScratchCardPurchaseLimit = 9 } },
-            { 8, new LevelConfig { Id = 8, Name = "第8关", RequiredCoins = 8000, ScratchCardPurchaseLimit = 9 } },
-            { 9, new LevelConfig { Id = 9, Name = "第9关", RequiredCoins = 15000, ScratchCardPurchaseLimit = 10 } },
-            { 10, new LevelConfig { Id = 10, Name = "第10关", RequiredCoins = 30000, ScratchCardPurchaseLimit = 10 } },
-            { 11, new LevelConfig { Id = 11, Name = "第11关", RequiredCoins = 100000, ScratchCardPurchaseLimit = 11 } },
-            { 12, new LevelConfig { Id = 12, Name = "第12关", RequiredCoins = 400000, ScratchCardPurchaseLimit = 11 } },
-            { 13, new LevelConfig { Id = 13, Name = "第13关", RequiredCoins = 800000, ScratchCardPurchaseLimit = 12 } },
-            { 14, new LevelConfig { Id = 14, Name = "第14关", RequiredCoins = 1000000, ScratchCardPurchaseLimit = 12 } },
-            { 15, new LevelConfig { Id = 15, Name = "第15关", RequiredCoins = 2000000, ScratchCardPurchaseLimit = 13 } }
+            { 1, new LevelConfig { Id = 1, Name = "\u7b2c1\u5173", RequiredCoins = 100, ScratchCardPurchaseLimit = 5 } },
+            { 2, new LevelConfig { Id = 2, Name = "\u7b2c2\u5173", RequiredCoins = 300, ScratchCardPurchaseLimit = 6 } },
+            { 3, new LevelConfig { Id = 3, Name = "\u7b2c3\u5173", RequiredCoins = 1000, ScratchCardPurchaseLimit = 7 } },
+            { 4, new LevelConfig { Id = 4, Name = "\u7b2c4\u5173", RequiredCoins = 2100, ScratchCardPurchaseLimit = 7 } },
+            { 5, new LevelConfig { Id = 5, Name = "\u7b2c5\u5173", RequiredCoins = 7500, ScratchCardPurchaseLimit = 8 } },
+            { 6, new LevelConfig { Id = 6, Name = "\u7b2c6\u5173", RequiredCoins = 15000, ScratchCardPurchaseLimit = 8 } },
+            { 7, new LevelConfig { Id = 7, Name = "\u7b2c7\u5173", RequiredCoins = 60000, ScratchCardPurchaseLimit = 9 } },
+            { 8, new LevelConfig { Id = 8, Name = "\u7b2c8\u5173", RequiredCoins = 180000, ScratchCardPurchaseLimit = 9 } },
+            { 9, new LevelConfig { Id = 9, Name = "\u7b2c9\u5173", RequiredCoins = 1000000, ScratchCardPurchaseLimit = 10 } },
+            { 10, new LevelConfig { Id = 10, Name = "\u7b2c10\u5173", RequiredCoins = 5000000, ScratchCardPurchaseLimit = 10 } },
+            { 11, new LevelConfig { Id = 11, Name = "\u7b2c11\u5173", RequiredCoins = 15000000, ScratchCardPurchaseLimit = 11 } }
         };
 
         private static readonly Dictionary<int, LevelRewardConfig> Rewards = new Dictionary<int, LevelRewardConfig>
         {
-            { 1, new LevelRewardConfig(true, true, true) },
-            { 2, new LevelRewardConfig(true, false, false) },
-            { 3, new LevelRewardConfig(true, false, false) },
-            { 4, new LevelRewardConfig(true, true, true) },
-            { 5, new LevelRewardConfig(true, false, false) },
-            { 6, new LevelRewardConfig(true, false, false) },
-            { 7, new LevelRewardConfig(true, true, false) },
-            { 8, new LevelRewardConfig(true, false, true) },
-            { 9, new LevelRewardConfig(true, true, false) },
-            { 10, new LevelRewardConfig(true, false, false) },
-            { 11, new LevelRewardConfig(true, true, false) },
-            { 12, new LevelRewardConfig(true, true, true) },
-            { 13, new LevelRewardConfig(true, true, false) },
-            { 14, new LevelRewardConfig(true, true, false) },
-            { 15, new LevelRewardConfig(true, true, false) }
+            { 1, new LevelRewardConfig(false, 2, 0) },
+            { 2, new LevelRewardConfig(true, 0, 0) },
+            { 3, new LevelRewardConfig(true, 0, 2) },
+            { 4, new LevelRewardConfig(true, 5, 0) },
+            { 5, new LevelRewardConfig(true, 3, 0) },
+            { 6, new LevelRewardConfig(true, 6, 0) },
+            { 7, new LevelRewardConfig(true, 8, 0) },
+            { 8, new LevelRewardConfig(true, 4, 3) },
+            { 9, new LevelRewardConfig(true, 7, 0) },
+            { 10, new LevelRewardConfig(true, 10, 0) },
+            { 11, LevelRewardConfig.None }
         };
 
         public static LevelConfig GetLevel(int levelId)
@@ -66,12 +58,22 @@ namespace Core
 
         public static bool HasScratchCardReward(int levelId)
         {
-            return GetRewardConfig(levelId).HasScratchCardReward;
+            return GetScratchCardRewardId(levelId) > 0;
         }
 
         public static bool HasScratchToolReward(int levelId)
         {
-            return GetRewardConfig(levelId).HasScratchToolReward;
+            return GetScratchToolRewardId(levelId) > 0;
+        }
+
+        public static int GetScratchCardRewardId(int levelId)
+        {
+            return GetRewardConfig(levelId).ScratchCardRewardId;
+        }
+
+        public static int GetScratchToolRewardId(int levelId)
+        {
+            return GetRewardConfig(levelId).ScratchToolRewardId;
         }
 
         private static LevelRewardConfig GetRewardConfig(int levelId)
@@ -83,17 +85,17 @@ namespace Core
 
         private struct LevelRewardConfig
         {
-            public static readonly LevelRewardConfig None = new LevelRewardConfig(false, false, false);
+            public static readonly LevelRewardConfig None = new LevelRewardConfig(false, 0, 0);
 
             public readonly bool HasRogueCardReward;
-            public readonly bool HasScratchCardReward;
-            public readonly bool HasScratchToolReward;
+            public readonly int ScratchCardRewardId;
+            public readonly int ScratchToolRewardId;
 
-            public LevelRewardConfig(bool hasRogueCardReward, bool hasScratchCardReward, bool hasScratchToolReward)
+            public LevelRewardConfig(bool hasRogueCardReward, int scratchCardRewardId, int scratchToolRewardId)
             {
                 HasRogueCardReward = hasRogueCardReward;
-                HasScratchCardReward = hasScratchCardReward;
-                HasScratchToolReward = hasScratchToolReward;
+                ScratchCardRewardId = scratchCardRewardId > 0 ? scratchCardRewardId : 0;
+                ScratchToolRewardId = scratchToolRewardId > 0 ? scratchToolRewardId : 0;
             }
         }
     }

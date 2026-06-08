@@ -14,8 +14,8 @@ namespace Core
                 new ScratchToolConfig
                 {
                     Id = 1,
-                    Name = "硬币",
-                    Description = "结算最高分图案",
+                    Name = "\u786c\u5e01",
+                    Description = "\u7ed3\u7b97\u6700\u9ad8\u5206\u56fe\u6848",
                     SettlementType = ScratchSettlementType.HighestScorePattern,
                     IconAtlasPath = IconFolderPath,
                     IconSpriteName = "Coin"
@@ -26,11 +26,11 @@ namespace Core
                 new ScratchToolConfig
                 {
                     Id = 2,
-                    Name = "银钥匙",
-                    Description = "结算连续横向的3个相同图案，每个图案分数×2",
-                    SettlementType = ScratchSettlementType.HorizontalTripleMatch,
+                    Name = "\u8d1d\u58f3",
+                    Description = "\u7ed3\u7b973\u4e2a\u76f8\u540c\u6216\u4ee5\u4e0a\u7684\u56fe\u6848",
+                    SettlementType = ScratchSettlementType.MatchAnyThree,
                     IconAtlasPath = IconFolderPath,
-                    IconSpriteName = "SilverKey"
+                    IconSpriteName = "Shell"
                 }
             },
             {
@@ -38,59 +38,11 @@ namespace Core
                 new ScratchToolConfig
                 {
                     Id = 3,
-                    Name = "金钥匙",
-                    Description = "结算连续横向的5个相同图案，每个图案分数×3",
-                    SettlementType = ScratchSettlementType.HorizontalFiveMatch,
-                    IconAtlasPath = IconFolderPath,
-                    IconSpriteName = "GoldKey"
-                }
-            },
-            {
-                4,
-                new ScratchToolConfig
-                {
-                    Id = 4,
-                    Name = "猫爪",
-                    Description = "结算3个相同或以上的图案",
-                    SettlementType = ScratchSettlementType.MatchAnyThree,
+                    Name = "\u732b\u722a",
+                    Description = "\u7ed3\u7b97\u8fde\u7eed3\u4e2a\u76f8\u540c\u6216\u4ee5\u4e0a\u7684\u56fe\u6848",
+                    SettlementType = ScratchSettlementType.ConsecutiveLineMatch,
                     IconAtlasPath = IconFolderPath,
                     IconSpriteName = "CatPaw"
-                }
-            },
-            {
-                5,
-                new ScratchToolConfig
-                {
-                    Id = 5,
-                    Name = "尺子",
-                    Description = "结算连续竖向的3个相同图案，每个图案分数×2",
-                    SettlementType = ScratchSettlementType.VerticalTripleMatch,
-                    IconAtlasPath = IconFolderPath,
-                    IconSpriteName = "Ruler"
-                }
-            },
-            {
-                6,
-                new ScratchToolConfig
-                {
-                    Id = 6,
-                    Name = "磁铁",
-                    Description = "结算2个相同或以上的金属图案",
-                    SettlementType = ScratchSettlementType.MetalMatchAnyPair,
-                    IconAtlasPath = IconFolderPath,
-                    IconSpriteName = "Magnet"
-                }
-            },
-            {
-                7,
-                new ScratchToolConfig
-                {
-                    Id = 7,
-                    Name = "水果刮刀",
-                    Description = "结算2个相同或以上的水果图案",
-                    SettlementType = ScratchSettlementType.FruitMatchAnyPair,
-                    IconAtlasPath = IconFolderPath,
-                    IconSpriteName = "FruitScraper"
                 }
             }
         };

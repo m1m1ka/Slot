@@ -22,6 +22,7 @@ namespace Core
                 ScratchSettlementType.VerticalTripleMatch => new VerticalTripleMatchSettlementEvaluator(),
                 ScratchSettlementType.MetalMatchAnyPair => new MetalMatchAnyPairSettlementEvaluator(),
                 ScratchSettlementType.FruitMatchAnyPair => new FruitMatchAnyPairSettlementEvaluator(),
+                ScratchSettlementType.ConsecutiveLineMatch => new ConsecutiveLineMatchSettlementEvaluator(),
                 _ => new SumScoreSettlementEvaluator()
             };
         }

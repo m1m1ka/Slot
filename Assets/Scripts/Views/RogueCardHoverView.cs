@@ -71,6 +71,18 @@ public class RogueCardHoverView : MonoBehaviour, IPointerEnterHandler, IPointerE
         }
     }
 
+    public void ResetToRestingTransform()
+    {
+        _hoverTween?.Kill();
+        _hoverTween = null;
+        _isHovered = false;
+        transform.localScale = _initialScale;
+        if (_rectTransform != null && _hasRestingPosition)
+        {
+            _rectTransform.anchoredPosition = _restingAnchoredPosition;
+        }
+    }
+
     public void RefreshHoverState(Vector2 screenPosition, Camera eventCamera)
     {
         if (!_pointerInteractionEnabled || _rectTransform == null)

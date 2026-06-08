@@ -7,6 +7,7 @@ using Configs;
 using Core;
 using DG.Tweening;
 using UI; // 寮曞叆浣犲凡鏈夌殑 UI 鍛藉悕绌洪棿锛屽寘鍚?UIPanel 鍩虹被
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 /// <summary>
 /// 瑙嗗浘灞傦細鍙礋璐ｅ憟鐜癠I骞舵敹闆嗙敤鎴风偣鍑昏緭鍏ワ紝涓嶅寘鍚换浣曚笟鍔￠€昏緫鍒ゆ柇銆?
@@ -96,6 +97,9 @@ public class MainGamePanel : UIPanel
     [SerializeField] private float _coinRainJackpotFontSize = 112f;
     [SerializeField] private Color _coinRainJackpotTextColor = new Color(1f, 0.84f, 0.18f, 1f);
 
+    [Header("Game Over Effect")]
+    [SerializeField] private float _gameOverMaskFadeDuration = 1.2f;
+
     // 瀵瑰鏆撮湶鍒楄〃鐨勭埗鑺傜偣渚?Controller 鎸傝浇瀛愮墿浣撳紩鐢?
     public Transform SlotListRoot => _slotListRoot;
     public Transform UpgradeListRoot => _upgradeListRoot;
@@ -146,8 +150,16 @@ public class MainGamePanel : UIPanel
     private bool _hasNewLevelStartButtonDefaultScale;
     private readonly Dictionary<Button, Vector3> _winPanelButtonDefaultScales = new Dictionary<Button, Vector3>();
     private GameObject _rogueChoiceOverlayObject;
+    private Image _rogueChoiceOverlayImage;
     private Transform _rogueChoiceContentRoot;
     private readonly List<GameObject> _rogueChoiceObjects = new List<GameObject>();
+    private TextMeshProUGUI _rogueExchangePromptText;
+    private bool _isRogueExchangeMode;
+    private int _selectedRogueExchangeCardId = -1;
+    private int _selectedRogueExchangeCardLevel = 1;
+    private GameObject _selectedRogueExchangeCardObject;
+    private Vector2 _selectedRogueExchangeRestingPosition;
+    private Vector3 _selectedRogueExchangeRestingScale = Vector3.one;
     private GameObject _scratchToolChoiceOverlayObject;
     private Transform _scratchToolChoiceContentRoot;
     private readonly List<GameObject> _scratchToolChoiceObjects = new List<GameObject>();
@@ -160,8 +172,11 @@ public class MainGamePanel : UIPanel
     private Sprite[] _coinRainSprites;
     private GameObject _coinRainJackpotTextObject;
     private Sequence _coinRainJackpotTextSequence;
+    private Image _gameOverMaskImage;
+    private Coroutine _gameOverSkullEffectRoutine;
 
-    public event Action<int> OnRogueRewardCardSelected;
+    public event Action<int, int> OnRogueRewardCardSelected;
+    public event Action<int> OnRogueOwnedCardSelected;
     public event Action OnRogueRewardRequested;
     public event Action<int> OnScratchToolRewardSelected;
     public event Action OnScratchToolRewardRequested;
@@ -170,12 +185,38 @@ public class MainGamePanel : UIPanel
     public event Action OnWinContinueRequested;
     public event Action OnNewLevelStartRequested;
 
+    public int SelectedRogueExchangeCardId => _selectedRogueExchangeCardId;
+    public int SelectedRogueExchangeCardLevel => _selectedRogueExchangeCardLevel;
+
+    public void QueueOwnedRogueCardAppear(int cardId)
+    {
+        _pendingOwnedRogueCardAppearId = cardId;
+    }
+
     private void Awake()
     {
         EnsureWinPanel();
         HideWinPanel();
         EnsureNewLevelPanel();
         HideNewLevelPanel();
+    }
+
+    private void Update()
+    {
+        if (!_isRogueExchangeMode || _selectedRogueExchangeCardId <= 0)
+        {
+            return;
+        }
+
+        if (Input.GetMouseButtonDown(0))
+        {
+            TrySelectOwnedRogueCardAtScreenPoint(Input.mousePosition, GetUiEventCamera());
+        }
+
+        if (Input.touchCount > 0 && Input.GetTouch(0).phase == TouchPhase.Began)
+        {
+            TrySelectOwnedRogueCardAtScreenPoint(Input.GetTouch(0).position, GetUiEventCamera());
+        }
     }
 
     // 濡傛灉闈㈡澘涓婃湁閫氱敤鐨勭偣鍑绘寜閽紝鍙互閫氳繃浜嬩欢鍚慍ontroller鎶涘嚭
@@ -339,6 +380,87 @@ public class MainGamePanel : UIPanel
         PlayCoinRainJackpotText(jackpotText);
     }
 
+    public void PlayGameOverSkullEffect()
+    {
+        if (_gameOverSkullEffectRoutine != null)
+        {
+            StopCoroutine(_gameOverSkullEffectRoutine);
+        }
+
+        _gameOverSkullEffectRoutine = StartCoroutine(PlayGameOverSkullEffectRoutine());
+    }
+
+    private IEnumerator PlayGameOverSkullEffectRoutine()
+    {
+        EnsureGameOverMask();
+        if (_gameOverMaskImage == null)
+        {
+            yield break;
+        }
+
+        _gameOverMaskImage.gameObject.SetActive(true);
+        _gameOverMaskImage.transform.SetAsLastSibling();
+        SetGameOverMaskAlpha(0f);
+
+        AudioManager.Instance?.PlayCue(AudioCueId.CoverUp);
+        float coverDuration = Mathf.Max(
+            Mathf.Max(0.01f, _gameOverMaskFadeDuration),
+            AudioManager.Instance != null ? AudioManager.Instance.GetCueDuration(AudioCueId.CoverUp) : 0f);
+
+        float elapsed = 0f;
+        while (elapsed < coverDuration)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            SetGameOverMaskAlpha(Mathf.Clamp01(elapsed / Mathf.Max(0.01f, _gameOverMaskFadeDuration)));
+            yield return null;
+        }
+
+        SetGameOverMaskAlpha(1f);
+        AudioManager.Instance?.PlayCue(AudioCueId.Cock);
+        yield return new WaitForSecondsRealtime(AudioManager.Instance != null
+            ? AudioManager.Instance.GetCueDuration(AudioCueId.Cock)
+            : 0f);
+
+        AudioManager.Instance?.PlayCue(AudioCueId.Shot);
+        _gameOverSkullEffectRoutine = null;
+    }
+
+    private void EnsureGameOverMask()
+    {
+        RectTransform parent = GetCoinRainRootParent();
+        if (parent == null)
+        {
+            return;
+        }
+
+        if (_gameOverMaskImage == null)
+        {
+            GameObject maskObject = new GameObject("GameOverMask", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+            maskObject.transform.SetParent(parent, false);
+            _gameOverMaskImage = maskObject.GetComponent<Image>();
+            _gameOverMaskImage.raycastTarget = true;
+        }
+        else if (_gameOverMaskImage.transform.parent != parent)
+        {
+            _gameOverMaskImage.transform.SetParent(parent, false);
+        }
+
+        RectTransform rectTransform = _gameOverMaskImage.rectTransform;
+        rectTransform.anchorMin = Vector2.zero;
+        rectTransform.anchorMax = Vector2.one;
+        rectTransform.offsetMin = Vector2.zero;
+        rectTransform.offsetMax = Vector2.zero;
+        rectTransform.pivot = new Vector2(0.5f, 0.5f);
+    }
+
+    private void SetGameOverMaskAlpha(float alpha)
+    {
+        if (_gameOverMaskImage != null)
+        {
+            _gameOverMaskImage.color = new Color(0f, 0f, 0f, Mathf.Clamp01(alpha));
+        }
+    }
+
     private void PlayCoinRainIcon(CoinRainIcon icon, Rect rootRect, float waveDelay, int iconIndex, int iconsPerWave)
     {
         Sprite sprite = _coinRainSprites[UnityEngine.Random.Range(0, _coinRainSprites.Length)];
@@ -428,8 +550,9 @@ public class MainGamePanel : UIPanel
     }
 
     public void ShowRogueCardChoices(
-        IReadOnlyList<RogueCardConfig> choices,
-        IReadOnlyList<RogueCardInventoryEntryModel> ownedCards = null)
+        IReadOnlyList<RogueCardRewardChoiceModel> choices,
+        IReadOnlyList<RogueCardInventoryEntryModel> ownedCards = null,
+        bool exchangeMode = false)
     {
         EnsureRogueChoiceOverlay();
         ClearRogueChoiceObjects();
@@ -439,19 +562,28 @@ public class MainGamePanel : UIPanel
             return;
         }
 
+        _isRogueExchangeMode = exchangeMode;
+        ClearRogueExchangeSelection();
+        SetRogueExchangePromptVisible(false);
+        if (_rogueChoiceOverlayImage != null)
+        {
+            _rogueChoiceOverlayImage.raycastTarget = true;
+        }
+
         _rogueChoiceOverlayObject.SetActive(true);
         _rogueChoiceOverlayObject.transform.SetAsLastSibling();
         int count = choices != null ? choices.Count : 0;
         for (int i = 0; i < count; i++)
         {
-            RogueCardConfig cardConfig = choices[i];
+            RogueCardRewardChoiceModel choice = choices[i];
+            RogueCardConfig cardConfig = choice != null ? choice.CardConfig : null;
             if (cardConfig == null)
             {
                 continue;
             }
 
             int currentLevel = GetOwnedRogueCardLevel(ownedCards, cardConfig.Id);
-            GameObject cardObject = CreateRogueChoiceCard(cardConfig, _rogueChoiceContentRoot, currentLevel);
+            GameObject cardObject = CreateRogueChoiceCard(choice, _rogueChoiceContentRoot, currentLevel);
             _rogueChoiceObjects.Add(cardObject);
         }
 
@@ -482,7 +614,14 @@ public class MainGamePanel : UIPanel
         _isRogueChoiceSelectAnimating = false;
         StopRewardChoiceShowAnimation(ref _rogueChoiceShowSequence, ref _rogueChoiceShowCoroutine, _rogueChoiceContentRoot);
         _isRogueChoiceShowAnimating = false;
+        _isRogueExchangeMode = false;
+        ClearRogueExchangeSelection();
+        SetRogueExchangePromptVisible(false);
         SetRogueChoiceHoverEnabled(true);
+        if (_rogueChoiceOverlayImage != null)
+        {
+            _rogueChoiceOverlayImage.raycastTarget = true;
+        }
 
         if (_rogueChoiceOverlayObject != null)
         {
@@ -1473,9 +1612,17 @@ public class MainGamePanel : UIPanel
         overlayRect.offsetMax = Vector2.zero;
         overlayRect.SetAsLastSibling();
 
-        Image overlayImage = _rogueChoiceOverlayObject.GetComponent<Image>();
-        overlayImage.color = new Color(0f, 0f, 0f, 0.68f);
-        overlayImage.raycastTarget = true;
+        _rogueChoiceOverlayImage = _rogueChoiceOverlayObject.GetComponent<Image>();
+        _rogueChoiceOverlayImage.color = new Color(0f, 0f, 0f, 0.68f);
+        _rogueChoiceOverlayImage.raycastTarget = true;
+
+        EventTrigger clickTrigger = _rogueChoiceOverlayObject.AddComponent<EventTrigger>();
+        EventTrigger.Entry clickEntry = new EventTrigger.Entry
+        {
+            eventID = EventTriggerType.PointerClick
+        };
+        clickEntry.callback.AddListener(data => HandleRogueExchangeOverlayClick(data as PointerEventData));
+        clickTrigger.triggers.Add(clickEntry);
 
         GameObject contentObject = new GameObject("Choices", typeof(RectTransform), typeof(HorizontalLayoutGroup), typeof(ContentSizeFitter));
         contentObject.transform.SetParent(_rogueChoiceOverlayObject.transform, false);
@@ -1497,6 +1644,24 @@ public class MainGamePanel : UIPanel
         ContentSizeFitter fitter = contentObject.GetComponent<ContentSizeFitter>();
         fitter.horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
         fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+        GameObject promptObject = new GameObject("ExchangePrompt", typeof(RectTransform), typeof(CanvasRenderer), typeof(TextMeshProUGUI));
+        promptObject.transform.SetParent(_rogueChoiceOverlayObject.transform, false);
+        RectTransform promptRect = promptObject.GetComponent<RectTransform>();
+        promptRect.anchorMin = new Vector2(0.5f, 0.5f);
+        promptRect.anchorMax = new Vector2(0.5f, 0.5f);
+        promptRect.pivot = new Vector2(0.5f, 0.5f);
+        promptRect.anchoredPosition = new Vector2(0f, -260f);
+        promptRect.sizeDelta = new Vector2(720f, 64f);
+
+        _rogueExchangePromptText = promptObject.GetComponent<TextMeshProUGUI>();
+        AssetProvider.ApplyDefaultTmpFont(_rogueExchangePromptText);
+        _rogueExchangePromptText.alignment = TextAlignmentOptions.Center;
+        _rogueExchangePromptText.fontSize = 34f;
+        _rogueExchangePromptText.color = Color.white;
+        _rogueExchangePromptText.text = "选择已有的一张卡牌进行交换";
+        _rogueExchangePromptText.raycastTarget = false;
+        _rogueExchangePromptText.gameObject.SetActive(false);
 
         _rogueChoiceContentRoot = contentObject.transform;
         _rogueChoiceOverlayObject.SetActive(false);
@@ -1950,7 +2115,7 @@ public class MainGamePanel : UIPanel
         {
             ScratchAreaTemplateConfig areaTemplateConfig = ScratchCardDefaultsProvider.GetAreaTemplate(cardTypeConfig.AreaTemplateId);
             IReadOnlyList<ScratchCellModel> cells = ScratchCardGenerator.GenerateCells(cardTypeConfig, areaTemplateConfig);
-            scratchCardView.BindCardData(cells, cardTypeConfig.WinDescription);
+            scratchCardView.BindCardData(cells);
             scratchCardView.SetupInitialVisual();
             scratchCardView.SetFocused(false, true);
             scratchCardView.enabled = false;
@@ -2042,6 +2207,18 @@ public class MainGamePanel : UIPanel
         {
             case ScratchCardWinRuleType.SpecificPatternCount:
                 return $"刮出{rule.RequiredCount}个{GetScratchPatternDisplayName(rule.TargetPatternId)}获奖";
+            case ScratchCardWinRuleType.AllFruitPatterns:
+                return "全部图案为水果图案即中奖";
+            case ScratchCardWinRuleType.AllMineralPatterns:
+                return "全部图案为矿物图案即中奖";
+            case ScratchCardWinRuleType.AllPlanetPatterns:
+                return "全部图案为星球图案即中奖";
+            case ScratchCardWinRuleType.ScoreEveryRevealedPattern:
+                return "刮开即中奖";
+            case ScratchCardWinRuleType.AllGoodFaceJokerPatterns:
+                return "全部图案为好脸小丑即中奖";
+            case ScratchCardWinRuleType.GameOver:
+                return "不会获得金币";
             case ScratchCardWinRuleType.SamePatternCount:
                 return rule.RequiredCount <= 1 ? "刮开即中奖" : $"刮开{rule.RequiredCount}个相同图案获奖";
             case ScratchCardWinRuleType.None:
@@ -2052,14 +2229,10 @@ public class MainGamePanel : UIPanel
 
     private static string BuildScratchCardSpecialEffectText(ScratchCardTypeConfig cardTypeConfig)
     {
-        string description = cardTypeConfig != null ? cardTypeConfig.WinDescription : null;
+        string description = cardTypeConfig != null ? cardTypeConfig.SpecialDescription : null;
         if (!string.IsNullOrWhiteSpace(description))
         {
-            string[] parts = description.Split('；', ';');
-            if (parts.Length > 1 && !string.IsNullOrWhiteSpace(parts[1]))
-            {
-                return parts[1].Trim();
-            }
+            return description.Trim();
         }
 
         if (cardTypeConfig == null)
@@ -2116,9 +2289,37 @@ public class MainGamePanel : UIPanel
                 return "特定位置图案获得额外效果";
             case ScratchCardExtraEffectType.AddRewardMultiplierOnSettlement:
                 return $"每次结算额外增加{effectConfig.Value:0.##}倍率";
+            case ScratchCardExtraEffectType.RestrictPatternType:
+                return $"只出现{GetPatternTypeDisplayName(effectConfig.TargetPatternType)}图案";
             case ScratchCardExtraEffectType.None:
             default:
                 return null;
+        }
+    }
+
+    private static string GetPatternTypeDisplayName(string patternType)
+    {
+        if (string.IsNullOrWhiteSpace(patternType))
+        {
+            return "指定类型";
+        }
+
+        switch (patternType.Trim())
+        {
+            case "Fruit":
+                return "水果";
+            case "Mineral":
+                return "矿物";
+            case "Planet":
+                return "星球";
+            case "Joker":
+                return "小丑";
+            case "Number":
+                return "数字";
+            case "Multiplier":
+                return "倍率";
+            default:
+                return patternType.Trim();
         }
     }
 
@@ -2792,11 +2993,12 @@ public class MainGamePanel : UIPanel
         }
     }
 
-    private GameObject CreateRogueChoiceCard(RogueCardConfig cardConfig, Transform parent, int currentLevel)
+    private GameObject CreateRogueChoiceCard(RogueCardRewardChoiceModel choice, Transform parent, int currentLevel)
     {
+        RogueCardConfig cardConfig = choice != null ? choice.CardConfig : null;
         int maxLevel = cardConfig != null ? cardConfig.GetMaxLevel() : 1;
-        int previewLevel = currentLevel > 0 ? Mathf.Min(currentLevel + 1, maxLevel) : 1;
-        string levelText = currentLevel >= maxLevel ? $"Lv.{maxLevel} 已满级" : currentLevel > 0 ? $"升级至 Lv.{previewLevel}" : $"Lv.{previewLevel}";
+        int previewLevel = choice != null ? Mathf.Clamp(choice.Level, 1, maxLevel) : 1;
+        string levelText = currentLevel >= previewLevel ? $"Lv.{currentLevel} 已拥有" : currentLevel > 0 ? $"升级至 Lv.{previewLevel}" : $"Lv.{previewLevel}";
         GameObject cardObject = CreateRogueCardVisual(cardConfig, parent, levelText, previewLevel);
         if (cardObject != null)
         {
@@ -2816,6 +3018,7 @@ public class MainGamePanel : UIPanel
 
         PreserveButtonDisabledVisual(button);
         int selectedCardId = cardConfig.Id;
+        int selectedLevel = previewLevel;
         button.onClick.AddListener(() =>
         {
             if (_isRogueChoiceShowAnimating || _isRogueChoiceSelectAnimating)
@@ -2823,9 +3026,144 @@ public class MainGamePanel : UIPanel
                 return;
             }
 
-            PlayRogueRewardSelectAnimation(cardObject, selectedCardId);
+            if (_isRogueExchangeMode && currentLevel <= 0)
+            {
+                ToggleRogueExchangeSelection(cardObject, selectedCardId, selectedLevel);
+                return;
+            }
+
+            PlayRogueRewardSelectAnimation(cardObject, selectedCardId, selectedLevel);
         });
         return cardObject;
+    }
+
+    private void ToggleRogueExchangeSelection(GameObject selectedCardObject, int selectedCardId, int selectedLevel)
+    {
+        if (selectedCardObject == null)
+        {
+            return;
+        }
+
+        if (_selectedRogueExchangeCardObject == selectedCardObject && _selectedRogueExchangeCardId == selectedCardId)
+        {
+            ClearRogueExchangeSelection();
+            SetRogueExchangePromptVisible(false);
+            SetRogueChoiceHoverEnabled(true);
+            RefreshRogueChoiceHoverState();
+            return;
+        }
+
+        ClearRogueExchangeSelection();
+        ResetRogueChoiceHoverToResting(selectedCardObject);
+        _selectedRogueExchangeCardObject = selectedCardObject;
+        _selectedRogueExchangeCardId = selectedCardId;
+        _selectedRogueExchangeCardLevel = selectedLevel;
+
+        RectTransform selectedRect = selectedCardObject.transform as RectTransform;
+        if (selectedRect != null)
+        {
+            _selectedRogueExchangeRestingPosition = selectedRect.anchoredPosition;
+            _selectedRogueExchangeRestingScale = selectedRect.localScale;
+            selectedRect.DOKill(false);
+            selectedRect
+                .DOAnchorPosY(_selectedRogueExchangeRestingPosition.y + 80f, 0.16f)
+                .SetEase(Ease.OutCubic)
+                .SetUpdate(true);
+            selectedRect
+                .DOScale(_selectedRogueExchangeRestingScale * 1.08f, 0.16f)
+                .SetEase(Ease.OutCubic)
+                .SetUpdate(true);
+        }
+
+        SetRogueChoiceHoverEnabled(false);
+        SetRogueExchangePromptVisible(true);
+    }
+
+    private void HandleRogueExchangeOverlayClick(PointerEventData eventData)
+    {
+        if (!_isRogueExchangeMode || _selectedRogueExchangeCardId <= 0 || eventData == null)
+        {
+            return;
+        }
+
+        Camera eventCamera = eventData.pressEventCamera != null ? eventData.pressEventCamera : GetUiEventCamera();
+        TrySelectOwnedRogueCardAtScreenPoint(eventData.position, eventCamera);
+    }
+
+    private bool TrySelectOwnedRogueCardAtScreenPoint(Vector2 screenPoint, Camera eventCamera)
+    {
+        for (int i = 0; i < _ownedRogueCardObjects.Count; i++)
+        {
+            GameObject ownedCardObject = _ownedRogueCardObjects[i];
+            if (!ContainsRogueCardScreenPoint(ownedCardObject, screenPoint, eventCamera))
+            {
+                continue;
+            }
+
+            int ownedCardId = GetOwnedRogueCardId(ownedCardObject);
+            if (ownedCardId > 0)
+            {
+                OnRogueOwnedCardSelected?.Invoke(ownedCardId);
+                return true;
+            }
+
+            return false;
+        }
+
+        return false;
+    }
+
+    private static bool ContainsRogueCardScreenPoint(GameObject cardObject, Vector2 screenPoint, Camera eventCamera)
+    {
+        RectTransform[] rectTransforms = cardObject != null
+            ? cardObject.GetComponentsInChildren<RectTransform>(true)
+            : null;
+        if (rectTransforms == null)
+        {
+            return false;
+        }
+
+        for (int i = 0; i < rectTransforms.Length; i++)
+        {
+            RectTransform rectTransform = rectTransforms[i];
+            if (rectTransform == null || !rectTransform.gameObject.activeInHierarchy)
+            {
+                continue;
+            }
+
+            if (RectTransformUtility.RectangleContainsScreenPoint(rectTransform, screenPoint, eventCamera) ||
+                (eventCamera != null && RectTransformUtility.RectangleContainsScreenPoint(rectTransform, screenPoint, null)))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static int GetOwnedRogueCardId(GameObject cardObject)
+    {
+        RogueCardHoverView hoverView = cardObject != null ? cardObject.GetComponent<RogueCardHoverView>() : null;
+        return hoverView != null ? hoverView.CardId : 0;
+    }
+
+    private static void ResetRogueChoiceHoverToResting(GameObject cardObject)
+    {
+        RogueCardHoverView[] hoverViews = cardObject != null
+            ? cardObject.GetComponentsInChildren<RogueCardHoverView>(true)
+            : null;
+        if (hoverViews == null)
+        {
+            return;
+        }
+
+        for (int i = 0; i < hoverViews.Length; i++)
+        {
+            if (hoverViews[i] != null)
+            {
+                hoverViews[i].ResetToRestingTransform();
+            }
+        }
     }
 
     private static void PreserveButtonDisabledVisual(Button button)
@@ -2840,7 +3178,7 @@ public class MainGamePanel : UIPanel
         button.colors = colors;
     }
 
-    private void PlayRogueRewardSelectAnimation(GameObject selectedCardObject, int selectedCardId)
+    private void PlayRogueRewardSelectAnimation(GameObject selectedCardObject, int selectedCardId, int selectedLevel)
     {
         if (selectedCardObject == null || _isRogueChoiceSelectAnimating)
         {
@@ -2888,7 +3226,7 @@ public class MainGamePanel : UIPanel
             _rogueChoiceSelectSequence = null;
             _isRogueChoiceSelectAnimating = false;
             _pendingOwnedRogueCardAppearId = selectedCardId;
-            OnRogueRewardCardSelected?.Invoke(selectedCardId);
+            OnRogueRewardCardSelected?.Invoke(selectedCardId, selectedLevel);
             return;
         }
 
@@ -2902,8 +3240,36 @@ public class MainGamePanel : UIPanel
             _rogueChoiceSelectSequence = null;
             _isRogueChoiceSelectAnimating = false;
             _pendingOwnedRogueCardAppearId = selectedCardId;
-            OnRogueRewardCardSelected?.Invoke(selectedCardId);
+            OnRogueRewardCardSelected?.Invoke(selectedCardId, selectedLevel);
         });
+    }
+
+    private void ClearRogueExchangeSelection()
+    {
+        if (_selectedRogueExchangeCardObject != null)
+        {
+            RectTransform selectedRect = _selectedRogueExchangeCardObject.transform as RectTransform;
+            if (selectedRect != null)
+            {
+                selectedRect.DOKill(false);
+                selectedRect.anchoredPosition = _selectedRogueExchangeRestingPosition;
+                selectedRect.localScale = _selectedRogueExchangeRestingScale;
+            }
+        }
+
+        _selectedRogueExchangeCardObject = null;
+        _selectedRogueExchangeCardId = -1;
+        _selectedRogueExchangeCardLevel = 1;
+        _selectedRogueExchangeRestingPosition = Vector2.zero;
+        _selectedRogueExchangeRestingScale = Vector3.one;
+    }
+
+    private void SetRogueExchangePromptVisible(bool visible)
+    {
+        if (_rogueExchangePromptText != null)
+        {
+            _rogueExchangePromptText.gameObject.SetActive(visible);
+        }
     }
 
     private float GetRogueChoiceMoveOutOffset(RectTransform selectedRect)
@@ -2950,6 +3316,27 @@ public class MainGamePanel : UIPanel
         if (hoverView != null)
         {
             hoverView.BindCardId(ownedCard.CardId);
+        }
+
+        Button button = cardObject != null ? cardObject.GetComponent<Button>() : null;
+        if (button == null && cardObject != null)
+        {
+            button = cardObject.AddComponent<Button>();
+        }
+
+        if (button != null)
+        {
+            PreserveButtonDisabledVisual(button);
+            int ownedCardId = ownedCard.CardId;
+            button.onClick.AddListener(() =>
+            {
+                if (!_isRogueExchangeMode || _selectedRogueExchangeCardId <= 0)
+                {
+                    return;
+                }
+
+                OnRogueOwnedCardSelected?.Invoke(ownedCardId);
+            });
         }
 
         return cardObject;
@@ -3147,6 +3534,12 @@ public class MainGamePanel : UIPanel
         SetRogueChoiceHoverEnabled(true);
         StopRewardChoiceShowAnimation(ref _scratchToolChoiceShowSequence, ref _scratchToolChoiceShowCoroutine, _scratchToolChoiceContentRoot);
         StopRewardChoiceShowAnimation(ref _scratchCardChoiceShowSequence, ref _scratchCardChoiceShowCoroutine, _scratchCardChoiceContentRoot);
+        if (_gameOverSkullEffectRoutine != null)
+        {
+            StopCoroutine(_gameOverSkullEffectRoutine);
+            _gameOverSkullEffectRoutine = null;
+        }
+
         ClearCoinRainJackpotText();
         ClearCoinRainPool();
     }

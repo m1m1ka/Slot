@@ -14,9 +14,9 @@ public class ScratchCellModel
     public string PatternName { get; private set; }
     public int BaseScore { get; private set; }
     public bool IsBaseScoreEnhanced { get; private set; }
-    public bool IsGiantFruit { get; }
-    public double ScoreMultiplierOnScore { get; }
-    public double RewardMultiplierBonusOnScore { get; }
+    public bool IsGiantFruit { get; private set; }
+    public double ScoreMultiplierOnScore { get; private set; }
+    public double RewardMultiplierBonusOnScore { get; private set; }
     public IReadOnlyList<int> RogueCardEffectSourceIds { get; private set; }
     public ScratchPatternEffectType PatternEffectType { get; private set; }
     public double PatternEffectValue { get; private set; }
@@ -84,6 +84,9 @@ public class ScratchCellModel
         PatternName = patternConfig.Name;
         BaseScore = baseScore;
         IsBaseScoreEnhanced = isBaseScoreEnhanced;
+        IsGiantFruit = false;
+        ScoreMultiplierOnScore = 1d;
+        RewardMultiplierBonusOnScore = 0d;
         PatternEffectType = patternConfig.EffectType;
         PatternEffectValue = patternConfig.EffectValue;
         RogueCardEffectSourceIds = rogueCardEffectSourceIds != null

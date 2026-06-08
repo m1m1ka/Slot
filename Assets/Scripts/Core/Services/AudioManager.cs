@@ -39,6 +39,8 @@ namespace Core
         [Header("Music")]
         [SerializeField] private float _musicVolume = 1f;
         [SerializeField] private bool _muteMusic;
+        [SerializeField] private string _defaultBgmFolderPath = "Audio/BGM";
+        [SerializeField] private float _defaultBgmFadeDuration = 1.5f;
 
         [Header("Sfx")]
         [SerializeField] private float _sfxVolume = 1f;
@@ -251,6 +253,35 @@ namespace Core
             {
                 PlayMusic(clip, fadeDuration, loop);
             }
+        }
+
+        public void PlayBgmFromFolder(float fadeDuration = -1f, bool loop = true)
+        {
+            PlayBgmFromFolder(_defaultBgmFolderPath, fadeDuration, loop);
+        }
+
+        public void PlayBgmFromFolder(string resourcesFolderPath, float fadeDuration = -1f, bool loop = true)
+        {
+            string folderPath = string.IsNullOrWhiteSpace(resourcesFolderPath)
+                ? _defaultBgmFolderPath
+                : resourcesFolderPath.Trim().Trim('/');
+            AudioClip[] clips = Resources.LoadAll<AudioClip>(folderPath);
+            if (clips == null || clips.Length == 0)
+            {
+                PlayCue(AudioCueId.MainMusic);
+                return;
+            }
+
+            AudioClip clip = clips[0];
+            for (int i = 1; i < clips.Length; i++)
+            {
+                if (clips[i] != null && string.CompareOrdinal(clips[i].name, clip.name) < 0)
+                {
+                    clip = clips[i];
+                }
+            }
+
+            PlayMusic(clip, fadeDuration >= 0f ? fadeDuration : _defaultBgmFadeDuration, loop);
         }
 
         public void StopMusic(float fadeDuration = 0.5f)
@@ -473,6 +504,10 @@ namespace Core
             RegisterCue(new AudioCueDefinition { Id = AudioCueId.LevelPassCharging, ResourcesPath = "Audio/Sfx/charging", VolumeScale = 0.9f, Cooldown = 0.05f });
             RegisterCue(new AudioCueDefinition { Id = AudioCueId.LevelPassWin, ResourcesPath = "Audio/Sfx/win", VolumeScale = 1f, Cooldown = 0.05f });
             RegisterCue(new AudioCueDefinition { Id = AudioCueId.CoinPouring, ResourcesPath = "Audio/Sfx/CoinPouring", VolumeScale = 1f, Cooldown = 0.15f });
+            RegisterCue(new AudioCueDefinition { Id = AudioCueId.Speak, ResourcesPath = "Audio/Sfx/Speak", VolumeScale = 0.8f });
+            RegisterCue(new AudioCueDefinition { Id = AudioCueId.CoverUp, ResourcesPath = "Audio/Sfx/CoverUp", VolumeScale = 1f, Cooldown = 0.05f });
+            RegisterCue(new AudioCueDefinition { Id = AudioCueId.Cock, ResourcesPath = "Audio/Sfx/Cock", VolumeScale = 1f, Cooldown = 0.05f });
+            RegisterCue(new AudioCueDefinition { Id = AudioCueId.Shot, ResourcesPath = "Audio/Sfx/Shot", VolumeScale = 1f, Cooldown = 0.05f });
             RegisterCue(new AudioCueDefinition { Id = AudioCueId.MainMusic, Kind = AudioCueKind.Music, ResourcesPath = "Audio/Music/Main", VolumeScale = 1f, FadeDuration = 0.6f, Loop = true });
         }
 

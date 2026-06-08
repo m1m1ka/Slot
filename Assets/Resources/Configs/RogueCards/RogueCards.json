@@ -1,388 +1,394 @@
-{
-  "cards": [
-    {
-      "id": 1,
-      "name": "启动资金",
-      "rarity": "Common",
-      "description": "你的刮刮卡在结算时额外+50分数",
-      "levels": [
-        {
-          "level": 1,
-          "rarity": "Common",
-          "description": "你的刮刮卡在结算时额外+50分数",
-          "effects": [
-            {
-              "effectType": "AddSettlementScoreBonus",
-              "targetType": "",
-              "value": "50",
-              "triggerTime": "AfterSettlement"
-            }
-          ]
-        },
-        {
-          "level": 2,
-          "rarity": "Common",
-          "description": "你的刮刮卡在结算时额外+100分数",
-          "effects": [
-            {
-              "effectType": "AddSettlementScoreBonus",
-              "targetType": "",
-              "value": "100",
-              "triggerTime": "AfterSettlement"
-            }
-          ]
-        },
-        {
-          "level": 3,
-          "rarity": "Rare",
-          "description": "你的刮刮卡在结算时额外+500分数",
-          "effects": [
-            {
-              "effectType": "AddSettlementScoreBonus",
-              "targetType": "",
-              "value": "500",
-              "triggerTime": "AfterSettlement"
-            }
-          ]
-        },
-        {
-          "level": 4,
-          "rarity": "Rare",
-          "description": "你的刮刮卡在结算时额外+1500分数",
-          "effects": [
-            {
-              "effectType": "AddSettlementScoreBonus",
-              "targetType": "",
-              "value": "1500",
-              "triggerTime": "AfterSettlement"
-            }
-          ]
-        },
-        {
-          "level": 5,
-          "rarity": "Epic",
-          "description": "你的刮刮卡在结算时额外+5000分数",
-          "effects": [
-            {
-              "effectType": "AddSettlementScoreBonus",
-              "targetType": "",
-              "value": "5000",
-              "triggerTime": "AfterSettlement"
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": 2,
-      "name": "加速器",
-      "rarity": "Common",
-      "description": "你的刮刮卡在结算时额外+0.5倍率",
-      "levels": [
-        {
-          "level": 1,
-          "rarity": "Common",
-          "description": "你的刮刮卡在结算时额外+0.5倍率",
-          "effects": [
-            {
-              "effectType": "AddSettlementMultiplierBonus",
-              "targetType": "",
-              "value": "0.5",
-              "triggerTime": "AfterSettlement"
-            }
-          ]
-        },
-        {
-          "level": 2,
-          "rarity": "Rare",
-          "description": "你的刮刮卡在结算时额外+1倍率",
-          "effects": [
-            {
-              "effectType": "AddSettlementMultiplierBonus",
-              "targetType": "",
-              "value": "1",
-              "triggerTime": "AfterSettlement"
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": 3,
-      "name": "水果架",
-      "rarity": "Common",
-      "description": "每有一个水果图案计分，倍率+0.1",
-      "levels": [
-        {
-          "level": 1,
-          "rarity": "Common",
-          "description": "每有一个水果图案计分，倍率+0.1",
-          "effects": [
-            {
-              "effectType": "IncreaseScratchCardMultiplier",
-              "targetType": "Fruit",
-              "value": "0.1",
-              "triggerTime": "Settlement"
-            }
-          ]
-        },
-        {
-          "level": 2,
-          "rarity": "Rare",
-          "description": "每有一个水果图案计分，倍率+0.2",
-          "effects": [
-            {
-              "effectType": "IncreaseScratchCardMultiplier",
-              "targetType": "Fruit",
-              "value": "0.2",
-              "triggerTime": "Settlement"
-            }
-          ]
-        },
-        {
-          "level": 3,
-          "rarity": "Epic",
-          "description": "每有一个水果图案计分，倍率+0.3",
-          "effects": [
-            {
-              "effectType": "IncreaseScratchCardMultiplier",
-              "targetType": "Fruit",
-              "value": "0.3",
-              "triggerTime": "Settlement"
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": 4,
-      "name": "火箭",
-      "rarity": "Epic",
-      "description": "每有一个矿物图案计分，结算时额外获得0.25倍率",
-      "levels": [
-        {
-          "level": 1,
-          "rarity": "Epic",
-          "description": "每有一个矿物图案计分，结算时额外获得0.25倍率",
-          "effects": [
-            {
-              "effectType": "IncreaseScratchCardMultiplier",
-              "targetType": "Mineral",
-              "value": "0.25",
-              "triggerTime": "Settlement"
-            }
-          ]
-        },
-        {
-          "level": 2,
-          "rarity": "Legendary",
-          "description": "每有一个矿物图案计分，结算时额外获得1倍率",
-          "effects": [
-            {
-              "effectType": "IncreaseScratchCardMultiplier",
-              "targetType": "Mineral",
-              "value": "1",
-              "triggerTime": "Settlement"
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": 5,
-      "name": "小丑牌",
-      "rarity": "Epic",
-      "description": "你的刮刮卡中可以出现小丑图案。\n好脸小丑：获得3000分数\n坏脸小丑：这张刮刮卡获得0金币",
-      "levels": [
-        {
-          "level": 1,
-          "rarity": "Epic",
-          "description": "你的刮刮卡中可以出现小丑图案。\n好脸小丑：获得3000分数\n坏脸小丑：这张刮刮卡获得0金币",
-          "effects": [
-            {
-              "effectType": "AddJokerPatternToPool",
-              "targetType": "",
-              "value": "3%|30%|3000",
-              "triggerTime": "BeforeSettlement"
-            }
-          ]
-        },
-        {
-          "level": 2,
-          "rarity": "Epic",
-          "description": "你的刮刮卡中出现小丑图案提高。\n好脸小丑：+6000分数\n坏脸小丑：这张刮刮卡获得0金币",
-          "effects": [
-            {
-              "effectType": "AddJokerPatternToPool",
-              "targetType": "",
-              "value": "5%|30%|6000",
-              "triggerTime": "BeforeSettlement"
-            }
-          ]
-        },
-        {
-          "level": 3,
-          "rarity": "Epic",
-          "description": "你的刮刮卡中出现小丑图案提高。\n好脸小丑：+12000分数\n坏脸小丑：这张刮刮卡获得0金币",
-          "effects": [
-            {
-              "effectType": "AddJokerPatternToPool",
-              "targetType": "",
-              "value": "8%|30%|12000",
-              "triggerTime": "BeforeSettlement"
-            }
-          ]
-        },
-        {
-          "level": 4,
-          "rarity": "Epic",
-          "description": "你的刮刮卡中出现小丑图案提高。\n好脸小丑：+18000分数\n坏脸小丑：这张刮刮卡获得0金币",
-          "effects": [
-            {
-              "effectType": "AddJokerPatternToPool",
-              "targetType": "",
-              "value": "10%|30%|18000",
-              "triggerTime": "BeforeSettlement"
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": 6,
-      "name": "炼金术",
-      "rarity": "Epic",
-      "description": "你刮出的矿物图案有概率变换为钻石",
-      "levels": [
-        {
-          "level": 1,
-          "rarity": "Epic",
-          "description": "你刮出的矿物图案有概率变换为钻石",
-          "effects": [
-            {
-              "effectType": "ConvertPatternToPatternOnReveal",
-              "targetType": "Mineral",
-              "value": "10%",
-              "triggerTime": "BeforeSettlement"
-            }
-          ]
-        },
-        {
-          "level": 2,
-          "rarity": "Legendary",
-          "description": "你刮出的矿物图案有概率变换为钻石",
-          "effects": [
-            {
-              "effectType": "ConvertPatternToPatternOnReveal",
-              "targetType": "Mineral",
-              "value": "20%",
-              "triggerTime": "BeforeSettlement"
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": 7,
-      "name": "点石成金",
-      "rarity": "Epic",
-      "description": "刮出的矿物图案周围非矿物图案有概率变换为矿物图案",
-      "levels": [
-        {
-          "level": 1,
-          "rarity": "Epic",
-          "description": "刮出的矿物图案周围非矿物图案有概率变换为矿物图案",
-          "effects": [
-            {
-              "effectType": "ConvertAdjacentPatternsToMetalOnReveal",
-              "targetType": "Mineral",
-              "value": "10%",
-              "triggerTime": "BeforeSettlement"
-            }
-          ]
-        },
-        {
-          "level": 2,
-          "rarity": "Legendary",
-          "description": "刮出的矿物图案周围非矿物图案有概率变换为矿物图案",
-          "effects": [
-            {
-              "effectType": "ConvertAdjacentPatternsToMetalOnReveal",
-              "targetType": "Mineral",
-              "value": "20%",
-              "triggerTime": "BeforeSettlement"
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": 8,
-      "name": "巨型水果",
-      "rarity": "Epic",
-      "description": "你刮出的水果图案5%变成巨型水果，计分时倍率×10",
-      "levels": [
-        {
-          "level": 1,
-          "rarity": "Epic",
-          "description": "你刮出的水果图案5%变成巨型水果，计分时倍率×10",
-          "effects": [
-            {
-              "effectType": "ConvertPatternToGiantOnGenerate",
-              "targetType": "Fruit",
-              "value": "5|10",
-              "triggerTime": "BeforeSettlement"
-            }
-          ]
-        },
-        {
-          "level": 2,
-          "rarity": "Legendary",
-          "description": "你刮出的水果图案10%可能变成巨型水果，计分时倍率×15",
-          "effects": [
-            {
-              "effectType": "ConvertPatternToGiantOnGenerate",
-              "targetType": "Fruit",
-              "value": "10|15",
-              "triggerTime": "BeforeSettlement"
-            }
-          ]
-        },
-        {
-          "level": 3,
-          "rarity": "Legendary",
-          "description": "你刮出的水果图案15%可能变成巨型水果，计分时倍率×20",
-          "effects": [
-            {
-              "effectType": "ConvertPatternToGiantOnGenerate",
-              "targetType": "Fruit",
-              "value": "15|20",
-              "triggerTime": "BeforeSettlement"
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": 9,
-      "name": "风险倍率",
-      "rarity": "Legendary",
-      "description": "你的刮刮卡中可以出现倍率图案（×0、×1、×2、×3）。",
-      "levels": [
-        {
-          "level": 1,
-          "rarity": "Legendary",
-          "description": "你的刮刮卡中可以出现倍率图案（×0、×1、×2、×3）。",
-          "effects": [
-            {
-              "effectType": "AddRiskMultiplierPatternToPool",
-              "targetType": "",
-              "value": "5%|15%|50%|30%|5%",
-              "triggerTime": "BeforeSettlement"
-            }
-          ]
-        }
-      ]
-    }
-  ]
+﻿{
+    "cards":  [
+                  {
+                      "id":  1,
+                      "name":  "启动资金",
+                      "rarity":  "Common",
+                      "description":  "你的刮刮卡在结算时额外+80分数",
+                      "levels":  [
+                                     {
+                                         "level":  1,
+                                         "rarity":  "Common",
+                                         "description":  "你的刮刮卡在结算时额外+80分数",
+                                         "effects":  [
+                                                         {
+                                                             "effectType":  "AddSettlementScoreBonus",
+                                                             "targetType":  "",
+                                                             "value":  "80",
+                                                             "triggerTime":  "AfterSettlement"
+                                                         }
+                                                     ]
+                                     },
+                                     {
+                                         "level":  2,
+                                         "rarity":  "Common",
+                                         "description":  "你的刮刮卡在结算时额外+200分数",
+                                         "effects":  [
+                                                         {
+                                                             "effectType":  "AddSettlementScoreBonus",
+                                                             "targetType":  "",
+                                                             "value":  "200",
+                                                             "triggerTime":  "AfterSettlement"
+                                                         }
+                                                     ]
+                                     }
+                                 ]
+                  },
+                  {
+                      "id":  2,
+                      "name":  "加速器",
+                      "rarity":  "Common",
+                      "description":  "你的刮刮卡在结算时额外+0.1倍率",
+                      "levels":  [
+                                     {
+                                         "level":  1,
+                                         "rarity":  "Common",
+                                         "description":  "你的刮刮卡在结算时额外+0.1倍率",
+                                         "effects":  [
+                                                         {
+                                                             "effectType":  "AddSettlementMultiplierBonus",
+                                                             "targetType":  "",
+                                                             "value":  "0.1",
+                                                             "triggerTime":  "AfterSettlement"
+                                                         }
+                                                     ]
+                                     },
+                                     {
+                                         "level":  2,
+                                         "rarity":  "Rare",
+                                         "description":  "你的刮刮卡在结算时额外+0.2倍率",
+                                         "effects":  [
+                                                         {
+                                                             "effectType":  "AddSettlementMultiplierBonus",
+                                                             "targetType":  "",
+                                                             "value":  "0.2",
+                                                             "triggerTime":  "AfterSettlement"
+                                                         }
+                                                     ]
+                                     }
+                                 ]
+                  },
+                  {
+                      "id":  3,
+                      "name":  "水果架",
+                      "rarity":  "Epic",
+                      "description":  "每有一个水果图案计分，倍率+0.1",
+                      "levels":  [
+                                     {
+                                         "level":  1,
+                                         "rarity":  "Epic",
+                                         "description":  "每有一个水果图案计分，倍率+0.1",
+                                         "effects":  [
+                                                         {
+                                                             "effectType":  "IncreaseScratchCardMultiplier",
+                                                             "targetType":  "Fruit",
+                                                             "value":  "0.1",
+                                                             "triggerTime":  "Settlement"
+                                                         }
+                                                     ]
+                                     },
+                                     {
+                                         "level":  2,
+                                         "rarity":  "Legendary",
+                                         "description":  "每有一个水果图案计分，倍率+0.2",
+                                         "effects":  [
+                                                         {
+                                                             "effectType":  "IncreaseScratchCardMultiplier",
+                                                             "targetType":  "Fruit",
+                                                             "value":  "0.2",
+                                                             "triggerTime":  "Settlement"
+                                                         }
+                                                     ]
+                                     }
+                                 ]
+                  },
+                  {
+                      "id":  4,
+                      "name":  "火箭",
+                      "rarity":  "Epic",
+                      "description":  "每有一个矿物图案计分，结算时额外获得0.1倍率",
+                      "levels":  [
+                                     {
+                                         "level":  1,
+                                         "rarity":  "Epic",
+                                         "description":  "每有一个矿物图案计分，结算时额外获得0.1倍率",
+                                         "effects":  [
+                                                         {
+                                                             "effectType":  "IncreaseScratchCardMultiplier",
+                                                             "targetType":  "Mineral",
+                                                             "value":  "0.1",
+                                                             "triggerTime":  "Settlement"
+                                                         }
+                                                     ]
+                                     },
+                                     {
+                                         "level":  2,
+                                         "rarity":  "Legendary",
+                                         "description":  "每有一个矿物图案计分，结算时额外获得0.2倍率",
+                                         "effects":  [
+                                                         {
+                                                             "effectType":  "IncreaseScratchCardMultiplier",
+                                                             "targetType":  "Mineral",
+                                                             "value":  "0.2",
+                                                             "triggerTime":  "Settlement"
+                                                         }
+                                                     ]
+                                     }
+                                 ]
+                  },
+                  {
+                      "id":  5,
+                      "name":  "小丑牌",
+                      "rarity":  "Epic",
+                      "description":  "你的刮刮卡中可以出现小丑图案。\n好脸小丑：获得5k分数\n坏脸小丑：这张刮刮卡获得0金币",
+                      "levels":  [
+                                     {
+                                         "level":  1,
+                                         "rarity":  "Epic",
+                                         "description":  "你的刮刮卡中可以出现小丑图案。\n好脸小丑：获得5k分数\n坏脸小丑：这张刮刮卡获得0金币",
+                                         "effects":  [
+                                                         {
+                                                             "effectType":  "AddJokerPatternToPool",
+                                                             "targetType":  "",
+                                                             "value":  "3%|30%|5000",
+                                                             "triggerTime":  "BeforeSettlement"
+                                                         }
+                                                     ]
+                                     },
+                                     {
+                                         "level":  2,
+                                         "rarity":  "Epic",
+                                         "description":  "你的刮刮卡中出现小丑图案提高。\n好脸小丑：+60k分数\n坏脸小丑：这张刮刮卡获得0金币",
+                                         "effects":  [
+                                                         {
+                                                             "effectType":  "AddJokerPatternToPool",
+                                                             "targetType":  "",
+                                                             "value":  "5%|30%|60000",
+                                                             "triggerTime":  "BeforeSettlement"
+                                                         }
+                                                     ]
+                                     },
+                                     {
+                                         "level":  3,
+                                         "rarity":  "Epic",
+                                         "description":  "你的刮刮卡中出现小丑图案提高。\n好脸小丑：+200k分数\n坏脸小丑：这张刮刮卡获得0金币",
+                                         "effects":  [
+                                                         {
+                                                             "effectType":  "AddJokerPatternToPool",
+                                                             "targetType":  "",
+                                                             "value":  "8%|30%|200000",
+                                                             "triggerTime":  "BeforeSettlement"
+                                                         }
+                                                     ]
+                                     }
+                                 ]
+                  },
+                  {
+                      "id":  6,
+                      "name":  "炼金术",
+                      "rarity":  "Epic",
+                      "description":  "你刮出的矿物图案有概率变换为钻石",
+                      "levels":  [
+                                     {
+                                         "level":  1,
+                                         "rarity":  "Epic",
+                                         "description":  "你刮出的矿物图案有概率变换为钻石",
+                                         "effects":  [
+                                                         {
+                                                             "effectType":  "ConvertPatternToPatternOnReveal",
+                                                             "targetType":  "Mineral",
+                                                             "value":  "10%",
+                                                             "triggerTime":  "BeforeSettlement"
+                                                         }
+                                                     ]
+                                     }
+                                 ]
+                  },
+                  {
+                      "id":  7,
+                      "name":  "点石成金",
+                      "rarity":  "Epic",
+                      "description":  "刮出的矿物图案周围非矿物图案有概率变换为矿物图案",
+                      "levels":  [
+                                     {
+                                         "level":  1,
+                                         "rarity":  "Epic",
+                                         "description":  "刮出的矿物图案周围非矿物图案有概率变换为矿物图案",
+                                         "effects":  [
+                                                         {
+                                                             "effectType":  "ConvertAdjacentPatternsToMetalOnReveal",
+                                                             "targetType":  "Mineral",
+                                                             "value":  "20%",
+                                                             "triggerTime":  "BeforeSettlement"
+                                                         }
+                                                     ]
+                                     }
+                                 ]
+                  },
+                  {
+                      "id":  8,
+                      "name":  "巨型水果",
+                      "rarity":  "Epic",
+                      "description":  "你刮出的水果图案10%变成巨型水果，计分时倍率×10",
+                      "levels":  [
+                                     {
+                                         "level":  1,
+                                         "rarity":  "Epic",
+                                         "description":  "你刮出的水果图案10%变成巨型水果，计分时倍率×10",
+                                         "effects":  [
+                                                         {
+                                                             "effectType":  "ConvertPatternToGiantOnGenerate",
+                                                             "targetType":  "Fruit",
+                                                             "value":  "10|10",
+                                                             "triggerTime":  "BeforeSettlement"
+                                                         }
+                                                     ]
+                                     }
+                                 ]
+                  },
+                  {
+                      "id":  9,
+                      "name":  "风险倍率",
+                      "rarity":  "Legendary",
+                      "description":  "你的刮刮卡中可以出现倍率图案（×0、×1、×2、×3）。",
+                      "levels":  [
+                                     {
+                                         "level":  1,
+                                         "rarity":  "Legendary",
+                                         "description":  "你的刮刮卡中可以出现倍率图案（×0、×1、×2、×3）。",
+                                         "effects":  [
+                                                         {
+                                                             "effectType":  "AddRiskMultiplierPatternToPool",
+                                                             "targetType":  "",
+                                                             "value":  "5%|15%|50%|30%|5%",
+                                                             "triggerTime":  "BeforeSettlement"
+                                                         }
+                                                     ]
+                                     }
+                                 ]
+                  },
+                  {
+                      "id":  10,
+                      "name":  "暴食",
+                      "rarity":  "Rare",
+                      "description":  "刮开所有图案时，你的刮刮卡在结算时额外+0.15倍率",
+                      "levels":  [
+                                     {
+                                         "level":  1,
+                                         "rarity":  "Rare",
+                                         "description":  "刮开所有图案时，你的刮刮卡在结算时额外+0.15倍率",
+                                         "effects":  [
+                                                         {
+                                                             "effectType":  "AddSettlementMultiplierBonusWhenAllPatternsScratched",
+                                                             "targetType":  "",
+                                                             "value":  "0.15",
+                                                             "triggerTime":  "AfterSettlement"
+                                                         }
+                                                     ]
+                                     },
+                                     {
+                                         "level":  2,
+                                         "rarity":  "Epic",
+                                         "description":  "刮开所有图案时，你的刮刮卡在结算时额外+0.25倍率",
+                                         "effects":  [
+                                                         {
+                                                             "effectType":  "AddSettlementMultiplierBonusWhenAllPatternsScratched",
+                                                             "targetType":  "",
+                                                             "value":  "0.25",
+                                                             "triggerTime":  "AfterSettlement"
+                                                         }
+                                                     ]
+                                     }
+                                 ]
+                  },
+                  {
+                      "id":  11,
+                      "name":  "头号玩家",
+                      "rarity":  "Common",
+                      "description":  "头奖获奖概率+1%",
+                      "levels":  [
+                                     {
+                                         "level":  1,
+                                         "rarity":  "Common",
+                                         "description":  "头奖获奖概率+1%",
+                                         "effects":  [
+                                                         {
+                                                             "effectType":  "IncreaseJackpotAppearanceChance",
+                                                             "targetType":  "",
+                                                             "value":  "1%",
+                                                             "triggerTime":  "BeforeSettlement"
+                                                         }
+                                                     ]
+                                     },
+                                     {
+                                         "level":  2,
+                                         "rarity":  "Rare",
+                                         "description":  "头奖获奖概率+2%",
+                                         "effects":  [
+                                                         {
+                                                             "effectType":  "IncreaseJackpotAppearanceChance",
+                                                             "targetType":  "",
+                                                             "value":  "2%",
+                                                             "triggerTime":  "BeforeSettlement"
+                                                         }
+                                                     ]
+                                     }
+                                 ]
+                  },
+                  {
+                      "id":  12,
+                      "name":  "赌徒",
+                      "rarity":  "Epic",
+                      "description":  "刮刮卡价格+65%，头奖获奖概率+5%",
+                      "levels":  [
+                                     {
+                                         "level":  1,
+                                         "rarity":  "Epic",
+                                         "description":  "刮刮卡价格+65%，头奖获奖概率+5%",
+                                         "effects":  [
+                                                         {
+                                                             "effectType":  "IncreaseJackpotAppearanceChanceAndScratchCardPrice",
+                                                             "targetType":  "",
+                                                             "value":  "5%|65%",
+                                                             "triggerTime":  "BeforeSettlement"
+                                                         }
+                                                     ]
+                                     }
+                                 ]
+                  },
+                  {
+                      "id":  13,
+                      "name":  "天文学家",
+                      "rarity":  "Epic",
+                      "description":  "每有一个星球图案计分，结算时额外获得0.5倍率",
+                      "levels":  [
+                                     {
+                                         "level":  1,
+                                         "rarity":  "Epic",
+                                         "description":  "每有一个星球图案计分，结算时额外获得0.5倍率",
+                                         "effects":  [
+                                                         {
+                                                             "effectType":  "IncreaseScratchCardMultiplier",
+                                                             "targetType":  "Planet",
+                                                             "value":  "0.5",
+                                                             "triggerTime":  "Settlement"
+                                                         }
+                                                     ]
+                                     },
+                                     {
+                                         "level":  2,
+                                         "rarity":  "Legendary",
+                                         "description":  "每有一个星球图案计分，结算时额外获得1倍率",
+                                         "effects":  [
+                                                         {
+                                                             "effectType":  "IncreaseScratchCardMultiplier",
+                                                             "targetType":  "Planet",
+                                                             "value":  "1",
+                                                             "triggerTime":  "Settlement"
+                                                         }
+                                                     ]
+                                     }
+                                 ]
+                  }
+              ]
 }

@@ -17,6 +17,7 @@ public class ScratchCardController : MonoBehaviour
     public event System.Action<ScratchCardController, int> OnRogueCardEffectTriggered;
     public event System.Action<ScratchCardController, int> OnPatternScored;
     public event System.Action<ScratchCardController, string> OnCoinRainEffectRequested;
+    public event System.Action<ScratchCardController> OnGameOverSkullEffectRequested;
     public event System.Action<ScratchCardController, int, double> OnScratchCardTypeMultiplierBonusAdded;
 
     private ScratchCardView _view;
@@ -44,8 +45,10 @@ public class ScratchCardController : MonoBehaviour
     private const float SettlementDingBasePitch = 1f;
     private const float SettlementDingPitchStep = 0.12f;
     private const float SettlementDingMaxPitch = 1.8f;
-    private const int LuckySevenPatternId = 10;
     private const int GoodJokerPatternId = 27;
+    private const int GameOverScratchCardTypeId = 13;
+    private const int SkullPatternId = 36;
+    private const int CoinPilePatternId = 37;
 
     public ScratchCardModel Model => _model;
     public int CurrentRevealedReward => _currentRevealedReward;
@@ -68,7 +71,7 @@ public class ScratchCardController : MonoBehaviour
         BindModel();
         BindView();
 
-        _view.BindCardData(_model.Cells, _model.WinDescription);
+        _view.BindCardData(_model.Cells);
         _view.SetupInitialVisual();
         _view.PlaySpawnAnimation(spawnFrom, spawnTo);
         _settlementResult = null;
@@ -86,6 +89,12 @@ public class ScratchCardController : MonoBehaviour
 
     private void Update()
     {
+        if (TutorialPanel.BlocksScratchCardInput)
+        {
+            StopScratchSound();
+            return;
+        }
+
         if (!IsInFocusedState() || _view == null)
         {
             return;
@@ -133,6 +142,11 @@ public class ScratchCardController : MonoBehaviour
 
     private void HandleCardClicked()
     {
+        if (TutorialPanel.BlocksScratchCardInput)
+        {
+            return;
+        }
+
         if (_model.State == ScratchCardModel.ScratchCardState.Falling)
         {
             return;
@@ -140,10 +154,17 @@ public class ScratchCardController : MonoBehaviour
 
         _model.SetState(ScratchCardModel.ScratchCardState.Focused);
         AudioManager.Instance?.PlayCue(AudioCueId.ScratchCardFocused);
+        EventBus.Publish(new TutorialEvent(TutorialEventType.ScratchCardClicked));
     }
 
     private void HandleScratchDragged(float amount, float horizontalDelta)
     {
+        if (TutorialPanel.BlocksScratchCardInput)
+        {
+            StopScratchSound();
+            return;
+        }
+
         if (_isSettling || _settlementResult != null)
         {
             return;
@@ -193,6 +214,7 @@ public class ScratchCardController : MonoBehaviour
         Debug.Log(
             $"[ScratchCardController] Scratch card {_model.CardId} completed. " +
             $"Type={_model.CardTypeName}, Base={_model.TotalBaseScore}");
+        EventBus.Publish(new TutorialEvent(TutorialEventType.ScratchCardCompleted));
     }
 
     private void HandleRewardMultiplierChanged(double rewardMultiplier)
@@ -259,7 +281,12 @@ public class ScratchCardController : MonoBehaviour
                 continue;
             }
 
-            targetPatternId = rule.TargetPatternId;
+            targetPatternId = rule.PickTargetPatternId(cell.PatternId);
+            if (targetPatternId <= 0)
+            {
+                continue;
+            }
+
             if (rule.SourceCardId > 0)
             {
                 triggeredSourceCardIds.Add(rule.SourceCardId);
@@ -501,7 +528,7 @@ public class ScratchCardController : MonoBehaviour
 
     private void RaisePatternCoinRainEffectIfNeeded(int patternId, bool hasGiantFruit)
     {
-        if (patternId == LuckySevenPatternId)
+        if (ScratchCardDefaultsProvider.IsHighestBaseScorePatternInCardPool(_model != null ? _model.CardTypeId : 0, patternId))
         {
             RaiseCoinRainEffectRequested("头奖");
             return;
@@ -540,7 +567,7 @@ public class ScratchCardController : MonoBehaviour
                 continue;
             }
 
-            if (cell.PatternId == LuckySevenPatternId ||
+            if (ScratchCardDefaultsProvider.IsHighestBaseScorePatternInCardPool(_model.CardTypeId, cell.PatternId) ||
                 cell.PatternId == GoodJokerPatternId ||
                 cell.IsGiantFruit)
             {
@@ -554,6 +581,47 @@ public class ScratchCardController : MonoBehaviour
     private void RaiseCoinRainEffectRequested(string text)
     {
         OnCoinRainEffectRequested?.Invoke(this, text);
+    }
+
+    private void RaiseGameOverCoinPileCoinRainIfNeeded()
+    {
+        if (!HasScratchedGameOverPattern(SkullPatternId) &&
+            HasScratchedGameOverPattern(CoinPilePatternId))
+        {
+            RaiseCoinRainEffectRequested("\u5168\u90e8\u5e26\u8d70");
+        }
+    }
+
+    private void RaiseGameOverSkullEffectIfNeeded()
+    {
+        if (HasScratchedGameOverPattern(SkullPatternId))
+        {
+            OnGameOverSkullEffectRequested?.Invoke(this);
+        }
+    }
+
+    private bool HasScratchedGameOverPattern(int patternId)
+    {
+        if (_model == null ||
+            _model.CardTypeId != GameOverScratchCardTypeId ||
+            _model.Cells == null)
+        {
+            return false;
+        }
+
+        for (int i = 0; i < _model.Cells.Count; i++)
+        {
+            ScratchCellModel cell = _model.Cells[i];
+            if (cell != null &&
+                cell.IsScratchable &&
+                cell.IsScratched &&
+                cell.PatternId == patternId)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private void PlaySettlementDing()
@@ -637,6 +705,7 @@ public class ScratchCardController : MonoBehaviour
 
         if (_settlementResult == null)
         {
+            EventBus.Publish(new TutorialEvent(TutorialEventType.SettlementButtonClicked));
             _settlementCoroutine = StartCoroutine(SettleRevealedPatternsByToolOrder());
             return;
         }
@@ -722,6 +791,8 @@ public class ScratchCardController : MonoBehaviour
             _model,
             _settlementResult.ScoreBeforeRewardMultiplier);
         _settlementResult.Summary = summaries.Count > 0 ? string.Join(" ", summaries) : "\u6ca1\u6709\u89e6\u53d1\u522e\u5177\u8ba1\u5206\u3002";
+        RaiseGameOverCoinPileCoinRainIfNeeded();
+        RaiseGameOverSkullEffectIfNeeded();
         _isSettling = false;
         _settlementCoroutine = null;
         _view.ShowClaimRewardButton(GetDisplayRewardBeforeMultiplier(), GetDisplayRewardMultiplier());
@@ -741,6 +812,7 @@ public class ScratchCardController : MonoBehaviour
         _rewardClaimed = true;
         _view.HideClaimRewardButton();
         AudioManager.Instance?.PlayCue(AudioCueId.GainMoney);
+        EventBus.Publish(new TutorialEvent(TutorialEventType.RewardClaimed));
         OnRewardClaimed?.Invoke(this, _settlementResult);
     }
 
@@ -876,19 +948,24 @@ public class ScratchCardController : MonoBehaviour
         yield return new WaitForSecondsRealtime(RogueCardSettlementStartDelay);
         int patternSettlementScoreBonus = CalculatePatternSettlementScoreBonus(out HashSet<int> patternSettlementScoreBonusSourceCardIds);
         double patternSettlementMultiplierBonus = CalculatePatternSettlementMultiplierBonus(out HashSet<int> patternSettlementMultiplierBonusSourceCardIds);
+        double allPatternsScratchedMultiplierBonus = CalculateAllPatternsScratchedSettlementMultiplierBonus(out HashSet<int> allPatternsScratchedMultiplierBonusSourceCardIds);
         if (_settlementResult != null && patternSettlementScoreBonus != 0)
         {
             _settlementResult.ScoreBeforeRewardMultiplier += patternSettlementScoreBonus;
             _currentRevealedReward = _settlementResult.ScoreBeforeRewardMultiplier;
         }
 
-        if (patternSettlementMultiplierBonus > 0d)
+        double totalMultiplierBonus = patternSettlementMultiplierBonus + allPatternsScratchedMultiplierBonus;
+        if (totalMultiplierBonus > 0d)
         {
-            _model.AddRewardMultiplierBonus(patternSettlementMultiplierBonus);
+            _model.AddRewardMultiplierBonus(totalMultiplierBonus);
         }
 
         _settlementBonusesApplied = true;
-        RaiseSettlementBonusEffects(patternSettlementScoreBonusSourceCardIds, patternSettlementMultiplierBonusSourceCardIds);
+        RaiseSettlementBonusEffects(
+            patternSettlementScoreBonusSourceCardIds,
+            patternSettlementMultiplierBonusSourceCardIds,
+            allPatternsScratchedMultiplierBonusSourceCardIds);
         _view.ShowSettlementInProgressButton(GetDisplayRewardBeforeMultiplier(), GetDisplayRewardMultiplier());
         PlaySettlementDing();
         yield return new WaitForSecondsRealtime(ToolSettlementStepDelay);
@@ -902,7 +979,8 @@ public class ScratchCardController : MonoBehaviour
             (_model.SettlementScoreBonus != 0 ||
                 _model.SettlementMultiplierBonus > 0d ||
                 CalculatePatternSettlementScoreBonus(out ignoredSourceCardIds) != 0 ||
-                CalculatePatternSettlementMultiplierBonus(out ignoredMultiplierSourceCardIds) > 0d);
+                CalculatePatternSettlementMultiplierBonus(out ignoredMultiplierSourceCardIds) > 0d ||
+                CalculateAllPatternsScratchedSettlementMultiplierBonus(out ignoredMultiplierSourceCardIds) > 0d);
     }
 
     private int CalculatePatternSettlementScoreBonus(out HashSet<int> sourceCardIds)
@@ -993,6 +1071,62 @@ public class ScratchCardController : MonoBehaviour
         return totalBonus;
     }
 
+    private double CalculateAllPatternsScratchedSettlementMultiplierBonus(out HashSet<int> sourceCardIds)
+    {
+        sourceCardIds = new HashSet<int>();
+        if (_model?.AllPatternsScratchedSettlementMultiplierBonusRules == null ||
+            _model.AllPatternsScratchedSettlementMultiplierBonusRules.Count == 0 ||
+            _model.Cells == null ||
+            !AreAllScratchableCellsScratched())
+        {
+            return 0d;
+        }
+
+        double totalBonus = 0d;
+        for (int ruleIndex = 0; ruleIndex < _model.AllPatternsScratchedSettlementMultiplierBonusRules.Count; ruleIndex++)
+        {
+            AllPatternsScratchedSettlementMultiplierBonusRuleModel rule = _model.AllPatternsScratchedSettlementMultiplierBonusRules[ruleIndex];
+            if (rule == null || rule.MultiplierBonus <= 0d)
+            {
+                continue;
+            }
+
+            totalBonus += rule.MultiplierBonus;
+            if (rule.SourceCardId > 0)
+            {
+                sourceCardIds.Add(rule.SourceCardId);
+            }
+        }
+
+        return totalBonus;
+    }
+
+    private bool AreAllScratchableCellsScratched()
+    {
+        if (_model?.Cells == null)
+        {
+            return false;
+        }
+
+        bool hasScratchableCell = false;
+        for (int cellIndex = 0; cellIndex < _model.Cells.Count; cellIndex++)
+        {
+            ScratchCellModel cell = _model.Cells[cellIndex];
+            if (cell == null || !cell.IsScratchable)
+            {
+                continue;
+            }
+
+            hasScratchableCell = true;
+            if (!cell.IsScratched)
+            {
+                return false;
+            }
+        }
+
+        return hasScratchableCell;
+    }
+
     private void ApplySettlementCardExtraEffects()
     {
         if (_settlementCardExtraEffectsApplied || _model?.ExtraEffects == null)
@@ -1017,7 +1151,8 @@ public class ScratchCardController : MonoBehaviour
 
     private void RaiseSettlementBonusEffects(
         HashSet<int> patternSettlementScoreBonusSourceCardIds = null,
-        HashSet<int> patternSettlementMultiplierBonusSourceCardIds = null)
+        HashSet<int> patternSettlementMultiplierBonusSourceCardIds = null,
+        HashSet<int> allPatternsScratchedMultiplierBonusSourceCardIds = null)
     {
         if (_model == null)
         {
@@ -1049,6 +1184,17 @@ public class ScratchCardController : MonoBehaviour
             }
         }
 
+        if (allPatternsScratchedMultiplierBonusSourceCardIds != null)
+        {
+            foreach (int sourceCardId in allPatternsScratchedMultiplierBonusSourceCardIds)
+            {
+                if (sourceCardId > 0)
+                {
+                    triggeredCardIds.Add(sourceCardId);
+                }
+            }
+        }
+
         RaiseRogueCardEffectTriggered(triggeredCardIds);
     }
 
@@ -1071,7 +1217,7 @@ public class ScratchCardController : MonoBehaviour
 
     private void TryExitFocus(Vector2 screenPoint)
     {
-        if (!_rewardClaimed && (_isSettling || _settlementResult != null ||
+        if (!_rewardClaimed && (_isSettling || _settlementResult != null || HasStartedScratching() ||
             (_model != null && _model.State == ScratchCardModel.ScratchCardState.Completed)))
         {
             return;
@@ -1084,6 +1230,37 @@ public class ScratchCardController : MonoBehaviour
         }
 
         _model.SetState(ScratchCardModel.ScratchCardState.Idle);
+    }
+
+    private bool HasStartedScratching()
+    {
+        if (_model == null)
+        {
+            return false;
+        }
+
+        if (_model.ScratchProgress > 0f ||
+            _model.State == ScratchCardModel.ScratchCardState.Scratching)
+        {
+            return true;
+        }
+
+        IReadOnlyList<ScratchCellModel> cells = _model.Cells;
+        if (cells == null)
+        {
+            return false;
+        }
+
+        for (int i = 0; i < cells.Count; i++)
+        {
+            ScratchCellModel cell = cells[i];
+            if (cell != null && cell.IsScratchable && cell.IsScratched)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private bool IsInFocusedState()

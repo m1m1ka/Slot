@@ -16,6 +16,9 @@ namespace Configs
         AddSettlementScorePerScratchedPattern = 11,
         AddSettlementMultiplierPerScratchedPattern = 12,
         ConvertPatternToPatternOnReveal = 13,
-        ConvertAdjacentPatternsToMetalOnReveal = 14
+        ConvertAdjacentPatternsToMetalOnReveal = 14,
+        AddSettlementMultiplierBonusWhenAllPatternsScratched = 15,
+        IncreaseJackpotAppearanceChance = 16,
+        IncreaseJackpotAppearanceChanceAndScratchCardPrice = 17
     }
 }

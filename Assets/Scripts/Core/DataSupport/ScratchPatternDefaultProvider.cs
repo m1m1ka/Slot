@@ -11,13 +11,13 @@ namespace Core
             new ScratchPatternConfig { Id = 2, Name = "柠檬", SpritePath = "Icons/PatternIcons/Lemon", Type = "Fruit" },
             new ScratchPatternConfig { Id = 3, Name = "橙子", SpritePath = "Icons/PatternIcons/Orange", Type = "Fruit" },
             new ScratchPatternConfig { Id = 4, Name = "葡萄", SpritePath = "Icons/PatternIcons/Grape", Type = "Fruit" },
-            new ScratchPatternConfig { Id = 5, Name = "榴莲", SpritePath = "Icons/PatternIcons/Durian", Type = "Fruit" },
+            new ScratchPatternConfig { Id = 5, Name = "金苹果", SpritePath = "Icons/PatternIcons/GoldApple", Type = "Fruit" },
             new ScratchPatternConfig { Id = 6, Name = "西瓜", SpritePath = "Icons/PatternIcons/Watermelon", Type = "Fruit" },
             new ScratchPatternConfig { Id = 7, Name = "菠萝", SpritePath = "Icons/PatternIcons/Pineapple", Type = "Fruit" },
             new ScratchPatternConfig { Id = 8, Name = "蓝莓", SpritePath = "Icons/PatternIcons/Blueberry", Type = "Fruit" },
             new ScratchPatternConfig { Id = 9, Name = "煤炭", SpritePath = "Icons/PatternIcons/Coal", Type = "Mineral" },
             new ScratchPatternConfig { Id = 10, Name = "铜块", SpritePath = "Icons/PatternIcons/Copper", Type = "Mineral" },
-            new ScratchPatternConfig { Id = 11, Name = "银块", SpritePath = "Icons/PatternIcons/Silver", Type = "Mineral" },
+            new ScratchPatternConfig { Id = 11, Name = "银块", SpritePath = "Icons/PatternIcons/Sliver", Type = "Mineral" },
             new ScratchPatternConfig { Id = 12, Name = "金块", SpritePath = "Icons/PatternIcons/Gold", Type = "Mineral" },
             new ScratchPatternConfig { Id = 13, Name = "蓝宝石", SpritePath = "Icons/PatternIcons/Sapphire", Type = "Mineral" },
             new ScratchPatternConfig { Id = 14, Name = "红宝石", SpritePath = "Icons/PatternIcons/Ruby", Type = "Mineral" },
@@ -36,10 +36,14 @@ namespace Core
             new ScratchPatternConfig { Id = 27, Name = "好脸", SpritePath = "Icons/PatternIcons/GoodFace", Type = "Joker", EffectType = ScratchPatternEffectType.FixedScore },
             new ScratchPatternConfig { Id = 28, Name = "坏脸", SpritePath = "Icons/PatternIcons/BadFace", Type = "Joker", EffectType = ScratchPatternEffectType.MultiplyRewardMultiplierOnSettlement, EffectValue = 0d },
             new ScratchPatternConfig { Id = 29, Name = "倍率", SpritePath = "Icons/PatternIcons/Multiplier", Type = "Multiplier" },
-            new ScratchPatternConfig { Id = 30, Name = "×0倍率", SpritePath = "Icons/PatternIcons/X 0", Type = "Multiplier", EffectType = ScratchPatternEffectType.MultiplyRewardMultiplierOnSettlement, EffectValue = 0d },
-            new ScratchPatternConfig { Id = 31, Name = "×1倍率", SpritePath = "Icons/PatternIcons/X 1", Type = "Multiplier", EffectType = ScratchPatternEffectType.MultiplyRewardMultiplierOnSettlement, EffectValue = 1d },
-            new ScratchPatternConfig { Id = 32, Name = "×2倍率", SpritePath = "Icons/PatternIcons/X 2", Type = "Multiplier", EffectType = ScratchPatternEffectType.MultiplyRewardMultiplierOnSettlement, EffectValue = 2d },
-            new ScratchPatternConfig { Id = 33, Name = "×3倍率", SpritePath = "Icons/PatternIcons/X 3", Type = "Multiplier", EffectType = ScratchPatternEffectType.MultiplyRewardMultiplierOnSettlement, EffectValue = 3d }
+            new ScratchPatternConfig { Id = 30, Name = "×0倍率", SpritePath = "Icons/PatternIcons/×0", Type = "Multiplier", EffectType = ScratchPatternEffectType.MultiplyRewardMultiplierOnSettlement, EffectValue = 0d },
+            new ScratchPatternConfig { Id = 31, Name = "×1倍率", SpritePath = "Icons/PatternIcons/×1", Type = "Multiplier", EffectType = ScratchPatternEffectType.MultiplyRewardMultiplierOnSettlement, EffectValue = 1d },
+            new ScratchPatternConfig { Id = 32, Name = "×2倍率", SpritePath = "Icons/PatternIcons/×2", Type = "Multiplier", EffectType = ScratchPatternEffectType.MultiplyRewardMultiplierOnSettlement, EffectValue = 2d },
+            new ScratchPatternConfig { Id = 33, Name = "×3倍率", SpritePath = "Icons/PatternIcons/×3", Type = "Multiplier", EffectType = ScratchPatternEffectType.MultiplyRewardMultiplierOnSettlement, EffectValue = 3d },
+            new ScratchPatternConfig { Id = 34, Name = "手铐", SpritePath = "Icons/PatternIcons/HandCuffs", Type = "Handcuffs" },
+            new ScratchPatternConfig { Id = 35, Name = "坏苹果", SpritePath = "Icons/PatternIcons/BadApple", Type = "BadApple" },
+            new ScratchPatternConfig { Id = 36, Name = "骷髅", SpritePath = "Icons/PatternIcons/Skull", Type = "Skull" },
+            new ScratchPatternConfig { Id = 37, Name = "金币堆", SpritePath = "Icons/PatternIcons/CoinPile", Type = "CoinPile" }
         };
 
         public static IReadOnlyList<ScratchPatternConfig> GetAll()

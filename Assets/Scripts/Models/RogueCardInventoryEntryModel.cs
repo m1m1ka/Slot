@@ -29,4 +29,26 @@ public class RogueCardInventoryEntryModel
             Level++;
         }
     }
+
+    public void SetLevel(int level, int maxLevel)
+    {
+        if (maxLevel < 1)
+        {
+            maxLevel = 1;
+        }
+
+        if (level < 1)
+        {
+            level = 1;
+        }
+        else if (level > maxLevel)
+        {
+            level = maxLevel;
+        }
+
+        if (level > Level)
+        {
+            Level = level;
+        }
+    }
 }

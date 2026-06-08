@@ -16,6 +16,7 @@ namespace Configs
         HorizontalFiveMatch = 8,
         VerticalTripleMatch = 9,
         MetalMatchAnyPair = 10,
-        FruitMatchAnyPair = 11
+        FruitMatchAnyPair = 11,
+        ConsecutiveLineMatch = 12
     }
 }

@@ -6,6 +6,9 @@ namespace Core
 {
     public static class ScratchCardGenerator
     {
+        private const int GameOverScratchCardTypeId = 13;
+        private const int CoinPilePatternId = 37;
+
         public static List<ScratchCellModel> GenerateCells(
             ScratchCardTypeConfig cardTypeConfig,
             ScratchAreaTemplateConfig areaTemplateConfig,
@@ -26,6 +29,8 @@ namespace Core
 
             int cellCount = areaTemplateConfig.Width * areaTemplateConfig.Height;
             bool hasGeneratedRiskMultiplierPattern = false;
+            HashSet<int> jackpotPatternIds = BuildJackpotPatternIdSet(cardTypeConfig.Id, patternWeights, runModifiers);
+            bool blocksRoguePatternReplacement = IsGameOverScratchCard(cardTypeConfig.Id);
             for (int i = 0; i < cellCount; i++)
             {
                 bool isScratchable = areaTemplateConfig.ScratchableCellIndices.Contains(i);
@@ -46,7 +51,7 @@ namespace Core
                 if (patternConfig != null && runModifiers != null)
                 {
                     int originalPatternId = patternConfig.Id;
-                    if (runModifiers.TryRollJokerPattern(
+                    if (!blocksRoguePatternReplacement && runModifiers.TryRollJokerPattern(
                         originalPatternId,
                         out int resolvedJokerPatternId,
                         out IReadOnlyCollection<int> jokerSourceCardIds))
@@ -55,7 +60,7 @@ namespace Core
                         patternConfig = ScratchPatternDefaultProvider.GetById(resolvedJokerPatternId) ?? patternConfig;
                     }
 
-                    if (runModifiers.TryRollRiskMultiplierPattern(
+                    if (!blocksRoguePatternReplacement && runModifiers.TryRollRiskMultiplierPattern(
                         originalPatternId,
                         out int resolvedRiskMultiplierPatternId,
                         out IReadOnlyCollection<int> riskMultiplierSourceCardIds))
@@ -99,6 +104,10 @@ namespace Core
                     AddRange(rogueCardEffectSourceIds, runModifiers.GetPatternScratchCardMultiplierSourceCardIds(patternConfig.Id));
                     AddRange(rogueCardEffectSourceIds, runModifiers.GetPatternBaseScoreGrowthSourceCardIds(patternConfig.Id));
                     AddRange(rogueCardEffectSourceIds, runModifiers.GetScratchCardMultiplierSourceCardIds());
+                    if (jackpotPatternIds.Contains(patternConfig.Id))
+                    {
+                        AddRange(rogueCardEffectSourceIds, runModifiers.GetJackpotAppearanceChanceSourceCardIds());
+                    }
 
                     if (runModifiers.TryRollGiantPattern(
                         patternConfig.Id,
@@ -132,6 +141,86 @@ namespace Core
                     new List<int>(rogueCardEffectSourceIds),
                     patternConfig != null ? patternConfig.EffectType : ScratchPatternEffectType.None,
                     patternConfig != null ? patternConfig.EffectValue : 0d));
+            }
+
+            return results;
+        }
+
+        private static HashSet<int> BuildJackpotPatternIdSet(
+            int cardTypeId,
+            IReadOnlyList<ScratchPatternWeightEntry> patternWeights,
+            RogueCardRunModifierModel runModifiers)
+        {
+            var results = new HashSet<int>();
+            if (runModifiers == null || runModifiers.JackpotAppearanceChanceBonus <= 0d)
+            {
+                return results;
+            }
+
+            List<ScratchPatternWeightEntry> jackpotEntries = GetJackpotPatternEntries(patternWeights, runModifiers, cardTypeId);
+            for (int i = 0; i < jackpotEntries.Count; i++)
+            {
+                ScratchPatternWeightEntry entry = jackpotEntries[i];
+                if (entry != null && entry.PatternId > 0)
+                {
+                    results.Add(entry.PatternId);
+                }
+            }
+
+            return results;
+        }
+
+        private static List<ScratchPatternWeightEntry> GetJackpotPatternEntries(
+            IReadOnlyList<ScratchPatternWeightEntry> patternWeights,
+            RogueCardRunModifierModel runModifiers = null,
+            int cardTypeId = 0)
+        {
+            var results = new List<ScratchPatternWeightEntry>();
+            if (patternWeights == null || patternWeights.Count == 0)
+            {
+                return results;
+            }
+
+            if (IsGameOverScratchCard(cardTypeId))
+            {
+                for (int i = 0; i < patternWeights.Count; i++)
+                {
+                    ScratchPatternWeightEntry entry = patternWeights[i];
+                    if (entry != null && entry.PatternId == CoinPilePatternId)
+                    {
+                        results.Add(entry);
+                    }
+                }
+
+                return results;
+            }
+
+            int highestBaseScore = int.MinValue;
+            for (int i = 0; i < patternWeights.Count; i++)
+            {
+                ScratchPatternWeightEntry entry = patternWeights[i];
+                if (entry != null)
+                {
+                    int score = entry.BaseScore + (runModifiers != null ? runModifiers.GetPatternBaseScoreBonus(entry.PatternId) : 0);
+                    highestBaseScore = Mathf.Max(highestBaseScore, score);
+                }
+            }
+
+            if (highestBaseScore == int.MinValue)
+            {
+                return results;
+            }
+
+            for (int i = 0; i < patternWeights.Count; i++)
+            {
+                ScratchPatternWeightEntry entry = patternWeights[i];
+                int score = entry != null
+                    ? entry.BaseScore + (runModifiers != null ? runModifiers.GetPatternBaseScoreBonus(entry.PatternId) : 0)
+                    : int.MinValue;
+                if (entry != null && score == highestBaseScore)
+                {
+                    results.Add(entry);
+                }
             }
 
             return results;
@@ -180,6 +269,7 @@ namespace Core
             var baseWeightsByPattern = new Dictionary<int, float>();
             var baseScoresByPattern = new Dictionary<int, int>();
             var dynamicPatternIds = new HashSet<int>();
+            string restrictedPatternType = GetRestrictedPatternType(extraEffects);
 
             if (patternPool != null && patternPool.Entries != null)
             {
@@ -191,7 +281,8 @@ namespace Core
                         continue;
                     }
 
-                    if (IsPatternAllowed(entry.PatternId, allowedPatternIds))
+                    if (IsPatternAllowed(entry.PatternId, allowedPatternIds) &&
+                        IsPatternTypeAllowed(entry.PatternId, restrictedPatternType))
                     {
                         AddWeight(baseWeightsByPattern, entry.PatternId, entry.Weight);
                         SetBaseScore(baseScoresByPattern, entry.PatternId, entry.BaseScore);
@@ -206,6 +297,13 @@ namespace Core
                 {
                     DynamicScratchPatternPoolEntryModel entry = addedPatterns[i];
                     if (entry == null || entry.PatternId <= 0 || entry.Weight <= 0f)
+                    {
+                        continue;
+                    }
+
+                    if (!IsPatternAllowed(entry.PatternId, allowedPatternIds) ||
+                        !IsPatternTypeAllowed(entry.PatternId, restrictedPatternType) ||
+                        IsPatternBlockedForCardType(cardTypeId, entry.PatternId))
                     {
                         continue;
                     }
@@ -246,7 +344,88 @@ namespace Core
             }
 
             results.Sort((left, right) => left.PatternId.CompareTo(right.PatternId));
-            return results;
+            return ApplyJackpotAppearanceChanceBonusToWeights(results, runModifiers, cardTypeId);
+        }
+
+        private static List<ScratchPatternWeightEntry> ApplyJackpotAppearanceChanceBonusToWeights(
+            List<ScratchPatternWeightEntry> patternWeights,
+            RogueCardRunModifierModel runModifiers,
+            int cardTypeId)
+        {
+            if (patternWeights == null ||
+                patternWeights.Count == 0 ||
+                runModifiers == null ||
+                runModifiers.JackpotAppearanceChanceBonus <= 0d)
+            {
+                return patternWeights;
+            }
+
+            List<ScratchPatternWeightEntry> jackpotEntries = GetJackpotPatternEntries(patternWeights, runModifiers, cardTypeId);
+            if (jackpotEntries.Count == 0)
+            {
+                return patternWeights;
+            }
+
+            var jackpotPatternIds = new HashSet<int>();
+            double totalWeight = 0d;
+            double jackpotWeight = 0d;
+            for (int i = 0; i < patternWeights.Count; i++)
+            {
+                ScratchPatternWeightEntry entry = patternWeights[i];
+                if (entry == null)
+                {
+                    continue;
+                }
+
+                totalWeight += System.Math.Max(0d, entry.Weight);
+            }
+
+            for (int i = 0; i < jackpotEntries.Count; i++)
+            {
+                ScratchPatternWeightEntry entry = jackpotEntries[i];
+                if (entry == null)
+                {
+                    continue;
+                }
+
+                jackpotPatternIds.Add(entry.PatternId);
+                jackpotWeight += System.Math.Max(0d, entry.Weight);
+            }
+
+            double nonJackpotWeight = totalWeight - jackpotWeight;
+            if (totalWeight <= 0d || jackpotWeight <= 0d || nonJackpotWeight <= 0d)
+            {
+                return patternWeights;
+            }
+
+            double jackpotChance = jackpotWeight / totalWeight;
+            double targetJackpotChance = System.Math.Min(1d, jackpotChance + runModifiers.JackpotAppearanceChanceBonus);
+            if (targetJackpotChance <= jackpotChance)
+            {
+                return patternWeights;
+            }
+
+            double jackpotScale = targetJackpotChance / jackpotChance;
+            double nonJackpotScale = (1d - targetJackpotChance) / (1d - jackpotChance);
+            var adjustedWeights = new List<ScratchPatternWeightEntry>();
+            for (int i = 0; i < patternWeights.Count; i++)
+            {
+                ScratchPatternWeightEntry entry = patternWeights[i];
+                if (entry == null)
+                {
+                    continue;
+                }
+
+                double scale = jackpotPatternIds.Contains(entry.PatternId) ? jackpotScale : nonJackpotScale;
+                adjustedWeights.Add(new ScratchPatternWeightEntry(
+                    entry.PatternId,
+                    (float)System.Math.Max(0d, entry.Weight * scale),
+                    entry.BaseScore,
+                    entry.IsDynamicAdded,
+                    entry.IsCardExtraEffectApplied));
+            }
+
+            return adjustedWeights;
         }
 
         private static ScratchPatternWeightEntry PickRandomPatternEntry(IReadOnlyList<ScratchPatternWeightEntry> patternWeights)
@@ -429,10 +608,67 @@ namespace Core
                     case ScratchCardExtraEffectType.MultiplyPatternWeight:
                         ApplyPatternWeightMultiplier(weightsByPattern, effect, affectedPatternIds);
                         break;
+                    case ScratchCardExtraEffectType.RestrictPatternType:
+                        break;
                 }
             }
 
             return affectedPatternIds;
+        }
+
+        private static string GetRestrictedPatternType(IReadOnlyList<ScratchCardExtraEffectConfig> extraEffects)
+        {
+            if (extraEffects == null)
+            {
+                return null;
+            }
+
+            for (int i = extraEffects.Count - 1; i >= 0; i--)
+            {
+                ScratchCardExtraEffectConfig effect = extraEffects[i];
+                if (effect != null &&
+                    effect.EffectType == ScratchCardExtraEffectType.RestrictPatternType &&
+                    !string.IsNullOrWhiteSpace(effect.TargetPatternType))
+                {
+                    return effect.TargetPatternType.Trim();
+                }
+            }
+
+            return null;
+        }
+
+        private static bool IsPatternTypeAllowed(int patternId, string restrictedPatternType)
+        {
+            if (string.IsNullOrWhiteSpace(restrictedPatternType))
+            {
+                return true;
+            }
+
+            ScratchPatternConfig patternConfig = ScratchPatternDefaultProvider.GetById(patternId);
+            return patternConfig != null &&
+                string.Equals(patternConfig.Type, restrictedPatternType, System.StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool IsPatternBlockedForCardType(int cardTypeId, int patternId)
+        {
+            if (!IsGameOverScratchCard(cardTypeId))
+            {
+                return false;
+            }
+
+            ScratchPatternConfig patternConfig = ScratchPatternDefaultProvider.GetById(patternId);
+            if (patternConfig == null || string.IsNullOrWhiteSpace(patternConfig.Type))
+            {
+                return false;
+            }
+
+            return string.Equals(patternConfig.Type, "Joker", System.StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(patternConfig.Type, "Multiplier", System.StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool IsGameOverScratchCard(int cardTypeId)
+        {
+            return cardTypeId == GameOverScratchCardTypeId;
         }
 
         private static void ApplyPatternWeightMultiplier(

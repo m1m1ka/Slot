@@ -9,17 +9,23 @@ public class ScratchCardFocusPanelModel
     public string CardName { get; }
     public string PatternPoolName { get; }
     public string WinDescription { get; }
+    public string SpecialDescription { get; }
+    public ScratchCardFocusPatternInfo JackpotPattern { get; }
     public IReadOnlyList<ScratchCardFocusPatternInfo> Patterns { get; }
 
     public ScratchCardFocusPanelModel(
         string cardName,
         string patternPoolName,
         IReadOnlyList<ScratchCardFocusPatternInfo> patterns,
-        string winDescription = null)
+        string winDescription = null,
+        string specialDescription = null,
+        ScratchCardFocusPatternInfo jackpotPattern = null)
     {
-        CardName = string.IsNullOrWhiteSpace(cardName) ? "未知刮刮卡" : cardName;
-        PatternPoolName = string.IsNullOrWhiteSpace(patternPoolName) ? "未知图案池" : patternPoolName;
-        WinDescription = string.IsNullOrWhiteSpace(winDescription) ? "暂无获奖说明。" : winDescription;
+        CardName = string.IsNullOrWhiteSpace(cardName) ? "\u672a\u77e5\u522e\u522e\u5361" : cardName;
+        PatternPoolName = string.IsNullOrWhiteSpace(patternPoolName) ? "\u672a\u77e5\u56fe\u6848\u6c60" : patternPoolName;
+        WinDescription = string.IsNullOrWhiteSpace(winDescription) ? string.Empty : winDescription;
+        SpecialDescription = string.IsNullOrWhiteSpace(specialDescription) ? string.Empty : specialDescription;
+        JackpotPattern = jackpotPattern;
         Patterns = patterns ?? new List<ScratchCardFocusPatternInfo>();
     }
 }
@@ -50,7 +56,7 @@ public class ScratchCardFocusPatternInfo
         string spritePath = null)
     {
         PatternId = patternId;
-        PatternName = string.IsNullOrWhiteSpace(patternName) ? $"图案 {patternId}" : patternName;
+        PatternName = string.IsNullOrWhiteSpace(patternName) ? $"\u56fe\u6848 {patternId}" : patternName;
         BaseScore = baseScore;
         IsBaseScoreEnhanced = isBaseScoreEnhanced;
         IsProbabilityEnhanced = isProbabilityEnhanced;

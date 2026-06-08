@@ -4,7 +4,7 @@ namespace Core
 {
     public static class RogueCardEffectValueParser
     {
-        private static readonly char[] Separators = { '|', '/', ',', ';' };
+        private static readonly char[] Separators = { '|', '/', ',', '，', ';', '；' };
 
         public static string[] Split(string expression)
         {
@@ -22,12 +22,23 @@ namespace Core
             }
 
             string normalizedValue = rawValue.Trim();
-            if (normalizedValue.EndsWith("%", StringComparison.Ordinal))
+            bool isPercent = normalizedValue.EndsWith("%", StringComparison.Ordinal);
+            if (isPercent)
             {
                 normalizedValue = normalizedValue.Substring(0, normalizedValue.Length - 1);
             }
 
-            return double.TryParse(normalizedValue, out value);
+            if (!double.TryParse(normalizedValue, out value))
+            {
+                return false;
+            }
+
+            if (isPercent)
+            {
+                value /= 100d;
+            }
+
+            return true;
         }
     }
 }

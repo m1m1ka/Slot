@@ -22,7 +22,7 @@ public class PlayerModel
     /// </summary>
     public void AddCoins(double amount)
     {
-        if (amount <= 0) return;
+        if (amount == 0) return;
         
         Coins += amount;
         OnCoinsChanged?.Invoke(Coins);

@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Core;
 using DG.Tweening;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -14,6 +15,9 @@ public class ScratchCardFocusPanelView : MonoBehaviour
     [SerializeField] private GameObject _panelRoot;
     [SerializeField] private ScrollRect _patternInfoScrollView;
     [SerializeField] private RectTransform _patternInfoContentRoot;
+    [SerializeField] private RectTransform _jackpotPatternRoot;
+    [SerializeField] private TextMeshProUGUI _winDescriptionText;
+    [SerializeField] private TextMeshProUGUI _specialDescriptionText;
     [SerializeField] private GameObject _patternInfoPrefab;
     [SerializeField] private string _patternInfoPrefabPath = "UI/PatternInfo";
     [SerializeField] private bool _clearExistingContentOnBind = true;
@@ -37,9 +41,23 @@ public class ScratchCardFocusPanelView : MonoBehaviour
         EnsureReferences();
         ClearPatternInfos();
 
-        if (model == null || _patternInfoContentRoot == null)
+        if (model == null)
         {
+            SetText(_winDescriptionText, string.Empty);
+            SetText(_specialDescriptionText, string.Empty);
             return;
+        }
+
+        SetText(_winDescriptionText, model.WinDescription);
+        SetText(_specialDescriptionText, model.SpecialDescription);
+
+        if (model.JackpotPattern != null)
+        {
+            PatternInfoView jackpotView = CreatePatternInfoView(_jackpotPatternRoot);
+            if (jackpotView != null)
+            {
+                jackpotView.Bind(model.JackpotPattern);
+            }
         }
 
         IReadOnlyList<ScratchCardFocusPatternInfo> patterns = model.Patterns;
@@ -52,7 +70,7 @@ public class ScratchCardFocusPanelView : MonoBehaviour
                 continue;
             }
 
-            PatternInfoView itemView = CreatePatternInfoView();
+            PatternInfoView itemView = CreatePatternInfoView(_patternInfoContentRoot);
             if (itemView == null)
             {
                 continue;
@@ -125,9 +143,9 @@ public class ScratchCardFocusPanelView : MonoBehaviour
             });
     }
 
-    private PatternInfoView CreatePatternInfoView()
+    private PatternInfoView CreatePatternInfoView(RectTransform parent)
     {
-        if (_patternInfoContentRoot == null)
+        if (parent == null)
         {
             return null;
         }
@@ -139,7 +157,7 @@ public class ScratchCardFocusPanelView : MonoBehaviour
             return null;
         }
 
-        GameObject itemObject = Instantiate(prefab, _patternInfoContentRoot, false);
+        GameObject itemObject = Instantiate(prefab, parent, false);
         itemObject.name = "PatternInfo";
         _spawnedPatternInfos.Add(itemObject);
 
@@ -165,15 +183,10 @@ public class ScratchCardFocusPanelView : MonoBehaviour
 
     private void ClearPatternInfos()
     {
-        if (_clearExistingContentOnBind && _patternInfoContentRoot != null)
+        if (_clearExistingContentOnBind)
         {
-            for (int i = _patternInfoContentRoot.childCount - 1; i >= 0; i--)
-            {
-                GameObject child = _patternInfoContentRoot.GetChild(i).gameObject;
-                child.SetActive(false);
-                Destroy(child);
-            }
-
+            ClearChildren(_patternInfoContentRoot);
+            ClearSpawnedChildren(_jackpotPatternRoot);
             _spawnedPatternInfos.Clear();
             return;
         }
@@ -207,6 +220,21 @@ public class ScratchCardFocusPanelView : MonoBehaviour
             _patternInfoContentRoot = _patternInfoScrollView.content;
         }
 
+        if (_jackpotPatternRoot == null)
+        {
+            _jackpotPatternRoot = FindChildRecursive(transform, "JackPot") as RectTransform;
+        }
+
+        if (_winDescriptionText == null)
+        {
+            _winDescriptionText = FindText("WinDescription");
+        }
+
+        if (_specialDescriptionText == null)
+        {
+            _specialDescriptionText = FindText("SpecialDescription");
+        }
+
         if (_canvasGroup == null)
         {
             _canvasGroup = GetPanelRoot()?.GetComponent<CanvasGroup>();
@@ -220,6 +248,81 @@ public class ScratchCardFocusPanelView : MonoBehaviour
     private GameObject GetPanelRoot()
     {
         return _panelRoot != null ? _panelRoot : gameObject;
+    }
+
+    private TextMeshProUGUI FindText(string childName)
+    {
+        Transform child = FindChildRecursive(transform, childName);
+        return child != null ? child.GetComponent<TextMeshProUGUI>() : null;
+    }
+
+    private static Transform FindChildRecursive(Transform root, string childName)
+    {
+        if (root == null || string.IsNullOrWhiteSpace(childName))
+        {
+            return null;
+        }
+
+        for (int i = 0; i < root.childCount; i++)
+        {
+            Transform child = root.GetChild(i);
+            if (child != null && child.name == childName)
+            {
+                return child;
+            }
+
+            Transform found = FindChildRecursive(child, childName);
+            if (found != null)
+            {
+                return found;
+            }
+        }
+
+        return null;
+    }
+
+    private static void SetText(TextMeshProUGUI text, string value)
+    {
+        if (text == null)
+        {
+            return;
+        }
+
+        AssetProvider.ApplyDefaultTmpFont(text);
+        text.text = string.IsNullOrWhiteSpace(value) ? string.Empty : value;
+    }
+
+    private static void ClearChildren(RectTransform root)
+    {
+        if (root == null)
+        {
+            return;
+        }
+
+        for (int i = root.childCount - 1; i >= 0; i--)
+        {
+            GameObject child = root.GetChild(i).gameObject;
+            child.SetActive(false);
+            Destroy(child);
+        }
+    }
+
+    private static void ClearSpawnedChildren(RectTransform root)
+    {
+        if (root == null)
+        {
+            return;
+        }
+
+        for (int i = root.childCount - 1; i >= 0; i--)
+        {
+            GameObject child = root.GetChild(i).gameObject;
+            if (child != null && child.name == "PatternInfo")
+            {
+                child.SetActive(false);
+                Destroy(child);
+            }
+        }
     }
 
     private void OnDestroy()

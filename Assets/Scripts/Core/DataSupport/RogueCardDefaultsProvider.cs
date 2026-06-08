@@ -9,7 +9,19 @@ namespace Core
     {
         private const string TablePath = "Configs/RogueCards/RogueCards";
 
-        private static readonly Dictionary<int, Vector2Int> LevelDistributions = new Dictionary<int, Vector2Int>();
+        private static readonly Dictionary<int, Dictionary<int, Vector2Int>> LevelDistributions = new Dictionary<int, Dictionary<int, Vector2Int>>
+        {
+            { 1, CreateLevelDistribution((1, 2, 2), (2, 3, 3)) },
+            { 2, CreateLevelDistribution((1, 2, 2), (2, 3, 4)) },
+            { 5, CreateLevelDistribution((1, 4, 5), (2, 7, 8), (3, 9, 9)) },
+            { 6, CreateLevelDistribution((1, 9, 11)) },
+            { 7, CreateLevelDistribution((1, 7, 11)) },
+            { 8, CreateLevelDistribution((1, 8, 11)) },
+            { 9, CreateLevelDistribution((1, 9, 11)) },
+            { 10, CreateLevelDistribution((1, 3, 5), (2, 6, 7)) },
+            { 11, CreateLevelDistribution((1, 2, 4), (2, 5, 6)) },
+            { 12, CreateLevelDistribution((1, 7, 11)) }
+        };
         private static readonly List<RogueCardConfig> DefaultCards = new List<RogueCardConfig>();
 
         private static List<RogueCardConfig> _cachedCards;
@@ -38,12 +50,40 @@ namespace Core
 
         public static bool IsAvailableForLevel(int cardId, int levelId)
         {
-            if (!LevelDistributions.TryGetValue(cardId, out Vector2Int levelRange))
+            if (!LevelDistributions.TryGetValue(cardId, out Dictionary<int, Vector2Int> levelRanges))
             {
-                return true;
+                return false;
             }
 
-            return levelId >= levelRange.x && levelId <= levelRange.y;
+            foreach (KeyValuePair<int, Vector2Int> levelRange in levelRanges)
+            {
+                if (levelId >= levelRange.Value.x && levelId <= levelRange.Value.y)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        public static IReadOnlyList<int> GetAvailableCardLevelsForLevel(int cardId, int levelId)
+        {
+            var results = new List<int>();
+            if (!LevelDistributions.TryGetValue(cardId, out Dictionary<int, Vector2Int> levelRanges))
+            {
+                return results;
+            }
+
+            foreach (KeyValuePair<int, Vector2Int> levelRange in levelRanges)
+            {
+                if (levelId >= levelRange.Value.x && levelId <= levelRange.Value.y)
+                {
+                    results.Add(levelRange.Key);
+                }
+            }
+
+            results.Sort();
+            return results;
         }
 
         public static RogueCardConfig GetById(int id)
@@ -64,6 +104,28 @@ namespace Core
         public static void Reload()
         {
             _cachedCards = null;
+        }
+
+        private static Dictionary<int, Vector2Int> CreateLevelDistribution(params (int Level, int MinLevel, int MaxLevel)[] entries)
+        {
+            var distribution = new Dictionary<int, Vector2Int>();
+            if (entries == null)
+            {
+                return distribution;
+            }
+
+            for (int i = 0; i < entries.Length; i++)
+            {
+                (int level, int minLevel, int maxLevel) = entries[i];
+                if (level <= 0)
+                {
+                    continue;
+                }
+
+                distribution[level] = new Vector2Int(minLevel, maxLevel);
+            }
+
+            return distribution;
         }
 
         private static IReadOnlyList<RogueCardConfig> GetCards()

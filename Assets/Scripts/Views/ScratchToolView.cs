@@ -23,7 +23,6 @@ public class ScratchToolView : MonoBehaviour, IPointerEnterHandler, IPointerExit
     [SerializeField] private float _settlementPulseDuration = 0.26f;
 
     [Header("Hover Feedback")]
-    [SerializeField] private float _hoverOffsetY = 28f;
     [SerializeField] private float _hoverScale = 1.08f;
     [SerializeField] private float _hoverDuration = 0.16f;
 
@@ -284,14 +283,9 @@ public class ScratchToolView : MonoBehaviour, IPointerEnterHandler, IPointerExit
         Vector3 targetScale = hovering
             ? _initialScale * Mathf.Max(1f, _hoverScale)
             : _initialScale;
-        Vector2 targetPosition = _initialAnchoredPosition + (hovering ? new Vector2(0f, _hoverOffsetY) : Vector2.zero);
 
         var sequence = DOTween.Sequence().SetUpdate(true);
         sequence.Join(transform.DOScale(targetScale, Mathf.Max(0.01f, _hoverDuration)).SetEase(Ease.OutCubic));
-        if (_rectTransform != null)
-        {
-            sequence.Join(_rectTransform.DOAnchorPos(targetPosition, Mathf.Max(0.01f, _hoverDuration)).SetEase(Ease.OutCubic));
-        }
 
         _hoverTween = sequence.OnComplete(() => _hoverTween = null);
     }

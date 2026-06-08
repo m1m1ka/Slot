@@ -13,6 +13,12 @@ using UnityEngine.UI;
 [RequireComponent(typeof(MainGamePanel))]
 public class MainGameController : MonoBehaviour
 {
+    private const int MaxOwnedRogueCardCount = 6;
+    private const int FinalLevelId = 11;
+    private const int GameOverScratchCardTypeId = 13;
+    private const int GameOverJackpotPatternId = 37;
+    private const float FinalLevelBgmFadeOutDuration = 1.5f;
+
     // View 引用：与 Controller 同属一个 GameObject
     private MainGamePanel _mainGamePanel;
 
@@ -75,6 +81,7 @@ public class MainGameController : MonoBehaviour
     private void Initialize()
     {
         EnsureCurrentLevel();
+        RebuildRogueRunModifiers();
 
         // 1. 批量生成购物面板的购买按钮
         LoadShopItems();
@@ -85,6 +92,7 @@ public class MainGameController : MonoBehaviour
         if (_mainGamePanel != null)
         {
             _mainGamePanel.OnRogueRewardCardSelected += HandleRogueRewardCardSelected;
+            _mainGamePanel.OnRogueOwnedCardSelected += HandleRogueOwnedCardSelectedForExchange;
             _mainGamePanel.OnRogueRewardRequested += HandleRogueRewardRequested;
             _mainGamePanel.OnScratchToolRewardSelected += HandleScratchToolRewardSelected;
             _mainGamePanel.OnScratchToolRewardRequested += HandleScratchToolRewardRequested;
@@ -304,6 +312,7 @@ public class MainGameController : MonoBehaviour
             RefreshLevelDisplay();
             AudioManager.Instance?.PlayCue(AudioCueId.BuyScratchCard);
             SpawnScratchCard(slotId);
+            EventBus.Publish(new TutorialEvent(TutorialEventType.ScratchCardBought, slotId));
             return true;
         }
 
@@ -323,6 +332,7 @@ public class MainGameController : MonoBehaviour
             RefreshLevelDisplay();
             AudioManager.Instance?.PlayCue(AudioCueId.BuyScratchCard);
             SpawnScratchCard(slotId);
+            EventBus.Publish(new TutorialEvent(TutorialEventType.ScratchCardBought, slotId));
             return true;
         }
         else
@@ -359,6 +369,7 @@ public class MainGameController : MonoBehaviour
         if (_mainGamePanel != null)
         {
             _mainGamePanel.OnRogueRewardCardSelected -= HandleRogueRewardCardSelected;
+            _mainGamePanel.OnRogueOwnedCardSelected -= HandleRogueOwnedCardSelectedForExchange;
             _mainGamePanel.OnRogueRewardRequested -= HandleRogueRewardRequested;
             _mainGamePanel.OnScratchToolRewardSelected -= HandleScratchToolRewardSelected;
             _mainGamePanel.OnScratchToolRewardRequested -= HandleScratchToolRewardRequested;
@@ -398,6 +409,7 @@ public class MainGameController : MonoBehaviour
                 scratchCard.OnRogueCardEffectTriggered -= HandleRogueCardEffectTriggered;
                 scratchCard.OnPatternScored -= HandleScratchCardPatternScored;
                 scratchCard.OnCoinRainEffectRequested -= HandleScratchCardCoinRainEffectRequested;
+                scratchCard.OnGameOverSkullEffectRequested -= HandleGameOverSkullEffectRequested;
                 scratchCard.OnScratchCardTypeMultiplierBonusAdded -= HandleScratchCardTypeMultiplierBonusAdded;
                 PoolManager.Instance.Despawn(scratchCard.gameObject);
             }
@@ -448,6 +460,7 @@ public class MainGameController : MonoBehaviour
         Vector2 targetPosition = _mainGamePanel.GetRandomScratchCardAnchoredPosition();
         Vector2 spawnFrom = _mainGamePanel.GetScratchCardSpawnFromTop(targetPosition.x);
         RogueCardRunModifierModel runModifiers = _gameSession != null ? _gameSession.RunModifiers : null;
+        HashSet<int> conversionTargetPatternIds = GetEffectivePatternIdsByType(cardTypeConfig, runModifiers, "Mineral");
         var generatedCells = ScratchCardGenerator.GenerateCells(cardTypeConfig, areaTemplateConfig, runModifiers);
         ScratchCardModel model = new ScratchCardModel(
             _nextScratchCardId++,
@@ -461,10 +474,11 @@ public class MainGameController : MonoBehaviour
             runModifiers != null ? new List<int>(runModifiers.GetSettlementScoreBonusSourceCardIds()) : null,
             runModifiers != null ? runModifiers.SettlementMultiplierBonus : 0d,
             runModifiers != null ? new List<int>(runModifiers.GetSettlementMultiplierBonusSourceCardIds()) : null,
-            runModifiers != null ? runModifiers.GetPatternConversionRulesForCardType(cardTypeConfig.Id) : null,
+            runModifiers != null ? runModifiers.GetPatternConversionRulesForCardType(cardTypeConfig.Id, conversionTargetPatternIds) : null,
             runModifiers != null ? runModifiers.GetAdjacentPatternMetalConversionRulesForCardType(cardTypeConfig.Id) : null,
             runModifiers != null ? runModifiers.GetPatternSettlementScoreBonusRulesForCardType(cardTypeConfig.Id) : null,
-            runModifiers != null ? runModifiers.GetPatternSettlementMultiplierBonusRulesForCardType(cardTypeConfig.Id) : null);
+            runModifiers != null ? runModifiers.GetPatternSettlementMultiplierBonusRulesForCardType(cardTypeConfig.Id) : null,
+            runModifiers != null ? runModifiers.GetAllPatternsScratchedSettlementMultiplierBonusRulesForCardType(cardTypeConfig.Id) : null);
 
         scratchCardController.Initialize(model, spawnFrom, targetPosition);
         scratchCardController.OnFocusStateChanged += HandleScratchCardFocusStateChanged;
@@ -473,6 +487,7 @@ public class MainGameController : MonoBehaviour
         scratchCardController.OnRogueCardEffectTriggered += HandleRogueCardEffectTriggered;
         scratchCardController.OnPatternScored += HandleScratchCardPatternScored;
         scratchCardController.OnCoinRainEffectRequested += HandleScratchCardCoinRainEffectRequested;
+        scratchCardController.OnGameOverSkullEffectRequested += HandleGameOverSkullEffectRequested;
         scratchCardController.OnScratchCardTypeMultiplierBonusAdded += HandleScratchCardTypeMultiplierBonusAdded;
         _activeScratchCards.Add(scratchCardController);
     }
@@ -529,6 +544,8 @@ public class MainGameController : MonoBehaviour
             _playerModel.AddCoins(settlementResult.FinalScore);
         }
 
+        PublishCannotAffordAnyScratchCardAfterSettlementTutorialEventIfNeeded();
+
         if (scratchCard != null)
         {
             scratchCard.OnFocusStateChanged -= HandleScratchCardFocusStateChanged;
@@ -537,6 +554,7 @@ public class MainGameController : MonoBehaviour
             scratchCard.OnRogueCardEffectTriggered -= HandleRogueCardEffectTriggered;
             scratchCard.OnPatternScored -= HandleScratchCardPatternScored;
             scratchCard.OnCoinRainEffectRequested -= HandleScratchCardCoinRainEffectRequested;
+            scratchCard.OnGameOverSkullEffectRequested -= HandleGameOverSkullEffectRequested;
             scratchCard.OnScratchCardTypeMultiplierBonusAdded -= HandleScratchCardTypeMultiplierBonusAdded;
             _activeScratchCards.Remove(scratchCard);
         }
@@ -684,7 +702,36 @@ public class MainGameController : MonoBehaviour
     private double GetScratchCardPrice(int cardTypeId)
     {
         int levelId = _levelModel != null ? _levelModel.LevelId : 1;
-        return ScratchCardDefaultsProvider.GetCardTypePrice(cardTypeId, levelId);
+        double basePrice = ScratchCardDefaultsProvider.GetCardTypePrice(cardTypeId, levelId);
+        RogueCardRunModifierModel runModifiers = _gameSession != null ? _gameSession.RunModifiers : null;
+        double priceMultiplier = runModifiers != null ? runModifiers.GetScratchCardPriceMultiplier() : 1d;
+        return basePrice * priceMultiplier;
+    }
+
+    private void PublishCannotAffordAnyScratchCardAfterSettlementTutorialEventIfNeeded()
+    {
+        if (_playerModel == null ||
+            _levelModel == null ||
+            !_levelModel.CanPurchaseScratchCard ||
+            CanAffordAnyScratchCard(_playerModel.Coins))
+        {
+            return;
+        }
+
+        EventBus.Publish(new TutorialEvent(TutorialEventType.CannotAffordAnyScratchCardAfterSettlement));
+    }
+
+    private bool CanAffordAnyScratchCard(double coins)
+    {
+        foreach (KeyValuePair<ShopItemView, double> itemPrice in _shopItemPrices)
+        {
+            if (itemPrice.Key != null && coins >= itemPrice.Value)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private void HandleScratchCardTypeAdded(ScratchCardTypeConfig cardTypeConfig)
@@ -725,6 +772,11 @@ public class MainGameController : MonoBehaviour
         _mainGamePanel?.PlayCoinRainEffect(text);
     }
 
+    private void HandleGameOverSkullEffectRequested(ScratchCardController scratchCard)
+    {
+        _mainGamePanel?.PlayGameOverSkullEffect();
+    }
+
     private void HandleScratchCardTypeMultiplierBonusAdded(ScratchCardController scratchCard, int cardTypeId, double bonus)
     {
         RogueCardRunModifierModel runModifiers = _gameSession != null ? _gameSession.RunModifiers : null;
@@ -754,7 +806,10 @@ public class MainGameController : MonoBehaviour
         _currentRogueRewardOffer = _rogueCardRewardService.CreateRewardOffer(levelId, _rogueCardInventory?.OwnedCards, 3);
         _rogueRewardOfferedForCurrentLevel = true;
         RefreshWinPanelRewardState();
-        _mainGamePanel.ShowRogueCardChoices(_currentRogueRewardOffer.Choices, _rogueCardInventory?.OwnedCards);
+        _mainGamePanel.ShowRogueCardChoices(
+            _currentRogueRewardOffer.Choices,
+            _rogueCardInventory?.OwnedCards,
+            IsRogueCardInventoryFull());
 
         int choiceCount = _currentRogueRewardOffer != null && _currentRogueRewardOffer.Choices != null
             ? _currentRogueRewardOffer.Choices.Count
@@ -766,28 +821,67 @@ public class MainGameController : MonoBehaviour
         }
     }
 
-    private void HandleRogueRewardCardSelected(int cardId)
+    private void HandleRogueRewardCardSelected(int cardId, int level)
     {
         if (_currentRogueRewardOffer == null || _rogueCardInventory == null)
         {
             return;
         }
 
-        RogueCardConfig selectedCard = FindRogueRewardChoice(cardId);
-        if (selectedCard == null)
+        RogueCardRewardChoiceModel selectedChoice = FindRogueRewardChoice(cardId, level);
+        if (selectedChoice == null || selectedChoice.CardConfig == null)
         {
-            Debug.LogWarning($"[MainGameController] Selected rogue card id={cardId} was not found in current offer.");
+            Debug.LogWarning($"[MainGameController] Selected rogue card id={cardId}, level={level} was not found in current offer.");
             return;
         }
 
-        _rogueCardInventory.AddCard(selectedCard);
-        _rogueCardEffectService.RebuildRunModifiers(
-            _rogueCardInventory.OwnedCards,
-            new RogueCardEffectContext(AppRoot.Instance != null ? AppRoot.Instance.PlayerContext : null, _gameSession));
+        _rogueCardInventory.AddCard(selectedChoice.CardConfig, selectedChoice.Level);
 
         _currentRogueRewardOffer = null;
         _mainGamePanel.HideRogueCardChoices();
         _rogueRewardClaimedForCurrentLevel = true;
+        LoadShopItems();
+        if (_playerModel != null)
+        {
+            RefreshShopItemAffordability(_playerModel.Coins);
+        }
+
+        RefreshWinPanelRewardState();
+    }
+
+    private void HandleRogueOwnedCardSelectedForExchange(int ownedCardId)
+    {
+        if (_currentRogueRewardOffer == null || _rogueCardInventory == null || _mainGamePanel == null)
+        {
+            return;
+        }
+
+        int selectedCardId = _mainGamePanel.SelectedRogueExchangeCardId;
+        int selectedLevel = _mainGamePanel.SelectedRogueExchangeCardLevel;
+        if (selectedCardId <= 0)
+        {
+            return;
+        }
+
+        RogueCardRewardChoiceModel selectedChoice = FindRogueRewardChoice(selectedCardId, selectedLevel);
+        if (selectedChoice == null || selectedChoice.CardConfig == null)
+        {
+            Debug.LogWarning($"[MainGameController] Selected rogue exchange card id={selectedCardId}, level={selectedLevel} was not found in current offer.");
+            return;
+        }
+
+        _mainGamePanel.HideRogueCardChoices();
+        _mainGamePanel.QueueOwnedRogueCardAppear(selectedChoice.CardId);
+        _rogueCardInventory.ReplaceCard(ownedCardId, selectedChoice.CardConfig, selectedChoice.Level);
+
+        _currentRogueRewardOffer = null;
+        _rogueRewardClaimedForCurrentLevel = true;
+        LoadShopItems();
+        if (_playerModel != null)
+        {
+            RefreshShopItemAffordability(_playerModel.Coins);
+        }
+
         RefreshWinPanelRewardState();
     }
 
@@ -828,11 +922,28 @@ public class MainGameController : MonoBehaviour
         AudioManager.Instance?.StopLoopCue(AudioCueId.LevelPassCharging);
         AudioManager.Instance?.PlayCue(AudioCueId.LevelPassWin);
 
+        if (_levelModel != null && _levelModel.LevelId == FinalLevelId)
+        {
+            AudioManager.Instance?.StopMusic(FinalLevelBgmFadeOutDuration);
+            SpawnScratchCard(GameOverScratchCardTypeId);
+            _showWinPanelRoutine = null;
+            yield break;
+        }
+
         _mainGamePanel.ShowWinPanel(
             HasRogueRewardForCurrentLevel() && !_rogueRewardClaimedForCurrentLevel,
             false,
             HasScratchToolRewardForCurrentLevel() && !_scratchToolRewardClaimedForCurrentLevel,
             HasScratchCardRewardForCurrentLevel() && !_scratchCardRewardClaimedForCurrentLevel);
+        if (_levelModel != null && _levelModel.LevelId == 1)
+        {
+            EventBus.Publish(new TutorialEvent(TutorialEventType.FirstLevelPassed));
+        }
+        else if (_levelModel != null && _levelModel.LevelId == 2)
+        {
+            EventBus.Publish(new TutorialEvent(TutorialEventType.SecondLevelPassed));
+        }
+
         _showWinPanelRoutine = null;
     }
 
@@ -844,6 +955,7 @@ public class MainGameController : MonoBehaviour
         }
 
         AudioManager.Instance?.PlayCue(AudioCueId.UiClick);
+        EventBus.Publish(new TutorialEvent(TutorialEventType.RogueCardRewardButtonClicked));
         ShowRogueRewardChoices();
     }
 
@@ -866,6 +978,7 @@ public class MainGameController : MonoBehaviour
         }
 
         AudioManager.Instance?.PlayCue(AudioCueId.UiClick);
+        EventBus.Publish(new TutorialEvent(TutorialEventType.ScratchCardRewardButtonClicked));
         ShowScratchCardRewardChoices();
     }
 
@@ -876,7 +989,7 @@ public class MainGameController : MonoBehaviour
             return;
         }
 
-        _currentScratchToolRewardChoices = CreateScratchToolRewardChoices(3);
+        _currentScratchToolRewardChoices = CreateScratchToolRewardChoices(1);
         _scratchToolRewardOfferedForCurrentLevel = true;
         RefreshWinPanelRewardState();
 
@@ -898,7 +1011,7 @@ public class MainGameController : MonoBehaviour
             return;
         }
 
-        _currentScratchCardRewardChoices = CreateScratchCardRewardChoices(3);
+        _currentScratchCardRewardChoices = CreateScratchCardRewardChoices(1);
         _scratchCardRewardOfferedForCurrentLevel = true;
         RefreshWinPanelRewardState();
 
@@ -1066,31 +1179,33 @@ public class MainGameController : MonoBehaviour
         return _levelModel != null && LevelDefaultsProvider.HasScratchToolReward(_levelModel.LevelId);
     }
 
+    private int GetScratchCardRewardIdForCurrentLevel()
+    {
+        return _levelModel != null ? LevelDefaultsProvider.GetScratchCardRewardId(_levelModel.LevelId) : 0;
+    }
+
+    private int GetScratchToolRewardIdForCurrentLevel()
+    {
+        return _levelModel != null ? LevelDefaultsProvider.GetScratchToolRewardId(_levelModel.LevelId) : 0;
+    }
+
     private List<ScratchToolConfig> CreateScratchToolRewardChoices(int choiceCount)
     {
-        IReadOnlyList<ScratchToolConfig> allTools = ScratchToolDefaultsProvider.GetAll();
-        var candidates = new List<ScratchToolConfig>();
-        int count = allTools != null ? allTools.Count : 0;
-        for (int i = 0; i < count; i++)
-        {
-            ScratchToolConfig toolConfig = allTools[i];
-            if (toolConfig == null || (_scratchToolInventory != null && _scratchToolInventory.HasTool(toolConfig.Id)))
-            {
-                continue;
-            }
-
-            candidates.Add(toolConfig);
-        }
-
         var choices = new List<ScratchToolConfig>();
-        int resolvedChoiceCount = Mathf.Max(0, choiceCount);
-        while (choices.Count < resolvedChoiceCount && candidates.Count > 0)
+        if (choiceCount <= 0)
         {
-            int index = Random.Range(0, candidates.Count);
-            choices.Add(candidates[index]);
-            candidates.RemoveAt(index);
+            return choices;
         }
 
+        int toolId = GetScratchToolRewardIdForCurrentLevel();
+        ScratchToolConfig toolConfig = toolId > 0 ? ScratchToolDefaultsProvider.GetTool(toolId) : null;
+        if (toolConfig == null)
+        {
+            Debug.LogWarning($"[MainGameController] Scratch tool reward id={toolId} is missing.");
+            return choices;
+        }
+
+        choices.Add(toolConfig);
         return choices;
     }
 
@@ -1111,30 +1226,21 @@ public class MainGameController : MonoBehaviour
 
     private List<ScratchCardTypeConfig> CreateScratchCardRewardChoices(int choiceCount)
     {
-        int levelId = _levelModel != null ? _levelModel.LevelId : 1;
-        IReadOnlyList<ScratchCardTypeConfig> allCardTypes = ScratchCardDefaultsProvider.GetAvailableCardTypesForLevel(levelId);
-        var candidates = new List<ScratchCardTypeConfig>();
-        int count = allCardTypes != null ? allCardTypes.Count : 0;
-        for (int i = 0; i < count; i++)
-        {
-            ScratchCardTypeConfig cardTypeConfig = allCardTypes[i];
-            if (cardTypeConfig == null || (_scratchCardInventory != null && _scratchCardInventory.HasCardType(cardTypeConfig.Id)))
-            {
-                continue;
-            }
-
-            candidates.Add(cardTypeConfig);
-        }
-
         var choices = new List<ScratchCardTypeConfig>();
-        int resolvedChoiceCount = Mathf.Max(0, choiceCount);
-        while (choices.Count < resolvedChoiceCount && candidates.Count > 0)
+        if (choiceCount <= 0)
         {
-            int index = Random.Range(0, candidates.Count);
-            choices.Add(candidates[index]);
-            candidates.RemoveAt(index);
+            return choices;
         }
 
+        int cardTypeId = GetScratchCardRewardIdForCurrentLevel();
+        ScratchCardTypeConfig cardTypeConfig = cardTypeId > 0 ? ScratchCardDefaultsProvider.GetCardType(cardTypeId) : null;
+        if (cardTypeConfig == null)
+        {
+            Debug.LogWarning($"[MainGameController] Scratch card reward id={cardTypeId} is missing.");
+            return choices;
+        }
+
+        choices.Add(cardTypeConfig);
         return choices;
     }
 
@@ -1153,13 +1259,13 @@ public class MainGameController : MonoBehaviour
         return null;
     }
 
-    private RogueCardConfig FindRogueRewardChoice(int cardId)
+    private RogueCardRewardChoiceModel FindRogueRewardChoice(int cardId, int level)
     {
-        IReadOnlyList<RogueCardConfig> choices = _currentRogueRewardOffer != null ? _currentRogueRewardOffer.Choices : null;
+        IReadOnlyList<RogueCardRewardChoiceModel> choices = _currentRogueRewardOffer != null ? _currentRogueRewardOffer.Choices : null;
         int count = choices != null ? choices.Count : 0;
         for (int i = 0; i < count; i++)
         {
-            if (choices[i] != null && choices[i].Id == cardId)
+            if (choices[i] != null && choices[i].CardId == cardId && choices[i].Level == level)
             {
                 return choices[i];
             }
@@ -1168,12 +1274,67 @@ public class MainGameController : MonoBehaviour
         return null;
     }
 
+    private bool IsRogueCardInventoryFull()
+    {
+        return _rogueCardInventory != null
+            && _rogueCardInventory.OwnedCards != null
+            && _rogueCardInventory.OwnedCards.Count >= MaxOwnedRogueCardCount;
+    }
+
     private void HandleRogueCardChanged(RogueCardInventoryEntryModel card)
     {
+        RebuildRogueRunModifiers();
+
         if (_mainGamePanel != null && _rogueCardInventory != null)
         {
             _mainGamePanel.RefreshOwnedRogueCards(_rogueCardInventory.OwnedCards);
         }
+
+        LoadShopItems();
+        if (_playerModel != null)
+        {
+            RefreshShopItemAffordability(_playerModel.Coins);
+        }
+    }
+
+    private void RebuildRogueRunModifiers()
+    {
+        if (_rogueCardInventory == null || _gameSession == null)
+        {
+            return;
+        }
+
+        _rogueCardEffectService.RebuildRunModifiers(
+            _rogueCardInventory.OwnedCards,
+            new RogueCardEffectContext(AppRoot.Instance != null ? AppRoot.Instance.PlayerContext : null, _gameSession));
+    }
+
+    private static HashSet<int> GetEffectivePatternIdsByType(
+        ScratchCardTypeConfig cardTypeConfig,
+        RogueCardRunModifierModel runModifiers,
+        string patternType)
+    {
+        var results = new HashSet<int>();
+        if (cardTypeConfig == null || string.IsNullOrWhiteSpace(patternType))
+        {
+            return results;
+        }
+
+        List<ScratchPatternWeightEntry> effectiveWeights = ScratchCardGenerator.BuildEffectivePatternWeights(cardTypeConfig, runModifiers);
+        for (int i = 0; i < effectiveWeights.Count; i++)
+        {
+            ScratchPatternWeightEntry entry = effectiveWeights[i];
+            ScratchPatternConfig patternConfig = entry != null
+                ? ScratchPatternDefaultProvider.GetById(entry.PatternId)
+                : null;
+            if (patternConfig != null &&
+                string.Equals(patternConfig.Type, patternType, System.StringComparison.OrdinalIgnoreCase))
+            {
+                results.Add(patternConfig.Id);
+            }
+        }
+
+        return results;
     }
 
     private ScratchCardFocusPanelModel BuildFocusPanelModel(ScratchCardController scratchCard)
@@ -1198,7 +1359,8 @@ public class MainGameController : MonoBehaviour
                 cardTypeConfig.Name,
                 "全局图案池",
                 new List<ScratchCardFocusPatternInfo>(),
-                cardTypeConfig.WinDescription);
+                cardTypeConfig.WinDescription,
+                cardTypeConfig.SpecialDescription);
         }
 
         float totalWeight = 0f;
@@ -1212,6 +1374,8 @@ public class MainGameController : MonoBehaviour
         }
 
         var patterns = new List<ScratchCardFocusPatternInfo>();
+        ScratchCardFocusPatternInfo jackpotPattern = null;
+        int jackpotPatternId = GetHighestScorePatternId(cardTypeConfig.Id, effectiveWeights, runModifiers);
         for (int i = 0; i < effectiveWeights.Count; i++)
         {
             ScratchPatternWeightEntry entry = effectiveWeights[i];
@@ -1233,11 +1397,16 @@ public class MainGameController : MonoBehaviour
             }
 
             int baseScoreBonus = runModifiers != null ? runModifiers.GetPatternBaseScoreBonus(patternConfig.Id) : 0;
+            bool isJackpotPattern = patternConfig.Id == jackpotPatternId;
+            bool isJackpotProbabilityEnhanced = isJackpotPattern &&
+                runModifiers != null &&
+                runModifiers.JackpotAppearanceChanceBonus > 0d;
             bool isProbabilityEnhanced = entry.IsDynamicAdded ||
                 entry.IsCardExtraEffectApplied ||
-                (runModifiers != null && runModifiers.GetPatternWeightBonus(patternConfig.Id) != 0d);
+                (runModifiers != null && runModifiers.GetPatternWeightBonus(patternConfig.Id) != 0d) ||
+                isJackpotProbabilityEnhanced;
             float probability = totalWeight > 0 ? (float)weight / totalWeight : 0f;
-            patterns.Add(new ScratchCardFocusPatternInfo(
+            ScratchCardFocusPatternInfo patternInfo = new ScratchCardFocusPatternInfo(
                 patternConfig.Id,
                 patternConfig.Name,
                 entry.BaseScore + baseScoreBonus,
@@ -1247,13 +1416,71 @@ public class MainGameController : MonoBehaviour
                 probability,
                 patternConfig.AtlasPath,
                 patternConfig.SpriteName,
-                patternConfig.SpritePath));
+                patternConfig.SpritePath);
+
+            if (isJackpotPattern)
+            {
+                jackpotPattern = patternInfo;
+                continue;
+            }
+
+            patterns.Add(patternInfo);
         }
 
         return new ScratchCardFocusPanelModel(
             cardTypeConfig.Name,
             "全局图案池",
             patterns,
-            cardTypeConfig.WinDescription);
+            cardTypeConfig.WinDescription,
+            cardTypeConfig.SpecialDescription,
+            jackpotPattern);
     }
+
+    private static int GetHighestScorePatternId(
+        int cardTypeId,
+        IReadOnlyList<ScratchPatternWeightEntry> effectiveWeights,
+        RogueCardRunModifierModel runModifiers)
+    {
+        int highestPatternId = 0;
+        if (cardTypeId == GameOverScratchCardTypeId && ContainsPattern(effectiveWeights, GameOverJackpotPatternId))
+        {
+            return GameOverJackpotPatternId;
+        }
+
+        int highestScore = int.MinValue;
+        int count = effectiveWeights != null ? effectiveWeights.Count : 0;
+        for (int i = 0; i < count; i++)
+        {
+            ScratchPatternWeightEntry entry = effectiveWeights[i];
+            if (entry == null)
+            {
+                continue;
+            }
+
+            int score = entry.BaseScore + (runModifiers != null ? runModifiers.GetPatternBaseScoreBonus(entry.PatternId) : 0);
+            if (score > highestScore || (score == highestScore && (highestPatternId <= 0 || entry.PatternId < highestPatternId)))
+            {
+                highestScore = score;
+                highestPatternId = entry.PatternId;
+            }
+        }
+
+        return highestPatternId;
+    }
+
+    private static bool ContainsPattern(IReadOnlyList<ScratchPatternWeightEntry> effectiveWeights, int patternId)
+    {
+        int count = effectiveWeights != null ? effectiveWeights.Count : 0;
+        for (int i = 0; i < count; i++)
+        {
+            ScratchPatternWeightEntry entry = effectiveWeights[i];
+            if (entry != null && entry.PatternId == patternId)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
 }

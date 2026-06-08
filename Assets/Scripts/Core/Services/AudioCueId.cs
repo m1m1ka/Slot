@@ -22,6 +22,10 @@ namespace Core
         LevelPassCharging = 212,
         LevelPassWin = 213,
         CoinPouring = 214,
+        Speak = 215,
+        CoverUp = 216,
+        Cock = 217,
+        Shot = 218,
 
         MainMusic = 1000
     }

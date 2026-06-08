@@ -25,6 +25,9 @@ namespace Core
             Register(new AddSettlementMultiplierPerScratchedPatternEffect());
             Register(new ConvertPatternToPatternOnRevealEffect());
             Register(new ConvertAdjacentPatternsToMetalOnRevealEffect());
+            Register(new AddSettlementMultiplierBonusWhenAllPatternsScratchedEffect());
+            Register(new IncreaseJackpotAppearanceChanceEffect());
+            Register(new IncreaseJackpotAppearanceChanceAndScratchCardPriceEffect());
         }
 
         public void Register(IRogueCardEffect effect)
@@ -161,12 +164,13 @@ namespace Core
                     return;
                 }
 
-                if (effectConfig.TargetIds != null && effectConfig.TargetIds.Count > 0)
+                List<int> targetPatternIds = ResolveTargetPatternIds(effectConfig);
+                if (targetPatternIds.Count > 0)
                 {
-                    for (int i = 0; i < effectConfig.TargetIds.Count; i++)
+                    for (int i = 0; i < targetPatternIds.Count; i++)
                     {
                         context.GameSession.RunModifiers.AddPatternScratchCardMultiplierBonus(
-                            effectConfig.TargetIds[i],
+                            targetPatternIds[i],
                             effectConfig.Value,
                             context.SourceRogueCardId);
                     }
@@ -176,6 +180,7 @@ namespace Core
 
                 context.GameSession.RunModifiers.AddScratchCardMultiplierBonus(effectConfig.Value, context.SourceRogueCardId);
             }
+
         }
 
         private class ConvertPatternToGiantOnGenerateEffect : IRogueCardEffect
@@ -184,16 +189,17 @@ namespace Core
 
             public void Apply(RogueCardEffectConfig effectConfig, RogueCardEffectContext context)
             {
-                if (effectConfig == null || effectConfig.TargetIds == null || context?.GameSession?.RunModifiers == null)
+                if (effectConfig == null || context?.GameSession?.RunModifiers == null)
                 {
                     return;
                 }
 
+                List<int> targetPatternIds = ResolveTargetPatternIds(effectConfig);
                 ParseChanceAndMultiplier(effectConfig, out double chance, out double multiplier);
-                for (int i = 0; i < effectConfig.TargetIds.Count; i++)
+                for (int i = 0; i < targetPatternIds.Count; i++)
                 {
                     context.GameSession.RunModifiers.AddGiantPatternRule(
-                        effectConfig.TargetIds[i],
+                        targetPatternIds[i],
                         chance,
                         multiplier,
                         context.SourceRogueCardId);
@@ -452,6 +458,98 @@ namespace Core
             }
         }
 
+        private class AddSettlementMultiplierBonusWhenAllPatternsScratchedEffect : IRogueCardEffect
+        {
+            public RogueCardEffectType EffectType => RogueCardEffectType.AddSettlementMultiplierBonusWhenAllPatternsScratched;
+
+            public void Apply(RogueCardEffectConfig effectConfig, RogueCardEffectContext context)
+            {
+                if (effectConfig == null || context?.GameSession?.RunModifiers == null)
+                {
+                    return;
+                }
+
+                double bonus = effectConfig.Value;
+                if (!string.IsNullOrWhiteSpace(effectConfig.ValueExpression) &&
+                    RogueCardEffectValueParser.TryParseNumber(effectConfig.ValueExpression, out double parsedBonus))
+                {
+                    bonus = parsedBonus;
+                }
+
+                context.GameSession.RunModifiers.AddAllPatternsScratchedSettlementMultiplierBonusRule(
+                    bonus,
+                    effectConfig.CardTypeIds,
+                    context.SourceRogueCardId);
+            }
+        }
+
+        private class IncreaseJackpotAppearanceChanceEffect : IRogueCardEffect
+        {
+            public RogueCardEffectType EffectType => RogueCardEffectType.IncreaseJackpotAppearanceChance;
+
+            public void Apply(RogueCardEffectConfig effectConfig, RogueCardEffectContext context)
+            {
+                if (effectConfig == null || context?.GameSession?.RunModifiers == null)
+                {
+                    return;
+                }
+
+                double bonus = effectConfig.Value;
+                if (!string.IsNullOrWhiteSpace(effectConfig.ValueExpression) &&
+                    RogueCardEffectValueParser.TryParseNumber(effectConfig.ValueExpression, out double parsedBonus))
+                {
+                    bonus = parsedBonus;
+                }
+
+                context.GameSession.RunModifiers.AddJackpotAppearanceChanceBonus(
+                    bonus,
+                    context.SourceRogueCardId);
+            }
+        }
+
+        private class IncreaseJackpotAppearanceChanceAndScratchCardPriceEffect : IRogueCardEffect
+        {
+            public RogueCardEffectType EffectType => RogueCardEffectType.IncreaseJackpotAppearanceChanceAndScratchCardPrice;
+
+            public void Apply(RogueCardEffectConfig effectConfig, RogueCardEffectContext context)
+            {
+                if (effectConfig == null || context?.GameSession?.RunModifiers == null)
+                {
+                    return;
+                }
+
+                ParseValue(effectConfig, out double jackpotChanceBonus, out double priceIncreaseBonus);
+                context.GameSession.RunModifiers.AddJackpotAppearanceChanceBonus(
+                    jackpotChanceBonus,
+                    context.SourceRogueCardId);
+                context.GameSession.RunModifiers.AddScratchCardPriceIncreaseBonus(
+                    priceIncreaseBonus,
+                    context.SourceRogueCardId);
+            }
+
+            private static void ParseValue(
+                RogueCardEffectConfig effectConfig,
+                out double jackpotChanceBonus,
+                out double priceIncreaseBonus)
+            {
+                jackpotChanceBonus = effectConfig != null ? effectConfig.Value : 0d;
+                priceIncreaseBonus = 0d;
+
+                string[] parts = RogueCardEffectValueParser.Split(effectConfig != null ? effectConfig.ValueExpression : null);
+                if (parts.Length > 0 &&
+                    RogueCardEffectValueParser.TryParseNumber(parts[0], out double parsedJackpotChanceBonus))
+                {
+                    jackpotChanceBonus = parsedJackpotChanceBonus;
+                }
+
+                if (parts.Length > 1 &&
+                    RogueCardEffectValueParser.TryParseNumber(parts[1], out double parsedPriceIncreaseBonus))
+                {
+                    priceIncreaseBonus = parsedPriceIncreaseBonus;
+                }
+            }
+        }
+
         private class AddSettlementScorePerScratchedPatternEffect : IRogueCardEffect
         {
             public RogueCardEffectType EffectType => RogueCardEffectType.AddSettlementScorePerScratchedPattern;
@@ -506,26 +604,30 @@ namespace Core
 
         private class ConvertPatternToPatternOnRevealEffect : IRogueCardEffect
         {
-            private const int DefaultTargetPatternId = 9;
-
             public RogueCardEffectType EffectType => RogueCardEffectType.ConvertPatternToPatternOnReveal;
 
             public void Apply(RogueCardEffectConfig effectConfig, RogueCardEffectContext context)
             {
-                if (effectConfig == null ||
-                    effectConfig.TargetIds == null ||
-                    effectConfig.TargetIds.Count == 0 ||
-                    context?.GameSession?.RunModifiers == null)
+                if (effectConfig == null || context?.GameSession?.RunModifiers == null)
+                {
+                    return;
+                }
+
+                List<int> sourcePatternIds = ResolveTargetPatternIds(effectConfig);
+                if (sourcePatternIds.Count == 0)
                 {
                     return;
                 }
 
                 ParseValue(effectConfig, out double chance, out int targetPatternId);
-                for (int i = 0; i < effectConfig.TargetIds.Count; i++)
+                IReadOnlyList<int> targetPatternIds = targetPatternId > 0
+                    ? new List<int> { targetPatternId }
+                    : sourcePatternIds;
+                for (int i = 0; i < sourcePatternIds.Count; i++)
                 {
                     context.GameSession.RunModifiers.AddPatternConversionRule(
-                        effectConfig.TargetIds[i],
-                        targetPatternId,
+                        sourcePatternIds[i],
+                        targetPatternIds,
                         chance,
                         effectConfig.CardTypeIds,
                         context.SourceRogueCardId);
@@ -535,7 +637,7 @@ namespace Core
             private static void ParseValue(RogueCardEffectConfig effectConfig, out double chance, out int targetPatternId)
             {
                 chance = effectConfig != null ? effectConfig.Value : 0d;
-                targetPatternId = DefaultTargetPatternId;
+                targetPatternId = 0;
                 string expression = effectConfig != null ? effectConfig.ValueExpression : null;
                 if (string.IsNullOrWhiteSpace(expression))
                 {
@@ -576,11 +678,53 @@ namespace Core
                 }
 
                 context.GameSession.RunModifiers.AddAdjacentPatternMetalConversionRule(
-                    effectConfig.TargetIds,
+                    ResolveTargetPatternIds(effectConfig),
                     chance,
                     effectConfig.CardTypeIds,
                     context.SourceRogueCardId);
             }
+        }
+
+        private static List<int> ResolveTargetPatternIds(RogueCardEffectConfig effectConfig)
+        {
+            var results = new List<int>();
+            if (effectConfig == null)
+            {
+                return results;
+            }
+
+            if (effectConfig.TargetIds != null && effectConfig.TargetIds.Count > 0)
+            {
+                for (int i = 0; i < effectConfig.TargetIds.Count; i++)
+                {
+                    int patternId = effectConfig.TargetIds[i];
+                    if (patternId > 0)
+                    {
+                        results.Add(patternId);
+                    }
+                }
+
+                return results;
+            }
+
+            if (string.IsNullOrWhiteSpace(effectConfig.TargetType))
+            {
+                return results;
+            }
+
+            string targetType = effectConfig.TargetType.Trim();
+            IReadOnlyList<ScratchPatternConfig> patterns = ScratchPatternDefaultProvider.GetAll();
+            for (int i = 0; i < patterns.Count; i++)
+            {
+                ScratchPatternConfig pattern = patterns[i];
+                if (pattern != null &&
+                    string.Equals(pattern.Type, targetType, System.StringComparison.OrdinalIgnoreCase))
+                {
+                    results.Add(pattern.Id);
+                }
+            }
+
+            return results;
         }
     }
 }

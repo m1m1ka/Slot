@@ -12,6 +12,11 @@ public class RogueCardInventoryModel
 
     public RogueCardInventoryEntryModel AddCard(RogueCardConfig cardConfig)
     {
+        return AddCard(cardConfig, 1);
+    }
+
+    public RogueCardInventoryEntryModel AddCard(RogueCardConfig cardConfig, int level)
+    {
         if (cardConfig == null)
         {
             return null;
@@ -20,15 +25,55 @@ public class RogueCardInventoryModel
         RogueCardInventoryEntryModel ownedCard = FindByCardId(cardConfig.Id);
         if (ownedCard != null)
         {
-            ownedCard.Upgrade(cardConfig.GetMaxLevel());
+            ownedCard.SetLevel(level, cardConfig.GetMaxLevel());
             OnCardChanged?.Invoke(ownedCard);
             return ownedCard;
         }
 
-        ownedCard = new RogueCardInventoryEntryModel(cardConfig);
+        ownedCard = new RogueCardInventoryEntryModel(cardConfig, level);
         _ownedCards.Add(ownedCard);
         OnCardChanged?.Invoke(ownedCard);
         return ownedCard;
+    }
+
+    public RogueCardInventoryEntryModel ReplaceCard(int oldCardId, RogueCardConfig newCardConfig)
+    {
+        return ReplaceCard(oldCardId, newCardConfig, 1);
+    }
+
+    public RogueCardInventoryEntryModel ReplaceCard(int oldCardId, RogueCardConfig newCardConfig, int level)
+    {
+        if (oldCardId <= 0 || newCardConfig == null)
+        {
+            return null;
+        }
+
+        RogueCardInventoryEntryModel existingNewCard = FindByCardId(newCardConfig.Id);
+        if (existingNewCard != null)
+        {
+            existingNewCard.SetLevel(level, newCardConfig.GetMaxLevel());
+            if (oldCardId != newCardConfig.Id)
+            {
+                RemoveCard(oldCardId);
+            }
+
+            OnCardChanged?.Invoke(existingNewCard);
+            return existingNewCard;
+        }
+
+        for (int i = 0; i < _ownedCards.Count; i++)
+        {
+            RogueCardInventoryEntryModel ownedCard = _ownedCards[i];
+            if (ownedCard != null && ownedCard.CardId == oldCardId)
+            {
+                RogueCardInventoryEntryModel replacement = new RogueCardInventoryEntryModel(newCardConfig, level);
+                _ownedCards[i] = replacement;
+                OnCardChanged?.Invoke(replacement);
+                return replacement;
+            }
+        }
+
+        return AddCard(newCardConfig, level);
     }
 
     public int GetCardLevel(int cardId)
@@ -49,5 +94,18 @@ public class RogueCardInventoryModel
         }
 
         return null;
+    }
+
+    private void RemoveCard(int cardId)
+    {
+        for (int i = _ownedCards.Count - 1; i >= 0; i--)
+        {
+            RogueCardInventoryEntryModel ownedCard = _ownedCards[i];
+            if (ownedCard != null && ownedCard.CardId == cardId)
+            {
+                _ownedCards.RemoveAt(i);
+                return;
+            }
+        }
     }
 }
